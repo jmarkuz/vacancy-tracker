@@ -91,7 +91,7 @@ Phase 0 ended with an approval request to the owner. Approved 2026-11-01.
 | [x] 2026-11-01 | T-052 | Score formula, matchReasons, VacancyMatch storage | M | T-050, T-051 | Score in 0..100; monotonic property test; reasons reference criterion IDs |
 | [x] 2026-11-01 | T-053 | Profile recalculation job and "Recalculate scores" button | S | T-052 | Background job; user statuses unchanged after recalculation |
 | [x] 2026-11-01 | T-054 | Profile API with criterion validation | M | T-049, T-050 | Operator not allowed for field returns field-level error |
-| [ ] | T-055 | Profile list and rule builder: reorder, duplicate | M | T-054, T-018 | Reorder by keyboard; duplicate creates an independent copy |
+| [x] 2026-11-01 | T-055 | Profile list and rule builder: reorder, duplicate | M | T-054, T-018 | Reorder by keyboard; duplicate creates an independent copy |
 | [ ] | T-056 | Live preview: counts and sample vacancies | M | T-052, T-055 | Counts equal engine output; no VacancyMatch rows written by preview |
 | [ ] | T-057 | Profile YAML/JSON import and export | S | T-054 | Round-trip test; example file is imported only when the user imports it |
 | [ ] | T-058 | Onboarding wizard on first run | S | T-055 | Creates the first profile; no profile created automatically from example |

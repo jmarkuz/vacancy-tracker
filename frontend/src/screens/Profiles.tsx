@@ -1,36 +1,62 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { ApiError } from "../api/client";
-import { listProfiles, type SearchProfile } from "../api/profiles";
+import {
+  createProfile,
+  deleteProfile,
+  getMeta,
+  listProfiles,
+  type Meta,
+  type ProfileInput,
+  type SearchProfile,
+} from "../api/profiles";
 import { getRecalculationProgress, startRecalculation, type RecalculationProgress } from "../api/recalculation";
-import { progressText, percentDone } from "../domain/recalc";
+import { listSources } from "../api/sources";
+import { copyOfProfile, emptyProfile, toInput } from "../domain/profileEditor";
+import { percentDone, progressText } from "../domain/recalc";
+import { ProfileEditor } from "../components/ProfileEditor";
 import { Toast } from "../components/Toast";
+import { setQuery } from "../router";
 import { formatDate } from "./columns";
 
 const POLL_MS = 700;
 
+interface Props {
+  params: URLSearchParams;
+}
+
 /**
- * Search profiles (T-053 part): the list and the "Recalculate scores" button with live progress.
- * The rule builder, preview and import arrive with T-055 to T-058.
+ * Search profiles: the list, the rule builder (T-055), duplicating and deleting profiles, and the
+ * "Recalculate scores" button with live progress (T-053). `?edit=<id>` or `?edit=new` opens the editor.
  */
-export function Profiles() {
+export function Profiles({ params }: Props) {
   const [profiles, setProfiles] = useState<SearchProfile[] | null>(null);
+  const [meta, setMeta] = useState<Meta | null>(null);
+  const [sourceIds, setSourceIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<RecalculationProgress | null>(null);
   const [toast, setToast] = useState<{ message: string; tone: "info" | "error" } | null>(null);
   const timer = useRef<number | undefined>(undefined);
-  const watching = useRef<string | null>(null);
+  const editing = params.get("edit");
+
+  const load = () =>
+    listProfiles()
+      .then((list) => {
+        setProfiles(list);
+        setError(null);
+      })
+      .catch((e: unknown) => setError(e instanceof ApiError ? e.message : "Could not load the profiles."));
 
   useEffect(() => {
-    listProfiles()
-      .then(setProfiles)
-      .catch((e: unknown) => setError(e instanceof ApiError ? e.message : "Could not load the profiles."));
+    load();
+    getMeta().then(setMeta).catch(() => setError("Could not load the rule builder options."));
+    listSources().then((s) => setSourceIds(s.map((x) => x.id))).catch(() => undefined);
     // Pick up a job that is already running, for example one started by saving a profile.
     getRecalculationProgress()
       .then((p) => {
         if (p) {
           setProgress(p);
           if (p.state === "RUNNING") {
-            watch(p.jobId);
+            watch();
           }
         }
       })
@@ -38,9 +64,8 @@ export function Profiles() {
     return () => window.clearInterval(timer.current);
   }, []);
 
-  /** Polls until the job we started has finished; then shows the summary once. */
-  const watch = (jobId: string) => {
-    watching.current = jobId;
+  /** Polls until the job has finished, then shows the summary once. */
+  const watch = () => {
     window.clearInterval(timer.current);
     timer.current = window.setInterval(async () => {
       try {
@@ -49,10 +74,8 @@ export function Profiles() {
           return;
         }
         setProgress(p);
-        // A queued extra pass starts a new job id; keep following until nothing is running.
         if (p.state === "COMPLETED") {
           window.clearInterval(timer.current);
-          watching.current = null;
           setToast({ message: progressText(p), tone: p.failed > 0 ? "error" : "info" });
         }
       } catch {
@@ -73,18 +96,49 @@ export function Profiles() {
       if (current) {
         setProgress(current);
       }
-      watch(started.jobId);
+      watch();
     } catch (e: unknown) {
       setToast({ message: e instanceof Error ? e.message : "Could not start the recalculation.", tone: "error" });
     }
   };
 
+  const duplicate = async (profile: SearchProfile) => {
+    try {
+      const copy = await createProfile(copyOfProfile(profile, (profiles ?? []).map((p) => p.name)));
+      await load();
+      setToast({ message: `Created "${copy.name}"`, tone: "info" });
+      setQuery({ edit: copy.id });
+    } catch (e: unknown) {
+      setToast({ message: e instanceof Error ? e.message : "Could not duplicate the profile.", tone: "error" });
+    }
+  };
+
+  const remove = async (profile: SearchProfile) => {
+    if (!window.confirm(`Delete the profile "${profile.name}"? Its version history is deleted too.`)) {
+      return;
+    }
+    try {
+      await deleteProfile(profile.id);
+      await load();
+      setToast({ message: `Deleted "${profile.name}"`, tone: "info" });
+    } catch (e: unknown) {
+      setToast({ message: e instanceof Error ? e.message : "Could not delete the profile.", tone: "error" });
+    }
+  };
+
   const running = progress?.state === "RUNNING";
+  const stored = editing && editing !== "new" ? profiles?.find((p) => p.id === editing) ?? null : null;
+  const initial: ProfileInput | null =
+    editing === "new" && meta ? emptyProfile(meta) : stored ? toInput(stored) : null;
+
   return (
     <section aria-labelledby="profiles-title">
       <div class="toolbar">
         <h1 id="profiles-title">Search profiles</h1>
         <span class="grow" />
+        <button class="btn" type="button" onClick={() => setQuery({ edit: "new" })} disabled={!meta}>
+          New profile
+        </button>
         <button class="btn" type="button" onClick={recalculate} disabled={running} aria-busy={running}>
           {running ? "Recalculating…" : "Recalculate scores"}
         </button>
@@ -97,16 +151,43 @@ export function Profiles() {
         </div>
       )}
 
-      {error && (
+      {error && <div class="notice error" role="alert">{error}</div>}
+
+      {initial && meta && (
+        <ProfileEditor
+          key={editing ?? "none"}
+          initial={initial}
+          profile={stored}
+          meta={meta}
+          sourceIds={sourceIds}
+          onClose={() => setQuery({ edit: null })}
+          onSaved={(saved, created) => {
+            load();
+            setToast({
+              message: created ? `Created "${saved.name}". Scores are being recalculated.` : `Saved "${saved.name}" as version ${saved.version}. Scores are being recalculated.`,
+              tone: "info",
+            });
+            setProgress(null);
+            watch();
+            setQuery({ edit: saved.id });
+          }}
+        />
+      )}
+
+      {editing && !initial && profiles && meta && (
         <div class="notice error" role="alert">
-          {error}
+          <span>That profile no longer exists.</span>
+          <button class="btn" type="button" onClick={() => setQuery({ edit: null })}>Back to the list</button>
         </div>
       )}
 
-      {profiles && profiles.length === 0 && (
+      {profiles && profiles.length === 0 && !editing && (
         <div class="panel empty-state">
           <h2>No search profiles yet</h2>
-          <p class="muted">Profiles can be edited here once the rule builder is added. Until then they are managed through the API.</p>
+          <p class="muted">A profile says what you look for. Create one to score and filter vacancies.</p>
+          <button class="btn primary" type="button" onClick={() => setQuery({ edit: "new" })} disabled={!meta}>
+            New profile
+          </button>
         </div>
       )}
 
@@ -121,19 +202,23 @@ export function Profiles() {
                 <th scope="col" class="numeric">Rules</th>
                 <th scope="col" class="numeric">Version</th>
                 <th scope="col">Updated</th>
+                <th scope="col"><span class="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>
               {profiles.map((p) => (
-                <tr key={p.id}>
-                  <td>
-                    <span class="title-text">{p.name}</span>
-                  </td>
+                <tr key={p.id} class={p.id === editing ? "editing" : undefined}>
+                  <td><button type="button" class="row-open" onClick={() => setQuery({ edit: p.id })}>{p.name}</button></td>
                   <td>{p.enabled ? "Enabled" : "Disabled"}</td>
                   <td>{p.sources.join(", ")}</td>
                   <td class="numeric num">{p.criteria.length}</td>
                   <td class="numeric num">{p.version}</td>
                   <td class="num">{formatDate(p.updatedAt)}</td>
+                  <td class="row-actions">
+                    <button type="button" class="btn" onClick={() => setQuery({ edit: p.id })}>Edit</button>
+                    <button type="button" class="btn" onClick={() => duplicate(p)}>Duplicate</button>
+                    <button type="button" class="btn ghost" onClick={() => remove(p)}>Delete</button>
+                  </td>
                 </tr>
               ))}
             </tbody>
