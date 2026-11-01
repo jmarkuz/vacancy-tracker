@@ -6,6 +6,8 @@ import { Pipeline } from "./screens/Pipeline";
 import { Inbox } from "./screens/Inbox";
 import { Profiles } from "./screens/Profiles";
 import { Sources } from "./screens/Sources";
+import { listProfiles } from "./api/profiles";
+import { wizardSkipped } from "./domain/firstRun";
 import { applyTheme, nextTheme, readTheme, type Theme } from "./theme";
 
 /** `short` labels the bottom bar on phones, where the full names would not fit. */
@@ -32,6 +34,20 @@ export function App() {
   const [theme, setTheme] = useState<Theme>(readTheme);
 
   useEffect(() => applyTheme(theme), [theme]);
+
+  // First run: with no profile yet, a bare address leads to the wizard. A deep link or an earlier skip is left alone.
+  useEffect(() => {
+    if (!/^#?\/?(dashboard)?$/.test(window.location.hash) || wizardSkipped()) {
+      return;
+    }
+    listProfiles()
+      .then((profiles) => {
+        if (profiles.length === 0) {
+          window.location.hash = "#/profiles?wizard=1";
+        }
+      })
+      .catch(() => undefined);
+  }, []);
 
   const info = SCREEN_INFO[screen];
   return (

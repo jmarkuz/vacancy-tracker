@@ -94,7 +94,7 @@ Phase 0 ended with an approval request to the owner. Approved 2026-11-01.
 | [x] 2026-11-01 | T-055 | Profile list and rule builder: reorder, duplicate | M | T-054, T-018 | Reorder by keyboard; duplicate creates an independent copy |
 | [x] 2026-11-01 | T-056 | Live preview: counts and sample vacancies | M | T-052, T-055 | Counts equal engine output; no VacancyMatch rows written by preview |
 | [x] 2026-11-01 | T-057 | Profile YAML/JSON import and export | S | T-054 | Round-trip test; example file is imported only when the user imports it |
-| [ ] | T-058 | Onboarding wizard on first run | S | T-055 | Creates the first profile; no profile created automatically from example |
+| [x] 2026-11-01 | T-058 | Onboarding wizard on first run | S | T-055 | Creates the first profile; no profile created automatically from example |
 | [ ] | T-059 | Allowlist and blocklist, global and per profile | S | T-052 | Blocked company hidden; allowlisted company gets bonus |
 | [ ] | T-060 | Dashboard screen | M | T-052, T-046 | KPI cards open filtered Inbox or Pipeline; charts are plain SVG |
 | [ ] | T-061 | Kanban with drag-and-drop and keyboard alternative | M | T-019, T-016 | Status change by drag and by keyboard; both create StatusEvent |
