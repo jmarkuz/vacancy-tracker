@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from "preact/hooks";
 import { getJson, ApiError } from "../api/client";
+import { changeStatus } from "../api/vacancies";
+import { Board } from "../components/Board";
+import { BOARD_COLUMNS, withStatus } from "../domain/kanban";
 import type { PageResponse, Vacancy } from "../api/types";
 import { setQuery } from "../router";
 import { FilterBar } from "../components/FilterBar";
@@ -26,6 +29,7 @@ export function Pipeline({ params }: Props) {
   const criteria = parseCriteria(filterRaw);
   const cols = params.get("cols");
   const viewId = params.get("view");
+  const board = params.get("layout") === "board";
   const closeDrawer = useCallback(() => setQuery({ open: null }), []);
 
   const [data, setData] = useState<PageResponse<Vacancy> | null>(null);
@@ -38,7 +42,10 @@ export function Pipeline({ params }: Props) {
     setLoading(true);
     setError(null);
     const query = new URLSearchParams({ sort, page: String(page), size: String(PAGE_SIZE) });
-    if (filterRaw) {
+    if (board) {
+      // The board shows pipeline statuses only; without this the first page would be full of Inbox vacancies.
+      query.set("filter", JSON.stringify([...criteria, { field: "status", operator: "in", value: BOARD_COLUMNS }]));
+    } else if (filterRaw) {
       query.set("filter", filterRaw);
     }
     getJson<PageResponse<Vacancy>>(`/api/vacancies?${query}`, controller.signal)
@@ -54,7 +61,7 @@ export function Pipeline({ params }: Props) {
         setLoading(false);
       });
     return () => controller.abort();
-  }, [sort, page, filterRaw, attempt]);
+  }, [sort, page, filterRaw, attempt, board]);
 
   const pageCount = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1;
 
@@ -63,7 +70,11 @@ export function Pipeline({ params }: Props) {
       <div class="toolbar">
         <h1 id="pipeline-title">Pipeline</h1>
         <span class="grow" />
-        <ColumnPicker selected={visible} />
+        <div class="filters" role="group" aria-label="Layout">
+          <button type="button" class="chip" aria-pressed={!board} onClick={() => setQuery({ layout: null })}>Table</button>
+          <button type="button" class="chip" aria-pressed={board} onClick={() => setQuery({ layout: "board" })}>Board</button>
+        </div>
+        {!board && <ColumnPicker selected={visible} />}
       </div>
 
       <FilterBar criteria={criteria} onChange={(next) => setFilter(next)} />
@@ -91,7 +102,20 @@ export function Pipeline({ params }: Props) {
         </div>
       )}
 
-      {data && data.total > 0 && (
+      {board && data && data.total > 0 && (
+        <>
+          <Board items={data.items} onOpen={(id) => setQuery({ open: id })}
+            onMove={async (v, status) => {
+              const updated = await changeStatus(v.id, status);
+              setData((d) => (d ? { ...d, items: withStatus(d.items, v.id, updated.status) } : d));
+            }} />
+          {data.total > data.items.length && (
+            <p class="muted small" role="status">Showing {data.items.length} of {data.total.toLocaleString()} vacancies. Narrow the list with a filter.</p>
+          )}
+        </>
+      )}
+
+      {!board && data && data.total > 0 && (
         <>
           <div class="table-wrap" aria-busy={loading}>
             <table>
