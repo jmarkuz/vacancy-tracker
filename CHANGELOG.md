@@ -5,6 +5,8 @@ All notable changes are recorded here. Format: date, task ID, short description.
 ## [Unreleased]
 
 ### 2026-11-01 — M1 core tracker
+- T-021 (backend part): Saved views API: `/api/views` CRUD (unique name, criteria validated on save), and `GET /api/views/{id}/vacancies` to apply a view. UI (chips, URL state) not yet started.
+- T-020 (partial): Criterion filters for views: `GET /api/vacancies?filter=<json>&sort=field:asc|desc` compiled to parameterized SQL. Supported fields: title, company, location, description, keywords, workMode, status, priority, salary, tags, source, firstSeenAt, lastSeenAt, nextActionAt. Modes require and exclude; missing values never satisfy a positive operator. Not yet: country and score (no column or score until M3), URL state (frontend).
 - T-026: JSON backup: `GET /api/export/backup.json` (schemaVersion 1) with every vacancy and its status history. Import: `POST /api/import/vacancies` accepts the JSON backup or CSV with a header; rows are validated one by one, invalid rows are reported with row and field, and valid rows are stored. Unsupported version or unknown CSV column gives 422.
 - T-025: XLSX export: `GET /api/export/vacancies.xlsx` with the same filter and columns as CSV. Apache POI streaming workbook (SXSSF), numeric salaries kept as numbers.
 - T-024: CSV export: `GET /api/export/vacancies.csv` with optional status filter and column selection. UTF-8 with BOM, CRLF, RFC 4180 quoting, streamed in batches. Test isolation: each integration test starts with an empty database.

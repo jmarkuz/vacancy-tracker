@@ -9,8 +9,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import com.vacancytracker.common.SqlFragment;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -83,23 +85,24 @@ public class VacancyRepository {
                 .optional();
     }
 
-    /** Offset page ordered by most recently seen first; status filter is optional. */
-    public List<VacancyState> findPage(String statusLabel, int limit, int offset) {
-        return jdbc.sql("SELECT " + COLUMNS + " FROM vacancy"
-                        + " WHERE CAST(:status AS TEXT) IS NULL OR status = :status"
-                        + " ORDER BY last_seen_at DESC, id LIMIT :limit OFFSET :offset")
-                .param("status", statusLabel)
+    /** One page of vacancies matching a compiled filter. The order clause is built from a whitelist. */
+    public List<VacancyState> findPage(SqlFragment where, VacancySort sort, int limit, int offset) {
+        JdbcClient.StatementSpec spec = jdbc.sql("SELECT " + COLUMNS + " FROM vacancy WHERE " + where.sql()
+                        + " ORDER BY " + sort.orderBy() + " LIMIT :limit OFFSET :offset")
                 .param("limit", limit)
-                .param("offset", offset)
-                .query((rs, n) -> map(rs))
-                .list();
+                .param("offset", offset);
+        for (Map.Entry<String, Object> e : where.params().entrySet()) {
+            spec = spec.param(e.getKey(), e.getValue());
+        }
+        return spec.query((rs, n) -> map(rs)).list();
     }
 
-    public long count(String statusLabel) {
-        return jdbc.sql("SELECT count(*) FROM vacancy WHERE CAST(:status AS TEXT) IS NULL OR status = :status")
-                .param("status", statusLabel)
-                .query(Long.class)
-                .single();
+    public long count(SqlFragment where) {
+        JdbcClient.StatementSpec spec = jdbc.sql("SELECT count(*) FROM vacancy WHERE " + where.sql());
+        for (Map.Entry<String, Object> e : where.params().entrySet()) {
+            spec = spec.param(e.getKey(), e.getValue());
+        }
+        return spec.query(Long.class).single();
     }
 
     public void appendStatusEvent(StatusEvent e) {

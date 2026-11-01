@@ -2,6 +2,7 @@ package com.vacancytracker.web;
 
 import com.vacancytracker.collection.NoJobPostingException;
 import com.vacancytracker.collection.UrlFetchException;
+import com.vacancytracker.matching.SavedViewNotFoundException;
 import com.vacancytracker.vacancy.InvalidStatusTransitionException;
 import com.vacancytracker.vacancy.VacancyNotFoundException;
 import java.util.LinkedHashMap;
@@ -19,6 +20,11 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(VacancyNotFoundException.class)
     ProblemDetail notFound(VacancyNotFoundException e) {
+        return problem(HttpStatus.NOT_FOUND, "Not found", e.getMessage());
+    }
+
+    @ExceptionHandler(SavedViewNotFoundException.class)
+    ProblemDetail viewNotFound(SavedViewNotFoundException e) {
         return problem(HttpStatus.NOT_FOUND, "Not found", e.getMessage());
     }
 
