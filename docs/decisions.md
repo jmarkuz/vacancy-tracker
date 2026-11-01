@@ -165,6 +165,8 @@ Status: Accepted (rate source is a default; configurable)
 
 **Open question (non-blocking):** the owner may prefer another rate source. Default is ECB.
 
+**Implementation note (T-051).** The ECB daily XML feed is read through the shared HTTP client once at startup (optional) and then at 16:30 Europe/Berlin on working days; the stored rates (`exchange_rate`, V7) are held in memory. Cross rates go through EUR. A currency without a rate, and an unknown period (for example hourly), make the salary missing data. A failed refresh logs a warning and keeps the last known rates. Salary criteria carry their own currency, so the vacancy's salary is converted into the currency of the criterion it is compared with; there is no separate profile currency. The ECB must be cited as the source wherever a converted amount is displayed.
+
 ---
 
 ## ADR-012 Upsert rules: automation never overwrites user data

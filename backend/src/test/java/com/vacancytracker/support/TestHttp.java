@@ -29,6 +29,11 @@ public final class TestHttp {
             Route route = routes.getOrDefault(key, new Route(404, ""));
             byte[] bytes = route.body().getBytes(StandardCharsets.UTF_8);
             if (route.etag() != null) {
+                if (route.etag().equals(ex.getRequestHeaders().getFirst("If-None-Match"))) {
+                    ex.sendResponseHeaders(304, -1);
+                    ex.close();
+                    return;
+                }
                 ex.getResponseHeaders().add("ETag", route.etag());
             }
             ex.sendResponseHeaders(route.status(), bytes.length == 0 ? -1 : bytes.length);

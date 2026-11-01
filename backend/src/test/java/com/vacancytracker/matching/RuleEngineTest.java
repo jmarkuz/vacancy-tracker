@@ -24,7 +24,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 class RuleEngineTest {
 
     private final ObjectMapper mapper = new ObjectMapper();
-    private final RuleEngine engine = new RuleEngine(new YearlyConverter("EUR"));
+    private final RuleEngine engine = new RuleEngine(new YearlyConverter());
 
     private Criterion crit(String field, String op, String value, String mode, String policy) {
         try {
