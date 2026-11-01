@@ -323,6 +323,9 @@ Status: Accepted
 
 **Coverage gate (T-068).** `mvn verify` runs a JaCoCo check for each of `vacancy`, `collection` and `matching` (all their subpackages together) and fails the build when line coverage of one falls below `jacoco.minimum.line` (0.80). Integration tests with a real PostgreSQL in Testcontainers are part of the measured run. At the time of writing the modules stand at 97.7%, 91.4% and 90.9%. Only lines are gated; branch coverage is reported (about 77%) but not enforced. `web`, `export` and `notification` are measured but not gated. Adapter tests use a local JDK HTTP server instead of WireMock (see the note above).
 
+
+**Smoke test (T-074).** `e2e/` holds a Playwright test (separate package, so the frontend dependencies stay small) that drives the packaged app with its UI on an empty PostgreSQL: first run and the wizard, the dashboard counts, Inbox triage with the keyboard, the board, the command palette, and every main screen loading, failing on any script error in the browser. `npm run test:local` in `e2e/` runs it on a developer machine (Docker for PostgreSQL, the built jar, installed Google Chrome); `.github/workflows/ci.yml` runs it in CI as the `smoke` job next to the `backend` (Maven verify) and `frontend` (typecheck, tests, build) jobs. Playwright is pinned to 1.55.1, the first version without the browser-download advisory.
+
 ---
 
 ## ADR-023 Status transition table
