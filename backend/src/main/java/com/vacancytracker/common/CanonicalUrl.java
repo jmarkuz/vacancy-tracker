@@ -1,4 +1,4 @@
-package com.vacancytracker.collection;
+package com.vacancytracker.common;
 
 import java.net.URI;
 import java.net.URISyntaxException;

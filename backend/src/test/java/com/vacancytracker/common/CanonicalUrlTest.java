@@ -1,4 +1,4 @@
-package com.vacancytracker.collection;
+package com.vacancytracker.common;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

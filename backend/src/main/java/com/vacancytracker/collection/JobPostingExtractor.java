@@ -3,6 +3,7 @@ package com.vacancytracker.collection;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vacancytracker.vacancy.ImportedPosting;
 import java.math.BigDecimal;
 import java.util.Locale;
 import java.util.Optional;
@@ -21,19 +22,7 @@ public final class JobPostingExtractor {
     private JobPostingExtractor() {
     }
 
-    public record ExtractedJob(
-            String title,
-            String company,
-            String location,
-            String workMode,
-            String description,
-            BigDecimal salaryMin,
-            BigDecimal salaryMax,
-            String currency,
-            String salaryPeriod) {
-    }
-
-    public static Optional<ExtractedJob> extract(String html) {
+    public static Optional<ImportedPosting> extract(String html) {
         Document doc = Jsoup.parse(html);
         for (Element script : doc.select("script[type=application/ld+json]")) {
             JsonNode posting = parseBlock(script.data()).flatMap(JobPostingExtractor::findPosting).orElse(null);
@@ -87,14 +76,14 @@ public final class JobPostingExtractor {
         return "JobPosting".equals(type.asText());
     }
 
-    private static ExtractedJob toJob(JsonNode posting) {
+    private static ImportedPosting toJob(JsonNode posting) {
         JsonNode salary = posting.path("baseSalary");
         JsonNode value = salary.path("value");
         BigDecimal min = decimal(value.has("minValue") ? value.get("minValue") : value.get("value"));
         BigDecimal max = decimal(value.has("maxValue") ? value.get("maxValue") : null);
         String description = posting.hasNonNull("description")
                 ? Jsoup.parse(posting.get("description").asText()).text() : null;
-        return new ExtractedJob(
+        return new ImportedPosting(
                 text(posting, "title"),
                 text(posting.path("hiringOrganization"), "name"),
                 location(posting.get("jobLocation")),
