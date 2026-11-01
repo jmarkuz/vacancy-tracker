@@ -89,7 +89,7 @@ class ExpiryAndRunLockTest extends AbstractIntegrationTest {
         SourceHealth health = new SourceHealth(jdbc, clock);
         IngestService ingestService = new IngestService(deduplicator, vacancies);
         ExpiryService expiry = new ExpiryService(jdbc, vacancies, clock, transactions, 3);
-        return new CollectionPipeline(adapters, health, ingestService, runs, vacancies, expiry, clock);
+        return new CollectionPipeline(adapters, health, ingestService, runs, vacancies, expiry, new RunEventBus(), clock);
     }
 
     private String statusOf(String title) {

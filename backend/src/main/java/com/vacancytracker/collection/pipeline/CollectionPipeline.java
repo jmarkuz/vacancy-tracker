@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.Map;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 
@@ -37,17 +38,20 @@ public class CollectionPipeline {
     private final RunRepository runs;
     private final VacancyRepository vacancies;
     private final ExpiryService expiry;
+    private final RunEventBus events;
     private final Clock clock;
     private volatile boolean stopRequested;
 
     public CollectionPipeline(List<SourceAdapter> adapters, SourceHealth health, IngestService ingest,
-                              RunRepository runs, VacancyRepository vacancies, ExpiryService expiry, Clock clock) {
+                              RunRepository runs, VacancyRepository vacancies, ExpiryService expiry,
+                              RunEventBus events, Clock clock) {
         this.adapters = adapters;
         this.health = health;
         this.ingest = ingest;
         this.runs = runs;
         this.vacancies = vacancies;
         this.expiry = expiry;
+        this.events = events;
         this.clock = clock;
     }
 
@@ -64,23 +68,48 @@ public class CollectionPipeline {
     /** Executes an already created run. Stops between adapters when asked; then the run is interrupted. */
     public RunSummary execute(UUID runId) {
         List<AdapterResult> results = new ArrayList<>();
-        boolean anyFailed = false;
+        events.publish(runId, "started", Map.of("runId", runId.toString()));
         for (SourceAdapter adapter : adapters) {
             if (stopRequested) {
                 runs.finish(runId, "interrupted", clock.instant());
+                publishDone(runId, "interrupted", results);
                 return new RunSummary(runId, "interrupted", results);
             }
+            events.publish(runId, "source", Map.of("adapter", adapter.id(), "state", "running"));
             long started = System.nanoTime();
             AdapterResult result = runAdapter(adapter);
             long durationMs = (System.nanoTime() - started) / 1_000_000;
             results.add(result);
-            anyFailed |= result.error() != null;
             runs.recordStat(runId, adapter.id(), result.stats(), durationMs, result.error());
+            events.publish(runId, "source", sourceEvent(result));
         }
+        boolean anyFailed = results.stream().anyMatch(r -> r.error() != null);
         String status = anyFailed ? "completed_with_errors" : "completed";
         runs.finish(runId, status, clock.instant());
         expiry.expireUnseen();
+        publishDone(runId, status, results);
         return new RunSummary(runId, status, results);
+    }
+
+    private static Map<String, Object> sourceEvent(AdapterResult result) {
+        RunRepository.SourceStats s = result.stats();
+        return Map.of(
+                "adapter", result.adapter(),
+                "state", result.error() == null ? "finished" : "failed",
+                "fetched", s.fetched,
+                "new", s.newCount,
+                "updated", s.updated,
+                "duplicates", s.duplicates,
+                "errors", s.errors,
+                "error", result.error() == null ? "" : result.error());
+    }
+
+    private void publishDone(UUID runId, String status, List<AdapterResult> results) {
+        int newCount = results.stream().mapToInt(r -> r.stats().newCount).sum();
+        int updated = results.stream().mapToInt(r -> r.stats().updated).sum();
+        int failed = (int) results.stream().filter(r -> r.error() != null).count();
+        events.publish(runId, "done", Map.of("status", status, "new", newCount, "updated", updated,
+                "failedSources", failed));
     }
 
     private AdapterResult runAdapter(SourceAdapter adapter) {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 import { Placeholder } from "./screens/Placeholder";
+import { RefreshControl } from "./components/RefreshControl";
 import { type Screen, useRoute } from "./router";
 import { Pipeline } from "./screens/Pipeline";
 import { applyTheme, nextTheme, readTheme, type Theme } from "./theme";
@@ -54,9 +55,7 @@ export function App() {
       <div class="main">
         <header class="header">
           <span class="header-title">{info.title}</span>
-          <button class="btn primary" type="button" disabled title="Refresh arrives with T-046">
-            Refresh
-          </button>
+          <RefreshControl />
         </header>
         <main class="content">
           {screen === "pipeline" ? (
