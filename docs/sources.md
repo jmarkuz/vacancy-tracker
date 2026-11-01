@@ -1,27 +1,28 @@
 # Sources: verified terms, limits and adapter capabilities
 
 Status legend:
-- `ok`: terms and limits confirmed against the source's own documentation.
-- `check`: the adapter is planned, but at least one term or limit is only confirmed by secondary sources. Re-verify against the official page before the adapter is built (task T-027, then the matching adapter task).
+- `ok`: terms and limits confirmed against the source's official page (verified date below).
+- `ok (constraints)`: usable, with attribution or other conditions the adapter must implement.
+- `check`: the adapter is planned, but a term or limit is still unconfirmed. Resolve before the adapter task (T-028 onwards).
 - `blocked`: must not be built in the current scope.
 
-Verification note (Phase 0): searches returned third-party summaries for most sources. The official pages were not fetched directly in this phase, so every row below is `check` unless stated otherwise. The first task of each adapter is to re-read the official terms and record the result here.
+Verification (T-027, 2026-11-01): official pages were read through the web-fetch agent. Where a page could not be read, the row says so. Quotes are from the official pages unless marked as secondary.
 
 ## Tier 1: official public APIs and feeds
 
-| Source | Adapter | URL (official) | Auth | Limits (as reported) | Attribution / terms | Risks | Status |
+| Source | Adapter | Official page | Auth | Limits | Attribution and terms | Risks | Status |
 |---|---|---|---|---|---|---|---|
-| Greenhouse Job Board | `ats-greenhouse` | `https://boards-api.greenhouse.io/v1/boards/{token}/jobs` (public, no key) | None | No published hard limit; the API is cached; poll every few hours | Public data; link to the original posting | Endpoint is undocumented in search results; board token must be configured per company | check |
-| Lever Postings | `ats-lever` | `https://api.lever.co/v0/postings/{site}?mode=json` (EU: `api.eu.lever.co`) | None | Unclear; the authenticated v1 API has separate limits; do not use v1 | Public postings; link to the original | No list endpoint for slugs; location is free text; no salary data | check |
-| Ashby Job Board | `ats-ashby` | `https://api.ashbyhq.com/posting-api/job-board/{company}?includeCompensation=true` | None | Not published; poll every few hours | Public postings; link to the original | Company display name is not in the feed; no server-side search | check |
-| Arbeitnow | `arbeitnow` | Arbeitnow Free Job Search API (documented on arbeitnow.com/blog/job-board-api) | None | Not found; use conservative polling (once per few hours) | Terms not found; confirm before enabling | Visa sponsorship filter exists; UK endpoint also exists | check |
-| Adzuna | `adzuna` | `https://api.adzuna.com/v1/api/jobs/{country}/search/{page}` (docs: developer.adzuna.com) | `app_id` + `app_key` (query params), free registration | Conflicting reports: 25 calls/min and 250/day vs 1,000/month; verify in the portal | Terms not found; confirm the required attribution | Supported country list differs by source (12 to 19 codes); countries must come from profiles and be validated against the live list | check |
-| Jooble | `jooble` | `POST https://jooble.org/api/{apiKey}` (docs: jooble.org/api/about) | API key emailed after registration | Usage limits are set per key; no public paid tiers | Terms not found; confirm | Key in URL path: never log full URLs; request is POST, not GET | check |
-| Remotive | `remotive` | `https://remotive.com/api/remote-jobs` (docs: remotive.com/api-documentation) | None | At most 4 requests per day (recommended); blocks above 2 requests per minute (reported) | Attribution and a link back are required. Must not forward jobs to LinkedIn, Google Jobs or Jooble. Must not use listings to collect emails | Listings are delayed 24 h; violating the attribution rule breaks their terms | check |
-| Himalayas | `himalayas` | `https://himalayas.app/jobs/api` and `/jobs/api/search` | None | `limit` capped at 20 per request (since 2025-03-24); 429 responses reported | Terms not found; confirm attribution | Pagination required for large sets; 429 handling is mandatory | check |
-| Jobicy | `jobicy` | `https://jobicy.com/api/v2/remote-jobs` (docs: jobi.cy/apidocs) | None reported | `count` up to 100 per example; no official rate limit found | Terms not found; confirm free-use terms | Third-party paid wrappers exist; use only the official endpoint | check |
-| We Work Remotely RSS | `rss` (configured feed) | `https://weworkremotely.com/remote-jobs.rss` | None | None published for the feed | Feed page: free use with attribution. API terms: scraping and storing data outside the API is prohibited, and it is unclear if this covers the RSS feed | Conflicting terms. Owner decision (2026-11-01): use only for personal use, with attribution and link back; no storage outside personal use | ok (personal use only) |
-| Generic RSS / Atom | `rss` | User-configured URLs | None | Per-domain rate limit | Per feed: check each feed's terms | Feeds may contain HTML; sanitize | ok (framework); each feed `check` |
+| Greenhouse Job Board | `ats-greenhouse` | docs.greenhouse.io/job-board.html (old developers.greenhouse.io redirects here) | None: "Job Board data is publicly available, so authentication is not required for any GET endpoints." | None documented | No usage-terms section found on the page | List endpoint: only `content=true` documented. Board token must be configured per company | ok |
+| Lever Postings | `ats-lever` | github.com/lever/postings-api; hire.lever.co/developer/postings needs sign-in | GET needs no key (implied by examples; POST needs an API key). EU host: api.eu.lever.co | Only POST application limit: 2 per second (429). GET limit not stated | No attribution rule in README. "These jobs may be scraped by third parties" (published postings only) | Official developer page not readable without sign-in; GET terms rest on the README | ok (constraints: published postings only) |
+| Ashby Job Board | `ats-ashby` | developers.ashbyhq.com/docs/public-job-posting-api (updated 2026-10-23) | None shown in the official example | None stated | No terms stated. "If you host your own careers page, you can use this data to populate it." | Only `includeCompensation` documented; respect `isListed` (false = direct link only) | ok |
+| Arbeitnow | `arbeitnow` | arbeitnow.com/blog/job-board-api; arbeitnow.com/terms (section 11) | None ("requires no API key") | None stated; Postman doc holds the parameter reference | Must link back to arbeitnow.com. API may be revoked at any time. Use License covers "non-commercial" use; API data reuse not defined | Commercial use unclear; `remote` is a response field, not a filter | ok (personal use, link back) |
+| Adzuna | `adzuna` | developer.adzuna.com; terms at developer.adzuna.com/docs/terms_of_service | `app_id` + `app_key` query params, free key at signup | Not published: "plans ... and their limits, are shown in your account" | Permitted: "Personal job search". Any other use needs written agreement. Commercial or revenue use needs a licence. Caching and storage rules not explicit | Country list not on any readable page; check the account or interactive docs | ok (personal use only) |
+| Jooble | `jooble` | jooble.org/api/about (request form); terms jooble.org/info/terms | API key after the request form; free status not stated | Not stated | Terms contain no API clauses. Site content "may not be copied for republication". Job content provided by third parties | Request method and body not on the public page. Access by request only. Compliance contact: compliance@jooble.com | check (blocked until docs and key obtained) |
+| Remotive | `remotive` | remotive.com/api-documentation redirects to github.com/remotive-com/remote-jobs-api (README) | None; private paid API exists | Advised max 4 requests per day; more than 2 per minute is blocked. 429 not documented | Attribution and link back to the URL on Remotive plus naming Remotive. Listings delayed 24 hours. Must not submit jobs to Jooble, Neuvoo, Google Jobs, LinkedIn Jobs. Email collection through listings breaches terms | Access terminated if attribution is missing | ok (constraints) |
+| Himalayas | `himalayas` | himalayas.app/api; terms himalayas.app/terms#api (not read) | Optional. Unkeyed requests share one public allowance; key gives 60/min and 10,000/day | `limit` max 20 on /jobs/api; use `cursor` (offset deprecated). Search endpoint `/jobs/api/search` with `page` | Show a visible link to the job on Himalayas or himalayas.app. Use applicationLink for Apply. Show jobs only on sites you operate. Do not pass to aggregators or LinkedIn/Google Jobs. Remove expired jobs. No browser calls (no CORS) | Use a key to avoid the shared allowance; 429 handling mandatory | ok (constraints) |
+| Jobicy | `jobicy` | jobicy.com/jobs-rss-feed (jobi.cy/apidocs redirects here) | None required for the Jobs API (optional Bearer key only changes `url`, paid per direct-link job) | Feed and status: no more than once per hour. Last 7 days only; cursor valid 24 h; `count` 1 to 100 | Credit Jobicy and link to the source. Keep Apply links to Jobicy pages. Storage and redistribution allowed; keep listings synchronized and mark closed jobs | Jobs leaving the 7-day window are not necessarily closed | ok (constraints) |
+| We Work Remotely RSS | `rss` (configured feed) | weworkremotely.com RSS and API terms pages both return HTTP 403 to the fetcher; not readable | None | Not readable | Unverified. Earlier secondary sources: feed free with attribution; API terms prohibit storing or scraping data outside the API. Owner decision (Phase 0): personal use only | Cannot confirm before enabling. Ask WWR or verify from a browser | check (personal use only) |
+| Generic RSS / Atom | `rss` | User-configured URLs | None | Per-domain rate limit | Per feed: check each feed's terms before adding | Feeds may contain HTML; sanitize | ok (framework); each feed `check` |
 
 ## Tier 2: email alerts via IMAP
 
@@ -50,9 +51,9 @@ Only where `robots.txt` and the site's terms allow it. Each site needs a written
 
 ## LinkedIn: findings
 
-- The User Agreement prohibits automated data collection, regardless of whether data is public (secondary source; exact clause to be confirmed on linkedin.com/legal before publication of the project).
-- Enforcement history: hiQ Labs case (consent judgment, data destruction) and the Mantheos settlement.
-- Decision: no LinkedIn scraping. See [decisions.md](decisions.md) ADR-007.
+- Official User Agreement (linkedin.com/legal/user-agreement, "Effective on November 3, 2025"), section 8.2 "Don'ts": no bots or automated methods to access the Services; no scraping or copying the Services, including profiles and other data; no bypassing access controls or use limits; no copying or distributing information obtained from the Services, including through data aggregators.
+- Enforcement history (secondary): hiQ Labs consent judgment, Mantheos settlement.
+- Decision: no LinkedIn scraping. See [decisions.md](decisions.md) ADR-007. LinkedIn job alerts received by email are a separate Tier 2 source.
 
 ## Adapter capabilities matrix
 
@@ -60,16 +61,16 @@ Each adapter declares which criteria fields it can translate into request parame
 
 | Adapter | Server-side: keywords | Server-side: country / location | Server-side: remote / workMode | Server-side: posted age | Pagination | Notes |
 |---|---|---|---|---|---|---|
-| `ats-greenhouse` | no | no | no | no | not needed (whole board) | Filter everything in pipeline |
-| `ats-lever` | no | no | no | no | `limit` / `skip` | |
-| `ats-ashby` | no | no | no | no | not needed | |
-| `arbeitnow` | yes (`search`) | yes (`location`) | yes (`remote`) | no | `page` | Visa filter available |
-| `adzuna` | yes (`what`) | yes (country path segment, validated) | no | yes (`max_days_old`) | `page` | Country mandatory per profile |
-| `jooble` | yes (`keywords`) | yes (`location`) | no | no | `page` | POST body |
-| `remotive` | yes (`search`) | no | remote only | no | none (single list) | Max 4 calls/day: cache |
-| `himalayas` | yes (`q`) | yes (`country`) | yes (remote only) | no | `offset` / `limit` (max 20) | |
-| `jobicy` | yes (`tag`) | yes (`geo`) | remote only | no | `count` | |
+| `ats-greenhouse` | no | no | no | no | not needed (whole board) | `content=true` for descriptions; filter everything in pipeline |
+| `ats-lever` | no | yes (`location`, `commitment`, `team`, `department`) | no | no | `skip` / `limit` | Multiple values OR, case-sensitive |
+| `ats-ashby` | no | no | no | no | not needed | `includeCompensation=true`; skip `isListed=false` |
+| `arbeitnow` | no (`visa_sponsorship` filter only) | no | no | no | `page` (per Postman doc, not verified) | `remote` is a response field: filter in pipeline |
+| `adzuna` | yes (`what`) | yes (country path segment, validated) | no | yes (`max_days_old`) | `page` | Personal use only; country mandatory per profile |
+| `jooble` | yes (keywords in POST body, per request form docs) | yes (`location`) | no | no | `page` | Blocked until request method and key obtained |
+| `remotive` | yes (`search`, `category`) | no | remote only (no parameter) | no | `limit` only | Max 4 calls per day: cache; never more than 2 per minute |
+| `himalayas` | yes (`q`, `country`) on /jobs/api/search | yes (`country`, `worldwide`) | remote only | no | `cursor` (preferred), `page` on search; `limit` max 20 | |
+| `jobicy` | yes (`tag`) | yes (`geo`) | remote only | no | `count` (1 to 100), `cursor`; 7-day window | Poll at most once per hour |
 | `rss` | no | no | no | no | per feed | Filter everything in pipeline |
 | `email-*` | no | no | no | email date | n/a | Parsed from mail |
 
-Exact parameter names above are taken from search summaries and must be confirmed in each adapter's task.
+Parameter names come from the official pages read in T-027. Arbeitnow `page` and Jooble body fields are not confirmed and must be checked in each adapter task.
