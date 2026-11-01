@@ -80,7 +80,7 @@ class CollectionPipelineTest extends AbstractIntegrationTest {
         SourceHealth health = new SourceHealth(jdbc, clock);
         IngestService ingest = new IngestService(deduplicator, vacancies);
         ExpiryService expiry = new ExpiryService(jdbc, vacancies, clock, transactions, 3);
-        return new CollectionPipeline(adapters, health, ingest, runs, vacancies, expiry, clock);
+        return new CollectionPipeline(adapters, health, ingest, runs, vacancies, expiry, new RunEventBus(), clock);
     }
 
     @Test

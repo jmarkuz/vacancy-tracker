@@ -90,6 +90,15 @@ public class RunRepository {
                 .update();
     }
 
+    public Optional<RunRow> findLatestFinished() {
+        return jdbc.sql("SELECT id, trigger, status, started_at, finished_at FROM run"
+                        + " WHERE status <> 'running' ORDER BY finished_at DESC NULLS LAST LIMIT 1")
+                .query((rs, n) -> new RunRow(rs.getObject("id", UUID.class), rs.getString("trigger"),
+                        rs.getString("status"), instant(rs.getObject("started_at", OffsetDateTime.class)),
+                        instant(rs.getObject("finished_at", OffsetDateTime.class))))
+                .optional();
+    }
+
     public String status(UUID runId) {
         return jdbc.sql("SELECT status FROM run WHERE id = :id").param("id", runId).query(String.class).single();
     }

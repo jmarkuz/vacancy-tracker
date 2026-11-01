@@ -665,3 +665,78 @@ tbody tr:hover {
 .view-bar select {
   max-width: 100%;
 }
+
+/* Refresh control, progress list and toast */
+.refresh {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  position: relative;
+}
+
+.refresh-meta {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.progress-list {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  z-index: 30;
+  width: min(360px, 90vw);
+  margin: 0;
+  padding: var(--space-3) var(--space-4) var(--space-3) var(--space-5);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-raised);
+  font-size: var(--font-size-sm);
+}
+
+.progress-list li {
+  margin: var(--space-1) 0;
+}
+
+.toast {
+  position: fixed;
+  bottom: var(--space-6);
+  left: 50%;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: calc(100vw - 32px);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-text);
+  color: var(--color-bg);
+  transform: translateX(-50%);
+  font-size: var(--font-size-sm);
+}
+
+.toast a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.toast-error {
+  background: var(--color-danger);
+  color: #fff;
+}
+
+.toast .btn.ghost {
+  color: inherit;
+}
+
+@media (max-width: 760px) {
+  .refresh-meta {
+    display: none;
+  }
+
+  .progress-list {
+    left: 0;
+    right: 0;
+    width: auto;
+  }
+}
