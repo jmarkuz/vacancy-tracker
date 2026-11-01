@@ -68,7 +68,7 @@ export function App() {
           ) : screen === "inbox" ? (
             <Inbox params={params} />
           ) : screen === "profiles" ? (
-            <Profiles />
+            <Profiles params={params} />
           ) : (
             <Placeholder title={info.title} task={info.task} description={info.description} />
           )}
