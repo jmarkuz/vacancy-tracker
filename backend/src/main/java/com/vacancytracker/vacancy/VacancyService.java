@@ -30,6 +30,17 @@ public class VacancyService {
         return vacancy;
     }
 
+    /** Creates a vacancy from an imported page, including placement and salary. */
+    @Transactional
+    public Vacancy createImported(String url, com.vacancytracker.collection.JobPostingExtractor.ExtractedJob job) {
+        Vacancy vacancy = create(job.title(), job.company(), url, job.description());
+        vacancy.setPlacement(job.location(), job.workMode());
+        vacancy.applyAutomated(new AutomatedFields(null, job.salaryMin(), job.salaryMax(), job.currency(),
+                job.salaryPeriod(), clock.instant()));
+        repository.save(vacancy.toState());
+        return vacancy;
+    }
+
     @Transactional(readOnly = true)
     public Vacancy get(UUID id) {
         return repository.findById(id).map(Vacancy::restore).orElseThrow(() -> new VacancyNotFoundException(id));

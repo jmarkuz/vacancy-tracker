@@ -1,5 +1,8 @@
 package com.vacancytracker.web;
 
+import com.vacancytracker.collection.JobPostingExtractor;
+import com.vacancytracker.collection.NoJobPostingException;
+import com.vacancytracker.collection.UrlFetcher;
 import com.vacancytracker.vacancy.StatusEvent;
 import com.vacancytracker.vacancy.Vacancy;
 import com.vacancytracker.vacancy.VacancyService;
@@ -30,9 +33,11 @@ public class VacancyController {
     private static final int MAX_PAGE_SIZE = 200;
 
     private final VacancyService service;
+    private final UrlFetcher urlFetcher;
 
-    public VacancyController(VacancyService service) {
+    public VacancyController(VacancyService service, UrlFetcher urlFetcher) {
         this.service = service;
+        this.urlFetcher = urlFetcher;
     }
 
     @GetMapping
@@ -67,6 +72,17 @@ public class VacancyController {
                 request.nextActionAt(), request.nextActionNote())));
     }
 
+    @PostMapping("/import-url")
+    public ResponseEntity<VacancyResponse> importFromUrl(@Valid @RequestBody ImportUrlRequest request) {
+        String html = urlFetcher.fetch(request.url());
+        JobPostingExtractor.ExtractedJob job = JobPostingExtractor.extract(html)
+                .orElseThrow(() -> new NoJobPostingException(request.url()));
+        Vacancy created = service.createImported(request.url(), job);
+        URI location = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/api/vacancies/{id}").buildAndExpand(created.getId()).toUri();
+        return ResponseEntity.created(location).body(VacancyResponse.from(created));
+    }
+
     @PostMapping("/{id}/status")
     public VacancyResponse changeStatus(@PathVariable UUID id, @Valid @RequestBody StatusRequest request) {
         return VacancyResponse.from(service.changeStatus(id, VacancyStatus.fromLabel(request.status()), request.note()));
@@ -94,6 +110,9 @@ public class VacancyController {
             @Size(max = 1000) String nextActionNote) {
     }
 
+    public record ImportUrlRequest(@NotBlank @Size(max = 2000) String url) {
+    }
+
     public record StatusRequest(@NotBlank String status, @Size(max = 2000) String note) {
     }
 
@@ -101,14 +120,15 @@ public class VacancyController {
     }
 
     public record VacancyResponse(
-            UUID id, String title, String company, String url, String canonicalUrl, String description,
+            UUID id, String title, String company, String url, String canonicalUrl, String location, String workMode,
+            String description,
             java.math.BigDecimal salaryMin, java.math.BigDecimal salaryMax, String currency, String salaryPeriod,
             String status, Integer priority, String notes, String contact, String nextActionNote, Instant nextActionAt,
             List<String> tags, Set<String> userEditedFields, Instant firstSeenAt, Instant lastSeenAt, boolean isNew) {
 
         static VacancyResponse from(Vacancy v) {
             return new VacancyResponse(v.getId(), v.getTitle(), v.getCompany(), v.getUrl(), v.getCanonicalUrl(),
-                    v.getDescription(), v.getSalaryMin(), v.getSalaryMax(), v.getCurrency(), v.getSalaryPeriod(),
+                    v.getLocation(), v.getWorkMode(), v.getDescription(), v.getSalaryMin(), v.getSalaryMax(), v.getCurrency(), v.getSalaryPeriod(),
                     v.getStatus().label(), v.getPriority(), v.getNotes(), v.getContact(), v.getNextActionNote(),
                     v.getNextActionAt(), v.getTags(), v.getUserEditedFields(), v.getFirstSeenAt(), v.getLastSeenAt(),
                     v.isNew());

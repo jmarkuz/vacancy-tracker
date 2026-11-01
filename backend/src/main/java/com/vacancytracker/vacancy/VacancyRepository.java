@@ -19,7 +19,7 @@ import org.springframework.stereotype.Repository;
 public class VacancyRepository {
 
     private static final String COLUMNS = """
-            id, title, company, url, canonical_url, description, salary_min, salary_max, currency, salary_period,
+            id, title, company, url, canonical_url, location, work_mode, description, salary_min, salary_max, currency, salary_period,
             status, priority, notes, contact, next_action_note, next_action_at, tags, user_edited_fields,
             first_seen_at, last_seen_at, is_new
             """;
@@ -32,15 +32,16 @@ public class VacancyRepository {
 
     public void save(VacancyState s) {
         jdbc.sql("""
-                INSERT INTO vacancy (id, title, company, url, canonical_url, description, salary_min, salary_max,
+                INSERT INTO vacancy (id, title, company, url, canonical_url, location, work_mode, description, salary_min, salary_max,
                     currency, salary_period, status, priority, notes, contact, next_action_note, next_action_at,
                     tags, user_edited_fields, first_seen_at, last_seen_at, is_new, updated_at)
-                VALUES (:id, :title, :company, :url, :canonicalUrl, :description, :salaryMin, :salaryMax,
+                VALUES (:id, :title, :company, :url, :canonicalUrl, :location, :workMode, :description, :salaryMin, :salaryMax,
                     :currency, :salaryPeriod, :status, :priority, :notes, :contact, :nextActionNote, :nextActionAt,
                     :tags, :editedFields, :firstSeenAt, :lastSeenAt, :isNew, now())
                 ON CONFLICT (id) DO UPDATE SET
                     title = EXCLUDED.title, company = EXCLUDED.company, url = EXCLUDED.url,
-                    canonical_url = EXCLUDED.canonical_url, description = EXCLUDED.description,
+                    canonical_url = EXCLUDED.canonical_url, location = EXCLUDED.location,
+                    work_mode = EXCLUDED.work_mode, description = EXCLUDED.description,
                     salary_min = EXCLUDED.salary_min, salary_max = EXCLUDED.salary_max,
                     currency = EXCLUDED.currency, salary_period = EXCLUDED.salary_period,
                     status = EXCLUDED.status, priority = EXCLUDED.priority, notes = EXCLUDED.notes,
@@ -54,6 +55,8 @@ public class VacancyRepository {
                 .param("company", s.company())
                 .param("url", s.url())
                 .param("canonicalUrl", s.canonicalUrl())
+                .param("location", s.location())
+                .param("workMode", s.workMode())
                 .param("description", s.description())
                 .param("salaryMin", s.salaryMin())
                 .param("salaryMax", s.salaryMax())
@@ -131,6 +134,8 @@ public class VacancyRepository {
                 rs.getString("company"),
                 rs.getString("url"),
                 rs.getString("canonical_url"),
+                rs.getString("location"),
+                rs.getString("work_mode"),
                 rs.getString("description"),
                 rs.getBigDecimal("salary_min"),
                 rs.getBigDecimal("salary_max"),
