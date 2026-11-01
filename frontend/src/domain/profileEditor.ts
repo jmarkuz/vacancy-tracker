@@ -191,3 +191,9 @@ export function parseList(text: string): string[] {
 export function formatList(value: unknown): string {
   return Array.isArray(value) ? value.join(", ") : "";
 }
+
+/** Import problems as one line each: "criteria[1].weigth: Unknown property". */
+export function importProblems(errors: Record<string, string>): string[] {
+  const lines = Object.entries(errors).map(([path, message]) => `${path}: ${message}`);
+  return lines.length > 0 ? lines : ["The file is not a valid profile."];
+}

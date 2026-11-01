@@ -55,7 +55,7 @@ T-053,Profile recalculation job,M3,S,T-052,done
 T-054,Profile API with criterion validation,M3,M,"T-049,T-050",done
 T-055,Profile list and rule builder,M3,M,"T-054,T-018",done
 T-056,Live preview,M3,M,"T-052,T-055",done
-T-057,Profile YAML JSON import and export,M3,S,T-054,todo
+T-057,Profile YAML JSON import and export,M3,S,T-054,done
 T-058,Onboarding wizard,M3,S,T-055,todo
 T-059,Allowlist and blocklist,M3,S,T-052,todo
 T-060,Dashboard screen,M3,M,"T-052,T-046",todo

@@ -3,6 +3,9 @@ import { ApiError } from "../api/client";
 import {
   createProfile,
   deleteProfile,
+  exportUrl,
+  importProfile,
+  ProfileRejected,
   getMeta,
   listProfiles,
   type Meta,
@@ -11,7 +14,7 @@ import {
 } from "../api/profiles";
 import { getRecalculationProgress, startRecalculation, type RecalculationProgress } from "../api/recalculation";
 import { listSources } from "../api/sources";
-import { copyOfProfile, emptyProfile, toInput } from "../domain/profileEditor";
+import { copyOfProfile, emptyProfile, importProblems, toInput } from "../domain/profileEditor";
 import { percentDone, progressText } from "../domain/recalc";
 import { ProfileEditor } from "../components/ProfileEditor";
 import { Toast } from "../components/Toast";
@@ -34,6 +37,8 @@ export function Profiles({ params }: Props) {
   const [sourceIds, setSourceIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<RecalculationProgress | null>(null);
+  const [importErrors, setImportErrors] = useState<string[] | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
   const [toast, setToast] = useState<{ message: string; tone: "info" | "error" } | null>(null);
   const timer = useRef<number | undefined>(undefined);
   const editing = params.get("edit");
@@ -126,6 +131,23 @@ export function Profiles({ params }: Props) {
     }
   };
 
+  const importFile = async (file: File) => {
+    setImportErrors(null);
+    try {
+      const result = await importProfile(await file.text());
+      await load();
+      setToast({
+        message: result.created
+          ? `Imported "${result.profile.name}" as a new profile`
+          : `Imported "${result.profile.name}" as version ${result.profile.version} of the existing profile`,
+        tone: "info",
+      });
+      setQuery({ edit: result.profile.id });
+    } catch (e: unknown) {
+      setImportErrors(e instanceof ProfileRejected ? importProblems(e.errors) : ["Could not read or send the file."]);
+    }
+  };
+
   const running = progress?.state === "RUNNING";
   const stored = editing && editing !== "new" ? profiles?.find((p) => p.id === editing) ?? null : null;
   const initial: ProfileInput | null =
@@ -139,6 +161,16 @@ export function Profiles({ params }: Props) {
         <button class="btn" type="button" onClick={() => setQuery({ edit: "new" })} disabled={!meta}>
           New profile
         </button>
+        <button class="btn" type="button" onClick={() => fileInput.current?.click()}>Import</button>
+        <input ref={fileInput} type="file" accept=".yml,.yaml,.json" hidden aria-label="Profile file to import" data-role="import-file"
+          onChange={(e) => {
+            const input = e.target as HTMLInputElement;
+            const file = input.files?.[0];
+            input.value = "";
+            if (file) {
+              importFile(file);
+            }
+          }} />
         <button class="btn" type="button" onClick={recalculate} disabled={running} aria-busy={running}>
           {running ? "Recalculating…" : "Recalculate scores"}
         </button>
@@ -152,6 +184,14 @@ export function Profiles({ params }: Props) {
       )}
 
       {error && <div class="notice error" role="alert">{error}</div>}
+
+      {importErrors && (
+        <div class="notice error" role="alert">
+          <p>The file was not imported. Nothing was changed.</p>
+          <ul>{importErrors.map((line) => <li key={line} class="mono">{line}</li>)}</ul>
+          <button class="btn" type="button" onClick={() => setImportErrors(null)}>Dismiss</button>
+        </div>
+      )}
 
       {initial && meta && (
         <ProfileEditor
@@ -217,6 +257,8 @@ export function Profiles({ params }: Props) {
                   <td class="row-actions">
                     <button type="button" class="btn" onClick={() => setQuery({ edit: p.id })}>Edit</button>
                     <button type="button" class="btn" onClick={() => duplicate(p)}>Duplicate</button>
+                    <a class="btn" href={exportUrl(p.id, "yaml")} download>Export YAML</a>
+                    <a class="btn" href={exportUrl(p.id, "json")} download>Export JSON</a>
                     <button type="button" class="btn ghost" onClick={() => remove(p)}>Delete</button>
                   </td>
                 </tr>

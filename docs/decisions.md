@@ -386,3 +386,17 @@ Status: Accepted
 
 **Consequences.** Recalculation after a profile change can hide or restore vacancies, but never reverses a decision of the user. The history shows every automatic change with its note.
 
+
+## ADR-027 Strict profile import and company lists
+
+Status: Accepted (T-057)
+
+**Context.** The profile file format has `companyLists`, but allow and block lists are built in T-059 and have no storage yet.
+
+**Decision.**
+- Import is strict: an unknown key anywhere, including `companyLists`, is rejected with its path. Silently dropping data on import would hide a typo or a lost setting.
+- The example file keeps `companyLists` commented out until T-059, which then makes the key valid.
+- A file with the name of an existing profile (case-insensitive) creates a new version of that profile, as in docs/search-profiles.md section 6; otherwise a new profile.
+- YAML is read with Jackson's YAML parser, which does not instantiate arbitrary classes from tags. JSON files are read by the same parser.
+
+**Consequences.** Exported files always import cleanly. Importing a file with company lists fails until T-059.

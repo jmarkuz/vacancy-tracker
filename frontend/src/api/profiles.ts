@@ -155,3 +155,29 @@ export async function previewProfile(input: ProfileInput, signal?: AbortSignal):
   }
   return (await response.json()) as Preview;
 }
+
+export interface ImportResult {
+  profile: SearchProfile;
+  created: boolean;
+}
+
+/** Sends a YAML or JSON profile file as text. A rejected file throws ProfileRejected with the errors by path. */
+export async function importProfile(text: string): Promise<ImportResult> {
+  const response = await fetch("/api/profiles/import", {
+    method: "POST",
+    headers: { "Content-Type": "text/plain", Accept: "application/json" },
+    body: text,
+  });
+  if (response.ok) {
+    return (await response.json()) as ImportResult;
+  }
+  let errors: Record<string, string> = {};
+  try {
+    errors = ((await response.json()) as { errors?: Record<string, string> }).errors ?? {};
+  } catch {
+    // Not a JSON error body.
+  }
+  throw new ProfileRejected(response.status, errors, "The file was not imported");
+}
+
+export const exportUrl = (id: string, format: "yaml" | "json") => `/api/profiles/${id}/export?format=${format}`;
