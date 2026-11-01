@@ -18,6 +18,7 @@ import {
   rowErrors,
   sameInput,
 } from "../domain/profileEditor";
+import { PreviewPanel } from "./PreviewPanel";
 import { RuleRow } from "./RuleRow";
 
 interface Props {
@@ -229,6 +230,8 @@ export function ProfileEditor({ initial, profile, meta, sourceIds, onSaved, onCl
           </ol>
         )}
       </section>
+
+      <PreviewPanel draft={draft} valid={validity === "valid"} />
 
       <p class="muted small" role="status" aria-live="polite">
         {validity === "checking" ? "Checking…" : validity === "valid" ? "The profile is valid." : validity === "invalid" ? "Fix the marked fields to save." : "Could not check the profile right now."}

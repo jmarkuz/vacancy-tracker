@@ -187,6 +187,38 @@ public class VacancyRepository {
                 .update();
     }
 
+    /** The next batch of vacancies after the given id, in id order. A null id starts from the beginning. */
+    public List<VacancyState> findBatchAfter(UUID afterId, int limit) {
+        return jdbc.sql("SELECT " + COLUMNS + " FROM vacancy WHERE CAST(:after AS UUID) IS NULL OR id > CAST(:after AS UUID)"
+                        + " ORDER BY id LIMIT :limit")
+                .param("after", afterId == null ? null : afterId.toString())
+                .param("limit", limit)
+                .query((rs, n) -> map(rs))
+                .list();
+    }
+
+    /** Adapters per vacancy for a set of vacancies, earliest first. Vacancies without a source are absent. */
+    public Map<UUID, List<String>> findSourceAdaptersFor(java.util.Collection<UUID> vacancyIds) {
+        Map<UUID, List<String>> out = new java.util.HashMap<>();
+        if (vacancyIds.isEmpty()) {
+            return out;
+        }
+        jdbc.sql("SELECT vacancy_id, adapter FROM vacancy_source WHERE vacancy_id = ANY (CAST(:ids AS UUID[]))"
+                        + " ORDER BY vacancy_id, first_seen_at, adapter")
+                .param("ids", vacancyIds.stream().map(UUID::toString).toArray(String[]::new))
+                .query((rs, n) -> {
+                    out.computeIfAbsent(rs.getObject("vacancy_id", UUID.class), k -> new java.util.ArrayList<>())
+                            .add(rs.getString("adapter"));
+                    return null;
+                })
+                .list();
+        return out;
+    }
+
+    public long countAll() {
+        return jdbc.sql("SELECT count(*) FROM vacancy").query(Long.class).single();
+    }
+
     public List<UUID> findAllIds() {
         return jdbc.sql("SELECT id FROM vacancy ORDER BY id").query(UUID.class).list();
     }

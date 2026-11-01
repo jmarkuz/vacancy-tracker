@@ -132,6 +132,32 @@ class ProfileControllerTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void previewCountsExistingVacanciesAndStoresNothing() throws Exception {
+        template.execute("TRUNCATE vacancy CASCADE");
+        mvc.perform(post("/api/vacancies").contentType(JSON).content("{\"title\":\"Example role a\",\"company\":\"Acme\"}"));
+        mvc.perform(post("/api/vacancies").contentType(JSON).content("{\"title\":\"Something else\",\"company\":\"Acme\"}"));
+
+        mvc.perform(post("/api/profiles/preview").contentType(JSON).content(PROFILE))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(2))
+                .andExpect(jsonPath("$.applicable").value(2))
+                .andExpect(jsonPath("$.samples.length()").isNumber())
+                .andExpect(jsonPath("$.samples[0].kind").exists());
+
+        mvc.perform(get("/api/profiles")).andExpect(jsonPath("$.length()").value(0));
+        org.assertj.core.api.Assertions.assertThat(template.queryForObject("SELECT count(*) FROM vacancy_match", Integer.class)).isZero();
+    }
+
+    @Test
+    void previewOfAnInvalidDraftIsUnprocessable() throws Exception {
+        String bad = PROFILE.replace("\"operator\":\"gte\"", "\"operator\":\"regex\"");
+
+        mvc.perform(post("/api/profiles/preview").contentType(JSON).content(bad))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.errors['criteria[1].operator']").exists());
+    }
+
+    @Test
     void anUnknownPropertyIsRejectedWithItsPathInsteadOfBeingIgnored() throws Exception {
         String typo = PROFILE.replace("\"weight\":5", "\"weigth\":5");
 
