@@ -33,6 +33,12 @@ public class RunEventBus {
 
     private final Map<UUID, Channel> channels = new ConcurrentHashMap<>();
     private final Deque<UUID> finished = new ArrayDeque<>();
+    private final List<java.util.function.Consumer<UUID>> doneListeners = new CopyOnWriteArrayList<>();
+
+    /** Called with the run id each time a run is done, in the thread that finished it. Listeners must be quick. */
+    public void addDoneListener(java.util.function.Consumer<UUID> listener) {
+        doneListeners.add(listener);
+    }
 
     public synchronized void publish(UUID runId, String type, Object data) {
         Channel channel = channels.computeIfAbsent(runId, k -> new Channel());
@@ -51,6 +57,7 @@ public class RunEventBus {
             while (finished.size() > KEEP_FINISHED) {
                 channels.remove(finished.removeFirst());
             }
+            doneListeners.forEach(l -> l.accept(runId));
         }
     }
 

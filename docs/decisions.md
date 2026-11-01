@@ -449,3 +449,20 @@ Status: Accepted (T-065)
 - The vacancy's posting date is the date of the email.
 
 **Consequences.** Email vacancies stay in the Inbox or Saved until the user acts. A changed email layout shows as a warning in the log and as no new vacancies from that source.
+
+## ADR-031 Telegram digest
+
+Status: Accepted (T-067)
+
+**Context.** The brief offers an optional Telegram digest, off by default. It is the one place where data about vacancies leaves the machine for a third party other than the sources.
+
+**Decision.**
+- Off unless `app.notifications.telegram.enabled=true` and both a bot token and a chat id are set. Both come from `.env` only.
+- One message after each collection run, built from vacancies in status New whose best score among enabled profiles reaches that profile's own `notifyMinScore`. Filtered vacancies and vacancies of disabled profiles are never included.
+- The message contains only the score, title, company, place and link of each vacancy, as plain text (no Telegram markup, so titles cannot inject formatting or links). Descriptions, notes and contacts are never sent.
+- A vacancy is announced once. It is remembered only after Telegram accepted the message, so a failed send is retried after the next run. At most `max-items` (10) vacancies go in one message; the rest wait for the next one. The message stays under Telegram's 4096 characters.
+- Only vacancies first seen in the last `max-age-days` (3) are included, so enabling the digest does not send the whole backlog.
+- The bot token is part of Telegram's request address, so it is never logged: errors show only the exception type or Telegram's own description.
+- The digest runs in its own thread after the run is finished; it never delays or fails a run.
+
+**Consequences.** Whoever can read the chat sees the vacancy titles. A vacancy that scores above its threshold only after a later recalculation is announced after the next run. There is no "send a test message" button yet.

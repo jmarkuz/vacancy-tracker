@@ -65,7 +65,7 @@ T-063,Bulk actions with Undo,M3,S,T-019,done
 T-064,IMAP reader,M4,M,T-043,done
 T-065,Email parser framework and LinkedIn parser,M4,M,T-064,done
 T-066,Parsers Jobs.cz StartupJobs.cz Indeed,M4,M,T-065,done
-T-067,Telegram digest,M4,S,T-052,todo
+T-067,Telegram digest,M4,S,T-052,done
 T-068,Testcontainers suite and coverage gate,M5,M,"T-043,T-052",todo
 T-069,ArchUnit boundary test,M5,S,T-011,todo
 T-070,Daily pg_dump backup,M5,S,T-012,todo
