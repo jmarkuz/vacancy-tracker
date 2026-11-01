@@ -116,7 +116,7 @@ Phase 0 ended with an approval request to the owner. Approved 2026-11-01.
 |---|---|---|---|---|---|
 | [x] 2026-11-01 | T-068 | Testcontainers integration suite and 80% core coverage gate | M | T-043, T-052 | JaCoCo gate fails the build below 80% for vacancy, collection, matching |
 | [x] 2026-11-01 | T-069 | ArchUnit package boundary test | S | T-011 | No package depends on `web` |
-| [ ] | T-070 | Daily pg_dump backup service | S | T-012 | Backup file appears in the volume daily; restore documented |
+| [x] 2026-11-01 | T-070 | Daily pg_dump backup service | S | T-012 | Backup file appears in the volume daily; restore documented |
 | [ ] | T-071 | VPS access token and login rate limit | M | T-012 | Requests without token get 401; repeated failures are rate limited |
 | [ ] | T-072 | Structured logs with key masking, run metrics | S | T-043 | Test proves no API key appears in logs |
 | [ ] | T-073 | Tier 3 generic HTML adapter, approved sites only | M | T-030, T-027 | Adapter runs only for sites with a recorded terms check; robots.txt honored |

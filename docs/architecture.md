@@ -50,7 +50,7 @@ C4Container
     Rel(api, sources, "Fetches and notifies", "HTTPS / IMAP")
 ```
 
-Deployment units: `app` (backend with bundled static UI) and `postgres` (with a named volume). A `backup` job runs `pg_dump` daily into a volume.
+Deployment units: `app` (backend with bundled static UI) and `postgres` (with a named volume). A `backup` service runs `pg_dump` daily into a volume (ADR-032, [operations.md](operations.md)).
 
 ## 3. Modular monolith packages
 
