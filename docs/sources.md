@@ -29,7 +29,7 @@ Verification (T-027, 2026-11-01): official pages were read through the web-fetch
 | Source | Adapter | Mechanism | Auth | Risks | Status |
 |---|---|---|---|---|---|
 | LinkedIn job alerts | `email-linkedin` | User-created alerts; the tool reads the alert emails from a dedicated IMAP label | User's own mailbox (IMAP app password) | Parse only the email content; never log in to LinkedIn; never open LinkedIn pages | Built (T-065) on a synthetic fixture; needs a check against a real alert email |
-| Jobs.cz, StartupJobs.cz, Indeed and others | `email-<sender>` | One parser per sender, tested on saved fixtures | User's own mailbox | Email templates change without notice; fixture tests catch this | check |
+| Jobs.cz, StartupJobs.cz, Indeed and others | `email-<sender>` | One parser per sender, tested on saved fixtures | User's own mailbox | Email templates change without notice; fixture tests catch this | Built (T-066): `email-jobscz`, `email-startupjobs`, `email-indeed` on synthetic fixtures written from public link formats; each needs a check against a real alert email |
 
 Notes for Tier 2:
 - The user creates the alerts on each site. The tool does not log in to any job site.

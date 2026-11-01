@@ -1,0 +1,11 @@
+SYNTHETIC fixture, not a real email.
+
+Example Role Alpha
+Northwind Labs s.r.o.
+Praha
+https://www.jobs.cz/rpd/2000111222/?searchId=abc
+
+Senior Example Role
+Vantage Lane a.s.
+Brno
+https://www.jobs.cz/rpd/2000333444/?searchId=abc

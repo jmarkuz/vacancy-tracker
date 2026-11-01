@@ -143,4 +143,31 @@ class EmailAlertAdapterTest extends AdapterContractTest {
 
         assertThat(processed.known(java.util.List.of("<o1@x>"))).isEmpty();
     }
+
+    @Test
+    void allSendersAdaptersTogetherHandleOneMailboxAndSkipUnknownMail() throws Exception {
+        deliver("jobalerts-noreply@linkedin.com", "LinkedIn", fixture("linkedin-alert.html"), "<a1@x>");
+        deliver("noreply@jobs.cz", "Jobs.cz", fixture("jobscz-alert.html"), "<a2@x>");
+        deliver("hello@startupjobs.cz", "StartupJobs", fixture("startupjobs-alert.html"), "<a3@x>");
+        deliver("alert@indeed.com", "Indeed", fixture("indeed-alert.html"), "<a4@x>");
+        deliver("newsletter@unknown-sender.test", "Unknown", "<p>Hello</p>", "<a5@x>");
+        ImapMailReader reader = new ImapMailReader(true, "127.0.0.1", MAIL.getImap().getPort(), false, USER, PASSWORD, "INBOX", false, 50, processed);
+        MailParsers all = new MailParsers(java.util.List.of(linkedIn, new JobsCzAlertParser(), new StartupJobsAlertParser(), new IndeedAlertParser()));
+        java.util.List<SourceAdapter> adapters = java.util.List.of(
+                new LinkedInAlertAdapter(linkedIn, all, reader), new JobsCzAlertAdapter(new JobsCzAlertParser(), all, reader),
+                new StartupJobsAlertAdapter(new StartupJobsAlertParser(), all, reader), new IndeedAlertAdapter(new IndeedAlertParser(), all, reader));
+
+        java.util.Map<String, java.util.List<RawPosting>> byAdapter = new java.util.LinkedHashMap<>();
+        for (SourceAdapter adapter : adapters) {
+            byAdapter.put(adapter.id(), adapter.fetch().postings());
+        }
+
+        assertThat(byAdapter.get("email-linkedin")).hasSize(2);
+        assertThat(byAdapter.get("email-jobscz")).hasSize(2);
+        assertThat(byAdapter.get("email-startupjobs")).hasSize(2);
+        assertThat(byAdapter.get("email-indeed")).hasSize(2);
+        assertThat(byAdapter.values().stream().flatMap(java.util.List::stream).map(RawPosting::adapter).distinct()).hasSize(4);
+        assertThat(processed.known(java.util.List.of("<a1@x>", "<a2@x>", "<a3@x>", "<a4@x>", "<a5@x>"))).hasSize(5);
+        assertThat(adapters.stream().mapToInt(a -> a.fetch().postings().size()).sum()).isZero();
+    }
 }

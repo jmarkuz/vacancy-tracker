@@ -107,7 +107,7 @@ Phase 0 ended with an approval request to the owner. Approved 2026-11-01.
 |---|---|---|---|---|---|
 | [x] 2026-11-01 | T-064 | IMAP reader for a dedicated folder, mark as processed | M | T-043 | Fixture mailbox; no message processed twice |
 | [x] 2026-11-01 | T-065 | Email parser framework and LinkedIn alert parser | M | T-064 | Parser tested on saved email fixtures; one parser per sender |
-| [ ] | T-066 | Parsers for Jobs.cz, StartupJobs.cz, Indeed | M | T-065 | Fixtures per sender; unknown sender is skipped and logged |
+| [x] 2026-11-01 | T-066 | Parsers for Jobs.cz, StartupJobs.cz, Indeed | M | T-065 | Fixtures per sender; unknown sender is skipped and logged |
 | [ ] | T-067 | Telegram digest, disabled by default | S | T-052 | Digest only for scores at or above notifyMinScore; off unless enabled |
 
 ## M5 Hardening
