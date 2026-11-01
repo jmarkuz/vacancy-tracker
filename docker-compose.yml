@@ -19,6 +19,9 @@ services:
     env_file: .env
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-local}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-vacancy_tracker}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-vacancy}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       # Bound to localhost only. For a VPS, put a reverse proxy with HTTPS in front (see docs, T-075).
       - "127.0.0.1:8080:8080"
