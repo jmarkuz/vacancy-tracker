@@ -73,8 +73,8 @@ Phase 0 ended with an approval request to the owner. Approved 2026-11-01.
 | [ ] | T-039 | Adapter: jobicy | S | T-027, T-030 | `count` parameter used; fixtures tested |
 | [ ] | T-040 | Generic RSS/Atom adapter (Rome) | M | T-030 | Fixture feed parsed; HTML in items sanitized |
 | [ ] | T-041 | Normalization: HTML cleanup, salary parsing, workMode, country, seniority | M | T-017 | Unit tests for edge cases: missing salary, period words, currency symbols |
-| [ ] | T-042 | Dedup: canonical URL, externalId, fuzzy company+title+location | M | T-016, T-041 | Tests for each rule in order; duplicates add VacancySource rows |
-| [ ] | T-043 | Collection pipeline orchestration and RunSourceStat | M | T-029, T-041, T-042 | A failing adapter does not stop others; per-source stats stored |
+| [x] 2026-11-01 | T-042 | Dedup: canonical URL, externalId, fuzzy company+title+location | M | T-016, T-041 | Tests for each rule in order; duplicates add VacancySource rows |
+| [x] 2026-11-01 | T-043 | Collection pipeline orchestration and RunSourceStat | M | T-029, T-041, T-042 | A failing adapter does not stop others; per-source stats stored |
 | [ ] | T-044 | Run lock, cron scheduler, graceful shutdown | M | T-043 | Concurrent trigger returns the active run; shutdown finishes or marks run interrupted |
 | [ ] | T-045 | Expiry detection | S | T-043 | Expires after N=3 successful runs without sighting; failed sources do not count |
 | [ ] | T-046 | SSE progress and Refresh button with summary toast | M | T-044, T-018 | Per-source progress live; toast reads "+N new, M updated, K sources failed" and links to Inbox |

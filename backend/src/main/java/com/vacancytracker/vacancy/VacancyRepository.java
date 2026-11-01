@@ -118,6 +118,75 @@ public class VacancyRepository {
                 .update();
     }
 
+    public record Candidate(UUID id, String title, String location) {
+    }
+
+    public Optional<UUID> findIdByCanonicalUrl(String canonicalUrl) {
+        return jdbc.sql("SELECT id FROM vacancy WHERE canonical_url = :url")
+                .param("url", canonicalUrl)
+                .query(UUID.class)
+                .optional();
+    }
+
+    public Optional<UUID> findIdBySource(String adapter, String externalId) {
+        return jdbc.sql("SELECT vacancy_id FROM vacancy_source WHERE adapter = :adapter AND external_id = :ext")
+                .param("adapter", adapter)
+                .param("ext", externalId)
+                .query(UUID.class)
+                .optional();
+    }
+
+    /** Vacancies of one company (case-insensitive), the candidate set for fuzzy matching. */
+    public List<Candidate> findByCompany(String company, int limit) {
+        return jdbc.sql("SELECT id, title, location FROM vacancy WHERE lower(company) = lower(:company) LIMIT :limit")
+                .param("company", company)
+                .param("limit", limit)
+                .query((rs, n) -> new Candidate(rs.getObject("id", UUID.class), rs.getString("title"),
+                        rs.getString("location")))
+                .list();
+    }
+
+    /** Records that a vacancy was seen on a source; a repeated external id refreshes the same row. */
+    public void upsertSource(UUID vacancyId, String adapter, String externalId, String url, Instant seenAt) {
+        OffsetDateTime at = OffsetDateTime.ofInstant(seenAt, java.time.ZoneOffset.UTC);
+        if (externalId == null) {
+            jdbc.sql("INSERT INTO vacancy_source (id, vacancy_id, adapter, external_id, url, first_seen_at, last_seen_at)"
+                            + " VALUES (:id, :vacancyId, :adapter, NULL, :url, :at, :at)")
+                    .param("id", UUID.randomUUID())
+                    .param("vacancyId", vacancyId)
+                    .param("adapter", adapter)
+                    .param("url", url)
+                    .param("at", at)
+                    .update();
+            return;
+        }
+        jdbc.sql("INSERT INTO vacancy_source (id, vacancy_id, adapter, external_id, url, first_seen_at, last_seen_at)"
+                        + " VALUES (:id, :vacancyId, :adapter, :ext, :url, :at, :at)"
+                        + " ON CONFLICT (adapter, external_id) WHERE external_id IS NOT NULL"
+                        + " DO UPDATE SET last_seen_at = EXCLUDED.last_seen_at, url = COALESCE(EXCLUDED.url, vacancy_source.url)")
+                .param("id", UUID.randomUUID())
+                .param("vacancyId", vacancyId)
+                .param("adapter", adapter)
+                .param("ext", externalId)
+                .param("url", url)
+                .param("at", at)
+                .update();
+    }
+
+    /** A successful unchanged run: every vacancy seen on this source is still current (ADR-018). */
+    public void touchAdapter(String adapter, Instant seenAt) {
+        OffsetDateTime at = OffsetDateTime.ofInstant(seenAt, java.time.ZoneOffset.UTC);
+        jdbc.sql("UPDATE vacancy SET last_seen_at = :at WHERE id IN"
+                        + " (SELECT vacancy_id FROM vacancy_source WHERE adapter = :adapter) AND last_seen_at < :at")
+                .param("adapter", adapter)
+                .param("at", at)
+                .update();
+        jdbc.sql("UPDATE vacancy_source SET last_seen_at = :at WHERE adapter = :adapter")
+                .param("adapter", adapter)
+                .param("at", at)
+                .update();
+    }
+
     /** Replaces the whole history of one vacancy (used by import). */
     public void deleteHistory(UUID vacancyId) {
         jdbc.sql("DELETE FROM status_event WHERE vacancy_id = :id").param("id", vacancyId).update();
