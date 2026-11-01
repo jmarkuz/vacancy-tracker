@@ -47,7 +47,7 @@ Phase 0 ended with an approval request to the owner. Approved 2026-11-01.
 | [x] 2026-11-01 | T-018 | Frontend bootstrap: Vite, TypeScript, Preact, app shell, tokens | M | T-011, T-007 | `npm run build` output is served by Spring at `/`; layout works at 360 px width with 16 px gutter |
 | [x] 2026-11-01 | T-019 | Pipeline table: sorting, column selection, sticky header, keyset paging | M | T-015, T-018 | 2000+ rows scroll smoothly; sort is stable; column choice persists in URL or view |
 | [ ] | T-020 | Criterion model and filter evaluation for views | M | T-015 | Criteria translate to SQL for status, source, country, workMode, score, dates; URL state round-trips |
-| [ ] | T-021 | Filter chips and saved views | M | T-019, T-020 | Filters stored in URL; a saved view can be reopened and edited |
+| [x] 2026-11-01 | T-021 | Filter chips and saved views | M | T-019, T-020 | Filters stored in URL; a saved view can be reopened and edited |
 | [x] 2026-11-01 | T-022 | Vacancy drawer: view, edit, status change, notes | M | T-015, T-018 | Status change creates StatusEvent; edited fields are marked and protected from upsert |
 | [x] 2026-11-01 | T-023 | Manual add by URL with JSON-LD JobPosting | M | T-017, T-015 | Fixture pages parsed; fallback to a manual form when no JSON-LD |
 | [x] 2026-11-01 | T-024 | CSV export: UTF-8 with BOM, column selection, current filter | S | T-020 | Test checks BOM and quoting; Cyrillic and accented text intact |
