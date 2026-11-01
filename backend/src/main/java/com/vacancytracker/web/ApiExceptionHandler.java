@@ -23,6 +23,11 @@ public class ApiExceptionHandler {
         return problem(HttpStatus.NOT_FOUND, "Not found", e.getMessage());
     }
 
+    @ExceptionHandler(com.vacancytracker.common.NotFoundException.class)
+    ProblemDetail notFoundGeneric(com.vacancytracker.common.NotFoundException e) {
+        return problem(HttpStatus.NOT_FOUND, "Not found", e.getMessage());
+    }
+
     @ExceptionHandler(SavedViewNotFoundException.class)
     ProblemDetail viewNotFound(SavedViewNotFoundException e) {
         return problem(HttpStatus.NOT_FOUND, "Not found", e.getMessage());
