@@ -114,6 +114,11 @@ public class VacancyRepository {
                 .update();
     }
 
+    /** Replaces the whole history of one vacancy (used by import). */
+    public void deleteHistory(UUID vacancyId) {
+        jdbc.sql("DELETE FROM status_event WHERE vacancy_id = :id").param("id", vacancyId).update();
+    }
+
     public List<StatusEvent> findHistory(UUID vacancyId) {
         return jdbc.sql("SELECT vacancy_id, from_status, to_status, at, note FROM status_event"
                         + " WHERE vacancy_id = :id ORDER BY at, id")

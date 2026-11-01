@@ -93,6 +93,17 @@ public class VacancyService {
         return vacancy;
     }
 
+    /**
+     * Stores an imported vacancy with its history, replacing any existing row with the same id.
+     * Each row is its own transaction so one bad row does not undo the others.
+     */
+    @Transactional
+    public void importState(VacancyState state, List<StatusEvent> history) {
+        repository.save(state);
+        repository.deleteHistory(state.id());
+        history.forEach(repository::appendStatusEvent);
+    }
+
     @Transactional(readOnly = true)
     public List<StatusEvent> history(UUID id) {
         get(id);

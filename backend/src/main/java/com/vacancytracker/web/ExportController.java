@@ -1,5 +1,6 @@
 package com.vacancytracker.web;
 
+import com.vacancytracker.export.BackupWriter;
 import com.vacancytracker.export.ExportColumn;
 import com.vacancytracker.export.VacancyExporter;
 import com.vacancytracker.export.XlsxExporter;
@@ -25,9 +26,21 @@ public class ExportController {
     private final VacancyExporter exporter;
     private final XlsxExporter xlsxExporter;
 
-    public ExportController(VacancyExporter exporter, XlsxExporter xlsxExporter) {
+    private final BackupWriter backupWriter;
+
+    public ExportController(VacancyExporter exporter, XlsxExporter xlsxExporter, BackupWriter backupWriter) {
         this.exporter = exporter;
         this.xlsxExporter = xlsxExporter;
+        this.backupWriter = backupWriter;
+    }
+
+    @GetMapping(value = "/backup.json", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<StreamingResponseBody> backup() {
+        StreamingResponseBody body = backupWriter::write;
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename("vacancy-backup-" + LocalDate.now() + ".json", StandardCharsets.UTF_8).build().toString())
+                .body(body);
     }
 
     @GetMapping(value = "/vacancies.xlsx")
