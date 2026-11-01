@@ -27,6 +27,7 @@ Index:
 - ADR-022 Testing strategy and coverage gate
 - ADR-023 Status transition table
 - ADR-024 Frontend test tooling and accepted dev-only advisories
+- ADR-025 missingValuePolicy penalize means a weight penalty
 
 ---
 
@@ -355,4 +356,15 @@ Status: Accepted (revisit when the toolchain moves to Node 20 or later)
 - The Vitest and tinypool advisories are accepted for now. They affect only the test runner, which is never shipped in the Docker image or served to the browser.
 
 **Consequences.** Re-run `npm audit` and move to Vitest 4 as soon as the local and CI Node version is 20 or later.
+
+---
+
+## ADR-025 missingValuePolicy penalize means a weight penalty
+Status: Accepted
+
+**Context.** The first version of docs/search-profiles.md said that `penalize` makes a missing value "count as not satisfied", which for `prefer` meant no bonus and for `avoid` no penalty. That is the same as `ignore` for two of the four modes. The score formula in the same document already added the weight of every penalize-policy criterion with a missing field to the negative sum.
+
+**Decision.** A missing value with policy `penalize` subtracts the criterion's weight from the score, in every mode, and never filters the vacancy. `hide` filters regardless of mode. `ignore` skips the criterion. `exists` and `not_exists` are never missing.
+
+**Consequences.** `penalize` has its own effect, so a user can say "an unknown salary is worse than a known good one" without hiding it. The rule engine and the score formula agree.
 

@@ -52,6 +52,11 @@ public class ProfileValidator {
             Kind.LIST, Set.of("contains_any", "contains_all", "not_contains", "exists", "not_exists"),
             Kind.SALARY, Set.of("gte", "lte", "between", "exists", "not_exists"));
 
+    /** The value kind of a profile field, or null when the field is unknown. Shared with the rule engine. */
+    static Kind kindOf(String field) {
+        return field == null ? null : FIELDS.get(field);
+    }
+
     private static final Set<String> MODES = Set.of("require", "prefer", "avoid", "exclude");
     private static final Set<String> POLICIES = Set.of("ignore", "penalize", "hide");
     private static final Pattern CURRENCY = Pattern.compile("[A-Z]{3}");
