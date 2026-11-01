@@ -11,7 +11,7 @@ T-009,Design README,M0,S,T-008,done
 T-010,Project README,M0,S,T-003,done
 T-011,Maven bootstrap Java 21 Spring Boot 3,M1,S,T-010,done
 T-012,docker compose PostgreSQL 16 and env example,M1,S,T-011,done
-T-013,Flyway baseline schema,M1,M,T-011,todo
+T-013,Flyway baseline schema,M1,M,T-011,done
 T-014,Vacancy domain and status machine,M1,M,T-011,todo
 T-015,Vacancy REST API with paging,M1,M,"T-013,T-014",todo
 T-016,Upsert rules and userEditedFields,M1,M,T-014,todo
