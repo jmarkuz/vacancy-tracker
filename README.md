@@ -37,6 +37,8 @@ docs/
   operations.md                backups and restore
   examples/
     search-profile.example.yml neutral example, never loaded automatically
+e2e/
+  tests/smoke.spec.ts          Playwright smoke test (run: cd e2e && npm ci && npm run test:local)
 ops/
   backup/                      backup script and its Docker test
 design/
