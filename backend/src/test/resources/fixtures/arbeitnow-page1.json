@@ -1,0 +1,15 @@
+{
+  "data": [
+    {
+      "slug": "an-1",
+      "company_name": "Northwind",
+      "title": "Backend Developer",
+      "description": "<p>Write <b>services</b>.</p>",
+      "remote": true,
+      "url": "https://www.arbeitnow.com/view/an-1",
+      "location": "Berlin",
+      "created_at": 1761900000
+    }
+  ],
+  "links": { "next": "https://www.arbeitnow.com/api/job-board-api?page=2" }
+}
