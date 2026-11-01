@@ -187,6 +187,22 @@ public class VacancyRepository {
                 .update();
     }
 
+    /** Adapters that saw the vacancy, earliest first. */
+    public List<String> findSourceAdapters(UUID vacancyId) {
+        return jdbc.sql("SELECT adapter FROM vacancy_source WHERE vacancy_id = :id ORDER BY first_seen_at, adapter")
+                .param("id", vacancyId)
+                .query(String.class)
+                .list();
+    }
+
+    /** The derived best score across profiles; null when no profile gives the vacancy a score. */
+    public void updateMatchScore(UUID vacancyId, Integer score) {
+        jdbc.sql("UPDATE vacancy SET match_score = :score WHERE id = :id")
+                .param("id", vacancyId)
+                .param("score", score)
+                .update();
+    }
+
     /** Replaces the whole history of one vacancy (used by import). */
     public void deleteHistory(UUID vacancyId) {
         jdbc.sql("DELETE FROM status_event WHERE vacancy_id = :id").param("id", vacancyId).update();

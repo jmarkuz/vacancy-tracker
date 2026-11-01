@@ -7,6 +7,8 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.vacancytracker.common.SqlFragment;
 import com.vacancytracker.matching.Criterion;
 import com.vacancytracker.matching.CriterionCompiler;
+import com.vacancytracker.matching.MatchService;
+import com.vacancytracker.matching.VacancyMatch;
 import com.vacancytracker.vacancy.StatusEvent;
 import com.vacancytracker.vacancy.VacancySort;
 import com.vacancytracker.vacancy.Vacancy;
@@ -41,11 +43,14 @@ public class VacancyController {
     private final VacancyService service;
     private final UrlFetcher urlFetcher;
     private final CriterionCompiler compiler;
+    private final MatchService matchService;
 
-    public VacancyController(VacancyService service, UrlFetcher urlFetcher, CriterionCompiler compiler) {
+    public VacancyController(VacancyService service, UrlFetcher urlFetcher, CriterionCompiler compiler,
+                             MatchService matchService) {
         this.service = service;
         this.urlFetcher = urlFetcher;
         this.compiler = compiler;
+        this.matchService = matchService;
     }
 
     @GetMapping
@@ -101,6 +106,12 @@ public class VacancyController {
     @PostMapping("/{id}/status")
     public VacancyResponse changeStatus(@PathVariable UUID id, @Valid @RequestBody StatusRequest request) {
         return VacancyResponse.from(service.changeStatus(id, VacancyStatus.fromLabel(request.status()), request.note()));
+    }
+
+    /** Score and reasons of the vacancy for each profile, best first. */
+    @GetMapping("/{id}/matches")
+    public List<VacancyMatch> matches(@PathVariable UUID id) {
+        return matchService.matchesOf(id);
     }
 
     @GetMapping("/{id}/history")
