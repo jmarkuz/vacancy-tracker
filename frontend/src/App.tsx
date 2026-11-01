@@ -1,5 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { Placeholder } from "./screens/Placeholder";
+import { CommandPalette } from "./components/CommandPalette";
+import { isPaletteShortcut } from "./domain/palette";
 import { RefreshControl } from "./components/RefreshControl";
 import { type Screen, useRoute } from "./router";
 import { Dashboard } from "./screens/Dashboard";
@@ -33,8 +35,21 @@ const SCREEN_INFO: Record<Screen, { title: string; task: string; description: st
 export function App() {
   const { screen, params } = useRoute();
   const [theme, setTheme] = useState<Theme>(readTheme);
+  const [paletteOpen, setPaletteOpen] = useState(false);
 
   useEffect(() => applyTheme(theme), [theme]);
+
+  // Ctrl/Cmd+K works from anywhere, including inside a text box, and replaces the browser's own binding.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (isPaletteShortcut(e)) {
+        e.preventDefault();
+        setPaletteOpen((open) => !open);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // First run: with no profile yet, a bare address leads to the wizard. A deep link or an earlier skip is left alone.
   useEffect(() => {
@@ -75,6 +90,9 @@ export function App() {
       <div class="main">
         <header class="header">
           <span class="header-title">{info.title}</span>
+          <button type="button" class="btn palette-open" onClick={() => setPaletteOpen(true)} aria-label="Search and commands, Ctrl K">
+            Search <kbd class="kbd">Ctrl K</kbd>
+          </button>
           <RefreshControl />
         </header>
         <main class="content">
@@ -93,6 +111,8 @@ export function App() {
           )}
         </main>
       </div>
+
+      {paletteOpen && <CommandPalette onClose={() => setPaletteOpen(false)} />}
 
       <nav class="mobile-nav" aria-label="Primary mobile">
         {NAV.map((item) => (
