@@ -1,6 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { Placeholder } from "./screens/Placeholder";
-import { type Screen, useScreen } from "./router";
+import { type Screen, useRoute } from "./router";
+import { Pipeline } from "./screens/Pipeline";
 import { applyTheme, nextTheme, readTheme, type Theme } from "./theme";
 
 /** `short` labels the bottom bar on phones, where the full names would not fit. */
@@ -23,7 +24,7 @@ const SCREEN_INFO: Record<Screen, { title: string; task: string; description: st
 };
 
 export function App() {
-  const screen = useScreen();
+  const { screen, params } = useRoute();
   const [theme, setTheme] = useState<Theme>(readTheme);
 
   useEffect(() => applyTheme(theme), [theme]);
@@ -58,7 +59,11 @@ export function App() {
           </button>
         </header>
         <main class="content">
-          <Placeholder title={info.title} task={info.task} description={info.description} />
+          {screen === "pipeline" ? (
+            <Pipeline params={params} />
+          ) : (
+            <Placeholder title={info.title} task={info.task} description={info.description} />
+          )}
         </main>
       </div>
 
