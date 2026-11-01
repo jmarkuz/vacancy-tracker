@@ -1327,3 +1327,17 @@ tr.editing {
 tr[aria-selected="true"] {
   background: var(--color-accent-subtle);
 }
+
+/* Login */
+.login {
+  display: grid;
+  min-height: 100vh;
+  padding: var(--space-4);
+  place-items: center;
+}
+
+.login form {
+  display: grid;
+  gap: var(--space-3);
+  width: min(380px, 100%);
+}
