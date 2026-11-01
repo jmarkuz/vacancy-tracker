@@ -53,6 +53,14 @@ public class ApiExceptionHandler {
         return problem(HttpStatus.BAD_GATEWAY, "Source unavailable", e.getMessage());
     }
 
+    @ExceptionHandler(com.vacancytracker.matching.ProfileValidationException.class)
+    ProblemDetail invalidProfile(com.vacancytracker.matching.ProfileValidationException e) {
+        ProblemDetail detail = problem(HttpStatus.UNPROCESSABLE_ENTITY, "Profile is not valid",
+                "One or more fields of the profile are invalid.");
+        detail.setProperty("errors", e.errors());
+        return detail;
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     ProblemDetail validation(MethodArgumentNotValidException e) {
         Map<String, String> errors = new LinkedHashMap<>();

@@ -194,8 +194,9 @@ erDiagram
         timestamptz saved_at
     }
     CRITERION {
-        uuid id PK
-        uuid profile_id FK
+        text id PK "stable per profile, composite key with profile_id"
+        uuid profile_id PK
+        int position
         text field
         text operator
         jsonb value

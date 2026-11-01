@@ -146,6 +146,8 @@ Status: Accepted
 
 **Consequences.** Storage grows slowly (profiles change rarely). Restoring an old version is a new version with copied content. History is shown in the profile screen.
 
+**Implementation note (T-049).** A version snapshot stores the full editable content of the profile (name, enabled, sources, schedule, thresholds, criteria) as JSON, so an old version reads back with the same shape. The `criterion` table is keyed by `(profile_id, id)`: the criterion id is the stable, user-visible text id that match reasons refer to, so it is unique per profile and not a global UUID as the first ERD sketch showed. A rejected save changes nothing: validation runs before any write, and the whole save is one transaction.
+
 ---
 
 ## ADR-011 Salary normalization and exchange-rate source
