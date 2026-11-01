@@ -740,3 +740,13 @@ tbody tr:hover {
     width: auto;
   }
 }
+
+/* Source health: colored dot plus a text label */
+.health-ok { color: var(--color-success); }
+.health-warn { color: var(--color-warning); }
+.health-error { color: var(--color-danger); }
+.health-unknown { color: var(--color-text-subtle); }
+
+.small {
+  font-size: var(--font-size-xs);
+}

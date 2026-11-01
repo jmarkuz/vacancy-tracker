@@ -78,7 +78,7 @@ Phase 0 ended with an approval request to the owner. Approved 2026-11-01.
 | [x] 2026-11-01 | T-044 | Run lock, cron scheduler, graceful shutdown | M | T-043 | Concurrent trigger returns the active run; shutdown finishes or marks run interrupted |
 | [x] 2026-11-01 | T-045 | Expiry detection | S | T-043 | Expires after N=3 successful runs without sighting; failed sources do not count |
 | [x] 2026-11-01 | T-046 | SSE progress and Refresh button with summary toast | M | T-044, T-018 | Per-source progress live; toast reads "+N new, M updated, K sources failed" and links to Inbox |
-| [ ] | T-047 | Sources & Runs screen with health and "Refresh this source" | M | T-044, T-018 | Health shown as ok, warn or error with text, not color alone |
+| [x] 2026-11-01 | T-047 | Sources & Runs screen with health and "Refresh this source" | M | T-044, T-018 | Health shown as ok, warn or error with text, not color alone |
 | [ ] | T-048 | Inbox with keyboard triage (J/K/S/X/O) | M | T-043, T-018 | Full triage possible without mouse; focus visible |
 
 ## M3 Matching & Insights
