@@ -1,8 +1,9 @@
-import { useEffect, useState } from "preact/hooks";
+import { useCallback, useEffect, useState } from "preact/hooks";
 import { getJson, ApiError } from "../api/client";
 import type { PageResponse, Vacancy } from "../api/types";
 import { setQuery } from "../router";
 import { COLUMNS, DEFAULT_COLUMNS, type Column } from "./columns";
+import { VacancyDrawer } from "./VacancyDrawer";
 
 const PAGE_SIZE = 100;
 const DEFAULT_SORT = "lastSeenAt:desc";
@@ -16,6 +17,8 @@ export function Pipeline({ params }: Props) {
   const sort = params.get("sort") ?? DEFAULT_SORT;
   const page = Math.max(0, Number(params.get("page") ?? 0) || 0);
   const visible = resolveColumns(params.get("cols"));
+  const openId = params.get("open");
+  const closeDrawer = useCallback(() => setQuery({ open: null }), []);
 
   const [data, setData] = useState<PageResponse<Vacancy> | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +87,13 @@ export function Pipeline({ params }: Props) {
                   <tr key={v.id}>
                     {visible.map((col) => (
                       <td key={col.id} class={col.numeric ? "numeric" : undefined}>
-                        {col.render(v)}
+                        {col.id === "title" ? (
+                          <button type="button" class="row-open" onClick={() => setQuery({ open: v.id })}>
+                            {col.render(v)}
+                          </button>
+                        ) : (
+                          col.render(v)
+                        )}
                       </td>
                     ))}
                   </tr>
@@ -96,7 +105,9 @@ export function Pipeline({ params }: Props) {
           <ul class="vcards" aria-label="Vacancies">
             {data.items.map((v) => (
               <li key={v.id} class="vcard">
-                <div class="vcard-title">{v.title}</div>
+                <button type="button" class="row-open vcard-title" onClick={() => setQuery({ open: v.id })}>
+                  {v.title}
+                </button>
                 <div class="muted">{v.company}</div>
                 <div class="vcard-meta">
                   <span class="badge-slot">{COLUMNS.find((c) => c.id === "status")?.render(v)}</span>
@@ -126,6 +137,14 @@ export function Pipeline({ params }: Props) {
       )}
 
       {loading && !data && <p class="muted" role="status">Loading vacancies…</p>}
+
+      {openId && (
+        <VacancyDrawer
+          id={openId}
+          onClose={closeDrawer}
+          onChange={() => setAttempt((n) => n + 1)}
+        />
+      )}
     </section>
   );
 }

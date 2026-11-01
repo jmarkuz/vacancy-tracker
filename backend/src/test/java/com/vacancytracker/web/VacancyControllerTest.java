@@ -65,6 +65,17 @@ class VacancyControllerTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void editingDescriptionMarksFieldAsUserEdited() throws Exception {
+        String id = createOne("Data Analyst", "Helio");
+
+        mvc.perform(patch("/api/vacancies/" + id).contentType(JSON)
+                        .content("{\"description\":\"my own summary\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userEditedFields[0]").value("description"))
+                .andExpect(jsonPath("$.description").value("my own summary"));
+    }
+
+    @Test
     void invalidTransitionIsConflict() throws Exception {
         String id = createOne("Platform Engineer", "Kestrel");
 

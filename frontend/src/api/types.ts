@@ -4,6 +4,12 @@ export interface Vacancy {
   title: string;
   company: string;
   url: string | null;
+  canonicalUrl: string | null;
+  description: string | null;
+  notes: string | null;
+  contact: string | null;
+  nextActionNote: string | null;
+  userEditedFields: string[];
   location: string | null;
   country: string | null;
   workMode: string | null;
