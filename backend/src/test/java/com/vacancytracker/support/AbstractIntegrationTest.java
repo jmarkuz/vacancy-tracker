@@ -1,6 +1,9 @@
 package com.vacancytracker.support;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 /**
@@ -16,5 +19,14 @@ public abstract class AbstractIntegrationTest {
 
     static {
         POSTGRES.start();
+    }
+
+    @Autowired
+    private JdbcTemplate jdbc;
+
+    /** Each test starts with an empty database; the container and Spring context are shared. */
+    @BeforeEach
+    void truncateTables() {
+        jdbc.execute("TRUNCATE vacancy, saved_view CASCADE");
     }
 }

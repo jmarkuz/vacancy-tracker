@@ -22,7 +22,7 @@ T-020,Criterion model and filter evaluation,M1,M,T-015,todo
 T-021,Filter chips and saved views,M1,M,"T-019,T-020",todo
 T-022,Vacancy drawer,M1,M,"T-015,T-018",todo
 T-023,Manual add by URL JSON-LD,M1,M,"T-017,T-015",done
-T-024,CSV export,M1,S,T-020,todo
+T-024,CSV export,M1,S,T-020,done
 T-025,XLSX export,M1,S,T-024,todo
 T-026,JSON backup and import,M1,M,T-015,todo
 T-027,Re-verify source terms,M2,S,T-010,todo
