@@ -1,0 +1,27 @@
+{
+  "apiVersion": "1",
+  "jobs": [
+    {
+      "id": "ab-1",
+      "title": "Frontend Engineer",
+      "location": "Amsterdam",
+      "workplaceType": "Hybrid",
+      "isRemote": false,
+      "isListed": true,
+      "jobUrl": "https://jobs.ashbyhq.com/acme/ab-1",
+      "publishedAt": "2026-10-30T09:00:00.000Z",
+      "descriptionPlain": "Build UIs."
+    },
+    {
+      "id": "ab-2",
+      "title": "Secret Role",
+      "location": "Remote",
+      "workplaceType": "Remote",
+      "isRemote": true,
+      "isListed": false,
+      "jobUrl": "https://jobs.ashbyhq.com/acme/ab-2",
+      "publishedAt": "2026-10-29T09:00:00.000Z",
+      "descriptionPlain": "Not for listing."
+    }
+  ]
+}

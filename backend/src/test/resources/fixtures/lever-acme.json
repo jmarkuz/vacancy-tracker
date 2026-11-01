@@ -1,0 +1,20 @@
+[
+  {
+    "id": "lv-1",
+    "text": "Platform Engineer",
+    "hostedUrl": "https://jobs.lever.co/acme/lv-1",
+    "categories": { "location": "Warsaw", "team": "Infra", "commitment": "Full-time" },
+    "workplaceType": "hybrid",
+    "descriptionPlain": "Run the platform.",
+    "createdAt": 1761900000000
+  },
+  {
+    "id": "lv-2",
+    "text": "Data Analyst",
+    "hostedUrl": "https://jobs.lever.co/acme/lv-2",
+    "categories": { "location": "Remote", "team": "Data" },
+    "workplaceType": "remote",
+    "descriptionPlain": "Analyse things.",
+    "createdAt": 1761800000000
+  }
+]
