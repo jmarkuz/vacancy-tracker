@@ -26,6 +26,7 @@ Index:
 - ADR-021 Data model identifiers and time zones
 - ADR-022 Testing strategy and coverage gate
 - ADR-023 Status transition table
+- ADR-024 Frontend test tooling and accepted dev-only advisories
 
 ---
 
@@ -331,4 +332,18 @@ Status: Accepted
 Automation may set only Expired (from New or Saved), per ADR-014.
 
 **Consequences.** Invalid transitions fail with a domain exception. Restoring a terminal vacancy goes through New, so the history stays linear.
+
+---
+
+## ADR-024 Frontend test tooling and accepted dev-only advisories
+Status: Accepted (revisit when the toolchain moves to Node 20 or later)
+
+**Context.** The Definition of Done needs green tests for the UI. The local toolchain is Node 18. Vite 6 is the newest line that runs on Node 18. `npm audit` reports a high-severity advisory in Preact 10.27.0 to 10.27.2. The fix is 10.27.3, which is applied. It also reports moderate and critical advisories in the test runner: `@vitest/mocker` (Vitest 3 line) and `tinypool` 1.x. Their fixed versions require Vitest 4, which needs a newer Node.
+
+**Decision.**
+- Unit tests use Vitest 3.2.7 with jsdom 26 (`npm test`). Covered: criteria model, URL routing, status transition mirror, theme storage handling, API error messages, salary formatting.
+- Preact is pinned to 10.27.3 (patched).
+- The Vitest and tinypool advisories are accepted for now. They affect only the test runner, which is never shipped in the Docker image or served to the browser.
+
+**Consequences.** Re-run `npm audit` and move to Vitest 4 as soon as the local and CI Node version is 20 or later.
 
