@@ -47,14 +47,19 @@ public class RunCoordinator {
     }
 
     public synchronized Started start(String trigger) {
+        return start(trigger, null);
+    }
+
+    /** scope is an adapter id for a single-source run; null runs all sources. */
+    public synchronized Started start(String trigger, String scope) {
         if (active != null) {
             return new Started(active, false);
         }
-        UUID runId = runs.start(trigger, clock.instant());
+        UUID runId = runs.start(trigger, clock.instant(), scope);
         active = runId;
         executor.submit(() -> {
             try {
-                pipeline.execute(runId);
+                pipeline.execute(runId, scope);
             } finally {
                 clearActive(runId);
             }

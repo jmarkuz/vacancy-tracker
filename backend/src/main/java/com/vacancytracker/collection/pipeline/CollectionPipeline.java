@@ -67,9 +67,17 @@ public class CollectionPipeline {
 
     /** Executes an already created run. Stops between adapters when asked; then the run is interrupted. */
     public RunSummary execute(UUID runId) {
+        return execute(runId, null);
+    }
+
+    /** scope limits the run to one adapter id; null runs all adapters. */
+    public RunSummary execute(UUID runId, String scope) {
         List<AdapterResult> results = new ArrayList<>();
         events.publish(runId, "started", Map.of("runId", runId.toString()));
         for (SourceAdapter adapter : adapters) {
+            if (scope != null && !scope.equals(adapter.id())) {
+                continue;
+            }
             if (stopRequested) {
                 runs.finish(runId, "interrupted", clock.instant());
                 publishDone(runId, "interrupted", results);

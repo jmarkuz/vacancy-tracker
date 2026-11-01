@@ -3,7 +3,9 @@ package com.vacancytracker.collection.pipeline;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -29,13 +31,33 @@ public class RunRepository {
     }
 
     public UUID start(String trigger, Instant at) {
+        return start(trigger, at, null);
+    }
+
+    /** scope is an adapter id when the run covers one source only; null means all sources. */
+    public UUID start(String trigger, Instant at, String scope) {
         UUID id = UUID.randomUUID();
-        jdbc.sql("INSERT INTO run (id, trigger, started_at, status) VALUES (:id, :trigger, :at, 'running')")
+        jdbc.sql("INSERT INTO run (id, trigger, started_at, status, scope) VALUES (:id, :trigger, :at, 'running', :scope)")
                 .param("id", id)
                 .param("trigger", trigger)
                 .param("at", utc(at))
+                .param("scope", scope)
                 .update();
         return id;
+    }
+
+    /** The most recent statistics of each adapter, for the Sources screen. */
+    public Map<String, StatRow> latestStatsPerAdapter() {
+        Map<String, StatRow> out = new HashMap<>();
+        jdbc.sql("SELECT DISTINCT ON (s.adapter) s.adapter, s.fetched, s.new_count, s.updated, s.duplicates, s.errors,"
+                        + " s.duration_ms, s.error_message FROM run_source_stat s JOIN run r ON r.id = s.run_id"
+                        + " ORDER BY s.adapter, r.started_at DESC")
+                .query((rs, n) -> new StatRow(rs.getString("adapter"), rs.getInt("fetched"), rs.getInt("new_count"),
+                        rs.getInt("updated"), rs.getInt("duplicates"), rs.getInt("errors"), rs.getLong("duration_ms"),
+                        rs.getString("error_message")))
+                .list()
+                .forEach(row -> out.put(row.adapter(), row));
+        return out;
     }
 
     public void recordStat(UUID runId, String adapter, SourceStats stats, long durationMs, String error) {

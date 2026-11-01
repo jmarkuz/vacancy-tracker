@@ -3,6 +3,7 @@ import { Placeholder } from "./screens/Placeholder";
 import { RefreshControl } from "./components/RefreshControl";
 import { type Screen, useRoute } from "./router";
 import { Pipeline } from "./screens/Pipeline";
+import { Sources } from "./screens/Sources";
 import { applyTheme, nextTheme, readTheme, type Theme } from "./theme";
 
 /** `short` labels the bottom bar on phones, where the full names would not fit. */
@@ -60,6 +61,8 @@ export function App() {
         <main class="content">
           {screen === "pipeline" ? (
             <Pipeline params={params} />
+          ) : screen === "sources" ? (
+            <Sources />
           ) : (
             <Placeholder title={info.title} task={info.task} description={info.description} />
           )}
