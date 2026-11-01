@@ -3,6 +3,7 @@ import { Placeholder } from "./screens/Placeholder";
 import { RefreshControl } from "./components/RefreshControl";
 import { type Screen, useRoute } from "./router";
 import { Pipeline } from "./screens/Pipeline";
+import { Inbox } from "./screens/Inbox";
 import { Sources } from "./screens/Sources";
 import { applyTheme, nextTheme, readTheme, type Theme } from "./theme";
 
@@ -63,6 +64,8 @@ export function App() {
             <Pipeline params={params} />
           ) : screen === "sources" ? (
             <Sources />
+          ) : screen === "inbox" ? (
+            <Inbox params={params} />
           ) : (
             <Placeholder title={info.title} task={info.task} description={info.description} />
           )}

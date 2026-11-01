@@ -46,7 +46,7 @@ T-044,Run lock cron scheduler graceful shutdown,M2,M,T-043,done
 T-045,Expiry detection,M2,S,T-043,done
 T-046,SSE progress and Refresh button,M2,M,"T-044,T-018",done
 T-047,Sources and Runs screen,M2,M,"T-044,T-018",done
-T-048,Inbox keyboard triage,M2,M,"T-043,T-018",todo
+T-048,Inbox keyboard triage,M2,M,"T-043,T-018",done
 T-049,SearchProfile model and versioning,M3,M,T-013,todo
 T-050,Rule engine operators modes policies,M3,M,"T-020,T-049",todo
 T-051,Salary normalization and ECB rate cache,M3,M,T-041,todo
