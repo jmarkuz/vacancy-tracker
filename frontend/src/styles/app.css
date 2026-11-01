@@ -602,3 +602,66 @@ tbody tr:hover {
     border-radius: var(--radius-md) var(--radius-md) 0 0;
   }
 }
+
+/* Filters and saved views */
+.filter-bar,
+.view-bar {
+  display: grid;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 2px var(--space-2) 2px var(--space-3);
+  border: var(--border-width) solid var(--color-accent-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-accent-subtle);
+  font-size: var(--font-size-sm);
+}
+
+.chip-remove {
+  padding: 0 var(--space-1);
+  border: 0;
+  background: none;
+  color: var(--color-accent);
+  font: inherit;
+  cursor: pointer;
+}
+
+.filter-form,
+.save-view,
+.view-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.field-error {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+}
+
+.view-bar p {
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.filter-form select,
+.view-bar select {
+  max-width: 100%;
+}

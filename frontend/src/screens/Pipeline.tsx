@@ -2,6 +2,10 @@ import { useCallback, useEffect, useState } from "preact/hooks";
 import { getJson, ApiError } from "../api/client";
 import type { PageResponse, Vacancy } from "../api/types";
 import { setQuery } from "../router";
+import { FilterBar } from "../components/FilterBar";
+import { ViewBar, project } from "../components/ViewBar";
+import { parseCriteria, serializeCriteria, type Criterion } from "../domain/criteria";
+import type { SavedView } from "../api/views";
 import { COLUMNS, DEFAULT_COLUMNS, type Column } from "./columns";
 import { VacancyDrawer } from "./VacancyDrawer";
 
@@ -18,6 +22,10 @@ export function Pipeline({ params }: Props) {
   const page = Math.max(0, Number(params.get("page") ?? 0) || 0);
   const visible = resolveColumns(params.get("cols"));
   const openId = params.get("open");
+  const filterRaw = params.get("filter");
+  const criteria = parseCriteria(filterRaw);
+  const cols = params.get("cols");
+  const viewId = params.get("view");
   const closeDrawer = useCallback(() => setQuery({ open: null }), []);
 
   const [data, setData] = useState<PageResponse<Vacancy> | null>(null);
@@ -30,6 +38,9 @@ export function Pipeline({ params }: Props) {
     setLoading(true);
     setError(null);
     const query = new URLSearchParams({ sort, page: String(page), size: String(PAGE_SIZE) });
+    if (filterRaw) {
+      query.set("filter", filterRaw);
+    }
     getJson<PageResponse<Vacancy>>(`/api/vacancies?${query}`, controller.signal)
       .then((result) => {
         setData(result);
@@ -43,7 +54,7 @@ export function Pipeline({ params }: Props) {
         setLoading(false);
       });
     return () => controller.abort();
-  }, [sort, page, attempt]);
+  }, [sort, page, filterRaw, attempt]);
 
   const pageCount = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1;
 
@@ -54,6 +65,15 @@ export function Pipeline({ params }: Props) {
         <span class="grow" />
         <ColumnPicker selected={visible} />
       </div>
+
+      <FilterBar criteria={criteria} onChange={(next) => setFilter(next)} />
+      <ViewBar
+        viewId={viewId}
+        criteria={criteria}
+        sort={params.get("sort")}
+        cols={cols}
+        onApply={applyView}
+      />
 
       {error && (
         <div class="notice error" role="alert">
@@ -147,6 +167,26 @@ export function Pipeline({ params }: Props) {
       )}
     </section>
   );
+}
+
+/** Writes the filter into the URL and returns to the first page. */
+function setFilter(next: Criterion[]): void {
+  setQuery({ filter: serializeCriteria(next), page: null });
+}
+
+/** Applying a view replaces sort, columns and filter; null only detaches the view. */
+function applyView(view: SavedView | null): void {
+  if (!view) {
+    setQuery({ view: null });
+    return;
+  }
+  setQuery({
+    view: view.id,
+    filter: serializeCriteria(project(view.criteria)),
+    sort: view.sort,
+    cols: view.visibleColumns.length ? view.visibleColumns.join(",") : null,
+    page: null,
+  });
 }
 
 /** Unknown column ids in the URL are ignored; at least one column always shows. */

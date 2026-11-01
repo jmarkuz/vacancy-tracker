@@ -19,7 +19,7 @@ T-017,Canonical URL utility,M1,S,T-011,done
 T-018,Frontend bootstrap Vite TypeScript Preact,M1,M,"T-011,T-007",done
 T-019,Pipeline table sorting paging,M1,M,"T-015,T-018",done
 T-020,Criterion model and filter evaluation,M1,M,T-015,todo
-T-021,Filter chips and saved views,M1,M,"T-019,T-020",todo
+T-021,Filter chips and saved views,M1,M,"T-019,T-020",done
 T-022,Vacancy drawer,M1,M,"T-015,T-018",done
 T-023,Manual add by URL JSON-LD,M1,M,"T-017,T-015",done
 T-024,CSV export,M1,S,T-020,done
