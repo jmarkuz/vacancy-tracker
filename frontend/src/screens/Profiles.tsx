@@ -17,6 +17,8 @@ import { listSources } from "../api/sources";
 import { copyOfProfile, emptyProfile, importProblems, toInput } from "../domain/profileEditor";
 import { percentDone, progressText } from "../domain/recalc";
 import { ProfileEditor } from "../components/ProfileEditor";
+import { Wizard } from "../components/Wizard";
+import { skipWizard } from "../domain/firstRun";
 import { Toast } from "../components/Toast";
 import { setQuery } from "../router";
 import { formatDate } from "./columns";
@@ -42,6 +44,7 @@ export function Profiles({ params }: Props) {
   const [toast, setToast] = useState<{ message: string; tone: "info" | "error" } | null>(null);
   const timer = useRef<number | undefined>(undefined);
   const editing = params.get("edit");
+  const wizard = params.get("wizard") === "1" && !editing;
 
   const load = () =>
     listProfiles()
@@ -193,6 +196,17 @@ export function Profiles({ params }: Props) {
         </div>
       )}
 
+      {wizard && meta && (
+        <Wizard meta={meta}
+          onSkip={() => { skipWizard(); setQuery({ wizard: null, edit: "new" }); }}
+          onCreated={(created) => {
+            load();
+            setToast({ message: `Created "${created.name}". Review its rules below. Scores are being recalculated.`, tone: "info" });
+            watch();
+            setQuery({ wizard: null, edit: created.id });
+          }} />
+      )}
+
       {initial && meta && (
         <ProfileEditor
           key={editing ?? "none"}
@@ -221,11 +235,14 @@ export function Profiles({ params }: Props) {
         </div>
       )}
 
-      {profiles && profiles.length === 0 && !editing && (
+      {profiles && profiles.length === 0 && !editing && !wizard && (
         <div class="panel empty-state">
           <h2>No search profiles yet</h2>
           <p class="muted">A profile says what you look for. Create one to score and filter vacancies.</p>
-          <button class="btn primary" type="button" onClick={() => setQuery({ edit: "new" })} disabled={!meta}>
+          <button class="btn primary" type="button" onClick={() => setQuery({ wizard: "1" })} disabled={!meta}>
+            Set up with the wizard
+          </button>
+          <button class="btn" type="button" onClick={() => setQuery({ edit: "new" })} disabled={!meta}>
             New profile
           </button>
         </div>
