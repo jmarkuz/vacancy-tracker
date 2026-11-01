@@ -1,6 +1,6 @@
 package com.vacancytracker.collection.normalize;
 
-import com.vacancytracker.collection.CanonicalUrl;
+import com.vacancytracker.common.CanonicalUrl;
 import com.vacancytracker.collection.adapter.RawPosting;
 import java.math.BigDecimal;
 import java.util.Locale;

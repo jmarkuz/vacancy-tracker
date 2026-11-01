@@ -3,7 +3,7 @@ package com.vacancytracker.export;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.vacancytracker.collection.CanonicalUrl;
+import com.vacancytracker.common.CanonicalUrl;
 import com.vacancytracker.export.BackupVacancy.BackupStatusEvent;
 import com.vacancytracker.vacancy.StatusEvent;
 import com.vacancytracker.vacancy.VacancyService;

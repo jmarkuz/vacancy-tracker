@@ -1,6 +1,6 @@
 package com.vacancytracker.vacancy;
 
-import com.vacancytracker.collection.CanonicalUrl;
+import com.vacancytracker.common.CanonicalUrl;
 import java.time.Clock;
 import java.time.Instant;
 import com.vacancytracker.common.SqlFragment;
@@ -34,7 +34,7 @@ public class VacancyService {
 
     /** Creates a vacancy from an imported page, including placement and salary. */
     @Transactional
-    public Vacancy createImported(String url, com.vacancytracker.collection.JobPostingExtractor.ExtractedJob job) {
+    public Vacancy createImported(String url, ImportedPosting job) {
         Vacancy vacancy = create(job.title(), job.company(), url, job.description());
         vacancy.setPlacement(job.location(), null, job.workMode());
         vacancy.applyAutomated(new AutomatedFields(null, job.salaryMin(), job.salaryMax(), job.currency(),

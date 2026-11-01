@@ -64,7 +64,7 @@ Deployment units: `app` (backend with bundled static UI) and `postgres` (with a 
 | `web` | REST controllers, SSE endpoints, static UI serving, auth filter | all of the above |
 | `common` | Time, IDs, error model, logging and masking helpers | none |
 
-Rule: no package depends on `web`. Enforced by an ArchUnit test (M5 task).
+Rule: no package depends on `web`, and each module uses only the modules listed in its row, with no cycles between modules. Enforced by `ArchitectureTest` (ArchUnit, T-069) on every build. `CanonicalUrl` lives in `common` because `vacancy`, `collection`, `export` and `web` all use it; a page imported by URL reaches `vacancy` as `ImportedPosting`.
 
 ## 4. Collection pipeline
 

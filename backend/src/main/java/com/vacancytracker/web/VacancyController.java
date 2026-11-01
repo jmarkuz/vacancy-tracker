@@ -11,6 +11,7 @@ import com.vacancytracker.matching.MatchService;
 import com.vacancytracker.matching.VacancyMatch;
 import com.vacancytracker.vacancy.StatusEvent;
 import com.vacancytracker.vacancy.VacancySort;
+import com.vacancytracker.vacancy.ImportedPosting;
 import com.vacancytracker.vacancy.Vacancy;
 import com.vacancytracker.vacancy.VacancyService;
 import com.vacancytracker.vacancy.VacancyStatus;
@@ -95,7 +96,7 @@ public class VacancyController {
     @PostMapping("/import-url")
     public ResponseEntity<VacancyResponse> importFromUrl(@Valid @RequestBody ImportUrlRequest request) {
         String html = urlFetcher.fetch(request.url());
-        JobPostingExtractor.ExtractedJob job = JobPostingExtractor.extract(html)
+        ImportedPosting job = JobPostingExtractor.extract(html)
                 .orElseThrow(() -> new NoJobPostingException(request.url()));
         Vacancy created = service.createImported(request.url(), job);
         URI location = ServletUriComponentsBuilder.fromCurrentContextPath()
