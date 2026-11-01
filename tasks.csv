@@ -9,7 +9,7 @@ T-007,Design tokens,M0,S,T-004,done
 T-008,Dashboard mockup,M0,M,T-007,done
 T-009,Design README,M0,S,T-008,done
 T-010,Project README,M0,S,T-003,done
-T-011,Maven bootstrap Java 21 Spring Boot 3,M1,S,T-010,todo
+T-011,Maven bootstrap Java 21 Spring Boot 3,M1,S,T-010,done
 T-012,docker compose PostgreSQL 16 and env example,M1,S,T-011,todo
 T-013,Flyway baseline schema,M1,M,T-011,todo
 T-014,Vacancy domain and status machine,M1,M,T-011,todo

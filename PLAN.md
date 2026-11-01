@@ -37,7 +37,7 @@ Phase 0 ended with an approval request to the owner. Approved 2026-11-01.
 
 | Done | ID | Title | Est | Depends on | Acceptance criteria |
 |---|---|---|---|---|---|
-| [ ] | T-011 | Maven bootstrap: Java 21, Spring Boot 3.x, package skeleton, JaCoCo, lint | S | T-010 | `mvn verify` green with a smoke test; packages from architecture.md exist |
+| [x] 2026-11-01 | T-011 | Maven bootstrap: Java 21, Spring Boot 3.x, package skeleton, JaCoCo, lint | S | T-010 | `mvn verify` green with a smoke test; packages from architecture.md exist |
 | [ ] | T-012 | docker compose with PostgreSQL 16 and `.env.example` | S | T-011 | `docker compose up` starts app and db; `/actuator/health` is UP |
 | [ ] | T-013 | Flyway baseline schema: vacancy, vacancy_source, status_event, saved_view | M | T-011 | Migration applies on Testcontainers PostgreSQL 16; matches ERD |
 | [ ] | T-014 | Vacancy domain and status machine | M | T-011 | Allowed transitions tested; terminal states enforced; every change produces a StatusEvent |
