@@ -173,6 +173,25 @@ class ProfileControllerTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void companyListsOverHttp() throws Exception {
+        String created = mvc.perform(post("/api/company-lists").contentType(JSON)
+                        .content("{\"company\":\"Bad Corp\",\"listType\":\"blocklist\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.company").value("Bad Corp"))
+                .andReturn().getResponse().getContentAsString();
+        String id = com.jayway.jsonpath.JsonPath.read(created, "$.id");
+
+        mvc.perform(get("/api/company-lists")).andExpect(jsonPath("$.length()").value(1));
+        mvc.perform(post("/api/company-lists").contentType(JSON).content("{\"company\":\"\",\"listType\":\"blocklist\"}"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.errors.company").exists());
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/company-lists/" + id))
+                .andExpect(status().isNoContent());
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/company-lists/" + id))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void previewOfAnInvalidDraftIsUnprocessable() throws Exception {
         String bad = PROFILE.replace("\"operator\":\"gte\"", "\"operator\":\"regex\"");
 

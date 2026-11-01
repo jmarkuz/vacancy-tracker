@@ -25,13 +25,27 @@ public final class Scorer {
     private Scorer() {
     }
 
-    /** criteria and result.results() are in the same order. allowlistBonus is 0 unless the company is allowlisted. */
+    /** Scores with no company list involved. */
     public static ScoreOutcome score(List<Criterion> criteria, RuleResult result, int allowlistBonus) {
+        return score(criteria, result, allowlistBonus > 0 ? ListVerdict.ALLOWED : ListVerdict.NONE, allowlistBonus);
+    }
+
+    /**
+     * criteria and result.results() are in the same order. A blocked company is filtered out whatever the rules
+     * say; an allowed one adds allowlistBonus (ADR-028).
+     */
+    public static ScoreOutcome score(List<Criterion> criteria, RuleResult result, ListVerdict list, int allowlistBonus) {
+        int bonus = list == ListVerdict.ALLOWED ? allowlistBonus : 0;
         int positive = 0;
         int negative = 0;
         int maxPositive = 0;
         int absorb = 0;
         List<MatchReason> reasons = new ArrayList<>();
+        if (list == ListVerdict.BLOCKED) {
+            reasons.add(new MatchReason("company-blocklist", 0, "blocklist", "Filtered out: the company is on your blocklist"));
+        } else if (bonus > 0) {
+            reasons.add(new MatchReason("company-allowlist", bonus, "allowlist", "+" + bonus + ": the company is on your allowlist"));
+        }
 
         for (int i = 0; i < criteria.size(); i++) {
             Criterion c = criteria.get(i);
@@ -61,14 +75,14 @@ public final class Scorer {
             }
         }
 
-        if (result.hidden()) {
+        if (result.hidden() || list == ListVerdict.BLOCKED) {
             return new ScoreOutcome(null, true, List.copyOf(reasons));
         }
-        int denominator = maxPositive + absorb + allowlistBonus;
+        int denominator = maxPositive + absorb + bonus;
         if (denominator == 0) {
             return new ScoreOutcome(0, false, List.copyOf(reasons));
         }
-        int numerator = Math.max(0, positive - negative + allowlistBonus + absorb);
+        int numerator = Math.max(0, positive - negative + bonus + absorb);
         int score = Math.min(100, (200 * numerator + denominator) / (2 * denominator));
         return new ScoreOutcome(score, false, List.copyOf(reasons));
     }

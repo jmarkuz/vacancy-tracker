@@ -400,3 +400,20 @@ Status: Accepted (T-057)
 - YAML is read with Jackson's YAML parser, which does not instantiate arbitrary classes from tags. JSON files are read by the same parser.
 
 **Consequences.** Exported files always import cleanly. Importing a file with company lists fails until T-059.
+
+## ADR-028 Company allowlist and blocklist
+
+Status: Accepted (T-059)
+
+**Context.** docs/search-profiles.md section 2.6 says an allowlisted company is always shown and gets a bonus, and a blocklisted one is always filtered out, globally or per profile. It does not say what wins when the lists and the rules disagree.
+
+**Decision.**
+- A blocklisted company is filtered out for the profile: no score, hidden, reason of kind `blocklist`. A block in any scope wins over an allow in any scope.
+- An allowlisted company gets `+10` (`app.matching.allowlist-bonus`) with a reason of kind `allowlist`, and is not hidden for scoring below `inboxMinScore`. It does not override `require` and `exclude` rules: those are the user's explicit rules about the vacancy, so "always shown" is limited to the score threshold.
+- Companies compare without case and extra spaces, and match whole names only ("Acme" is not "Acme Corp").
+- An entry is global (`profile_id` null) or belongs to one profile and is deleted with it. Adding an existing entry changes nothing.
+- A change to a list starts a background recalculation, like a profile change.
+- A profile file carries only that profile's own lists (`companyLists`). Importing a file with the key replaces them; a file without it leaves them alone. Global lists are not part of a profile file.
+- The live preview uses global lists only, because a draft has no id yet.
+
+**Consequences.** Lists are exact-name matches, so spelling variants need separate entries. The preview can differ slightly from the saved result for a profile with its own lists.

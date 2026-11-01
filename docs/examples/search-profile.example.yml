@@ -84,9 +84,9 @@ profile:
       weight: 3
       missingValuePolicy: ignore
 
-  # Company allowlist and blocklist are not part of the profile file yet (T-059).
-  # Import rejects a companyLists key instead of silently dropping it.
-  # companyLists:
-  #   allowlist: []           # company names always shown with a bonus
-  #   blocklist:
-  #     - Example Blocked Company
+  # Company lists of this profile. Import replaces the profile's own lists when this key is present;
+  # global lists are managed on the Search profiles screen and are not part of the file.
+  companyLists:
+    allowlist: []           # company names always kept in the Inbox, with a score bonus
+    blocklist:
+      - Example Blocked Company

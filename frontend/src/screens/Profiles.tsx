@@ -17,6 +17,7 @@ import { listSources } from "../api/sources";
 import { copyOfProfile, emptyProfile, importProblems, toInput } from "../domain/profileEditor";
 import { percentDone, progressText } from "../domain/recalc";
 import { ProfileEditor } from "../components/ProfileEditor";
+import { CompanyLists } from "../components/CompanyLists";
 import { Wizard } from "../components/Wizard";
 import { skipWizard } from "../domain/firstRun";
 import { Toast } from "../components/Toast";
@@ -283,6 +284,10 @@ export function Profiles({ params }: Props) {
             </tbody>
           </table>
         </div>
+      )}
+
+      {profiles && !editing && !wizard && (
+        <CompanyLists profiles={profiles} onChanged={(message) => { setToast({ message, tone: "info" }); setProgress(null); watch(); }} />
       )}
 
       {toast && <Toast message={toast.message} tone={toast.tone} onDismiss={() => setToast(null)} />}

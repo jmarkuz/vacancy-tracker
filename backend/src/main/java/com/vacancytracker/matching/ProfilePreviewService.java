@@ -41,11 +41,17 @@ public class ProfilePreviewService {
     private final ProfileValidator validator;
     private final VacancyRepository vacancies;
     private final RuleEngine engine;
+    private final CompanyListService lists;
+    private final int allowlistBonus;
 
-    public ProfilePreviewService(ProfileValidator validator, VacancyRepository vacancies, RateSalaryConverter converter) {
+    public ProfilePreviewService(ProfileValidator validator, VacancyRepository vacancies, RateSalaryConverter converter,
+                                CompanyListService lists,
+                                @org.springframework.beans.factory.annotation.Value("${app.matching.allowlist-bonus:10}") int allowlistBonus) {
         this.validator = validator;
         this.vacancies = vacancies;
         this.engine = new RuleEngine(converter);
+        this.lists = lists;
+        this.allowlistBonus = allowlistBonus;
     }
 
     /** Throws ProfileValidationException when the draft is not valid. Never writes. */
@@ -55,6 +61,7 @@ public class ProfilePreviewService {
         SearchProfile asProfile = new SearchProfile(null, profile.name(), profile.enabled(), profile.sources(),
                 profile.scheduleOverride(), profile.thresholds(), profile.criteria(), 0, null);
         int inboxMin = profile.thresholds().inboxMinScore();
+        CompanyLists companyLists = lists.snapshot();
 
         List<Sample> inbox = new ArrayList<>();
         List<Sample> below = new ArrayList<>();
@@ -80,14 +87,15 @@ public class ProfilePreviewService {
                 applicable++;
                 Vacancy vacancy = Vacancy.restore(state);
                 RuleResult result = engine.evaluate(profile.criteria(), VacancyFacts.of(vacancy, sources));
-                ScoreOutcome outcome = Scorer.score(profile.criteria(), result, 0);
+                ScoreOutcome outcome = Scorer.score(profile.criteria(), result,
+                        companyLists.verdict(null, vacancy.getCompany()), allowlistBonus);
                 if (outcome.hidden()) {
                     filteredOut++;
                     keep(filtered, sample(vacancy, "filtered-out", outcome), FILTERED_SAMPLES);
                     continue;
                 }
                 matched++;
-                if (outcome.score() >= inboxMin) {
+                if (outcome.score() >= inboxMin || outcome.reasons().stream().anyMatch(r -> "allowlist".equals(r.kind()))) {
                     inboxCount++;
                     keep(inbox, sample(vacancy, "inbox", outcome), INBOX_SAMPLES);
                 } else {
