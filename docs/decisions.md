@@ -25,6 +25,7 @@ Index:
 - ADR-020 Language policy: Ukrainian for discussion, English for repository content
 - ADR-021 Data model identifiers and time zones
 - ADR-022 Testing strategy and coverage gate
+- ADR-023 Status transition table
 
 ---
 
@@ -303,3 +304,29 @@ Status: Accepted
 - Frontend: Vitest for store and rule builder logic; Playwright smoke test in M5.
 
 **Consequences.** CI must run Docker for Testcontainers.
+
+---
+
+## ADR-023 Status transition table
+Status: Accepted
+
+**Context.** The brief lists statuses and terminal states but not which transitions are allowed. Without a table, any status could be set from any other.
+
+**Decision.** Transitions are defined in `VacancyStatus` (code is the source of truth; this table mirrors it):
+
+| From | Allowed next |
+|---|---|
+| New | Saved, Applied, Dismissed, Hidden, Expired |
+| Saved | Applied, Dismissed, Withdrawn, Expired |
+| Applied | Screening, Rejected, Withdrawn |
+| Screening | Interview, Test task, Rejected, Withdrawn |
+| Interview | Test task, Offer, Rejected, Withdrawn |
+| Test task | Interview, Offer, Rejected, Withdrawn |
+| Offer | Accepted, Rejected, Withdrawn |
+| Accepted | none |
+| Rejected, Withdrawn, Expired, Dismissed, Hidden | New (restore only) |
+
+Automation may set only Expired (from New or Saved), per ADR-014.
+
+**Consequences.** Invalid transitions fail with a domain exception. Restoring a terminal vacancy goes through New, so the history stays linear.
+

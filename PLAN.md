@@ -43,7 +43,7 @@ Phase 0 ended with an approval request to the owner. Approved 2026-11-01.
 | [ ] | T-014 | Vacancy domain and status machine | M | T-011 | Allowed transitions tested; terminal states enforced; every change produces a StatusEvent |
 | [ ] | T-015 | Vacancy REST API: create, read, update, list with paging | M | T-013, T-014 | Endpoints work; invalid input returns 422 with field errors; integration test |
 | [ ] | T-016 | Upsert rules and userEditedFields | M | T-014 | Unit tests prove automation never changes status, notes, tags, priority, statusHistory, nextAction*, contact; edited fields are recorded |
-| [ ] | T-017 | Canonical URL utility | S | T-011 | Strips utm_* and tracking parameters; lowercases host; unit tests |
+| [x] 2026-11-01 | T-017 | Canonical URL utility | S | T-011 | Strips utm_* and tracking parameters; lowercases host; unit tests |
 | [ ] | T-018 | Frontend bootstrap: Vite, TypeScript, Preact, app shell, tokens | M | T-011, T-007 | `npm run build` output is served by Spring at `/`; layout works at 360 px width with 16 px gutter |
 | [ ] | T-019 | Pipeline table: sorting, column selection, sticky header, keyset paging | M | T-015, T-018 | 2000+ rows scroll smoothly; sort is stable; column choice persists in URL or view |
 | [ ] | T-020 | Criterion model and filter evaluation for views | M | T-015 | Criteria translate to SQL for status, source, country, workMode, score, dates; URL state round-trips |
