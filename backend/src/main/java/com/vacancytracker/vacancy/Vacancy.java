@@ -137,6 +137,19 @@ public class Vacancy {
         return event;
     }
 
+    /**
+     * Status change made by automation, for example hiding a vacancy that scores below the inbox threshold.
+     * It records an event like any change but keeps the isNew flag: the user has not seen the vacancy yet.
+     */
+    public StatusEvent changeStatusAutomatically(VacancyStatus to, Instant at, String note) {
+        if (!status.canMoveTo(to)) {
+            throw new InvalidStatusTransitionException(status, to);
+        }
+        StatusEvent event = new StatusEvent(id, status, to, at, note);
+        status = to;
+        return event;
+    }
+
     public void editDescription(String value) {
         description = value;
         userEditedFields.add(FIELD_DESCRIPTION);

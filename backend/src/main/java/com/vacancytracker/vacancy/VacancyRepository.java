@@ -187,6 +187,10 @@ public class VacancyRepository {
                 .update();
     }
 
+    public List<UUID> findAllIds() {
+        return jdbc.sql("SELECT id FROM vacancy ORDER BY id").query(UUID.class).list();
+    }
+
     /** Adapters that saw the vacancy, earliest first. */
     public List<String> findSourceAdapters(UUID vacancyId) {
         return jdbc.sql("SELECT adapter FROM vacancy_source WHERE vacancy_id = :id ORDER BY first_seen_at, adapter")

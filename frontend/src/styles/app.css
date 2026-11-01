@@ -815,3 +815,18 @@ kbd {
     display: none;
   }
 }
+
+/* Recalculation progress */
+.recalc-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.recalc-progress progress {
+  flex: 1;
+  max-width: 360px;
+  height: 8px;
+  accent-color: var(--color-accent);
+}

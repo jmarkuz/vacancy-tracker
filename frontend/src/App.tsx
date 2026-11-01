@@ -4,6 +4,7 @@ import { RefreshControl } from "./components/RefreshControl";
 import { type Screen, useRoute } from "./router";
 import { Pipeline } from "./screens/Pipeline";
 import { Inbox } from "./screens/Inbox";
+import { Profiles } from "./screens/Profiles";
 import { Sources } from "./screens/Sources";
 import { applyTheme, nextTheme, readTheme, type Theme } from "./theme";
 
@@ -66,6 +67,8 @@ export function App() {
             <Sources />
           ) : screen === "inbox" ? (
             <Inbox params={params} />
+          ) : screen === "profiles" ? (
+            <Profiles />
           ) : (
             <Placeholder title={info.title} task={info.task} description={info.description} />
           )}

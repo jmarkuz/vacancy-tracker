@@ -7,6 +7,7 @@ import com.vacancytracker.collection.health.SourceHealth;
 import com.vacancytracker.collection.http.UpstreamException;
 import com.vacancytracker.collection.normalize.NormalizedPosting;
 import com.vacancytracker.collection.normalize.Normalizer;
+import com.vacancytracker.matching.MatchService;
 import com.vacancytracker.vacancy.VacancyRepository;
 import java.time.Clock;
 import java.time.Instant;
@@ -38,19 +39,21 @@ public class CollectionPipeline {
     private final RunRepository runs;
     private final VacancyRepository vacancies;
     private final ExpiryService expiry;
+    private final MatchService matching;
     private final RunEventBus events;
     private final Clock clock;
     private volatile boolean stopRequested;
 
     public CollectionPipeline(List<SourceAdapter> adapters, SourceHealth health, IngestService ingest,
                               RunRepository runs, VacancyRepository vacancies, ExpiryService expiry,
-                              RunEventBus events, Clock clock) {
+                              MatchService matching, RunEventBus events, Clock clock) {
         this.adapters = adapters;
         this.health = health;
         this.ingest = ingest;
         this.runs = runs;
         this.vacancies = vacancies;
         this.expiry = expiry;
+        this.matching = matching;
         this.events = events;
         this.clock = clock;
     }
@@ -73,6 +76,7 @@ public class CollectionPipeline {
     /** scope limits the run to one adapter id; null runs all adapters. */
     public RunSummary execute(UUID runId, String scope) {
         List<AdapterResult> results = new ArrayList<>();
+        MatchService.MatchSession session = matching.session();
         events.publish(runId, "started", Map.of("runId", runId.toString()));
         for (SourceAdapter adapter : adapters) {
             if (scope != null && !scope.equals(adapter.id())) {
@@ -85,7 +89,7 @@ public class CollectionPipeline {
             }
             events.publish(runId, "source", Map.of("adapter", adapter.id(), "state", "running"));
             long started = System.nanoTime();
-            AdapterResult result = runAdapter(adapter);
+            AdapterResult result = runAdapter(adapter, session);
             long durationMs = (System.nanoTime() - started) / 1_000_000;
             results.add(result);
             runs.recordStat(runId, adapter.id(), result.stats(), durationMs, result.error());
@@ -120,7 +124,7 @@ public class CollectionPipeline {
                 "failedSources", failed));
     }
 
-    private AdapterResult runAdapter(SourceAdapter adapter) {
+    private AdapterResult runAdapter(SourceAdapter adapter, MatchService.MatchSession session) {
         RunRepository.SourceStats stats = new RunRepository.SourceStats();
         String id = adapter.id();
         if (!health.allowRequest(id)) {
@@ -136,7 +140,7 @@ public class CollectionPipeline {
             } else {
                 for (RawPosting raw : outcome.postings()) {
                     stats.fetched++;
-                    store(raw, stats);
+                    store(raw, stats, session);
                 }
             }
             return new AdapterResult(id, stats, null);
@@ -147,19 +151,21 @@ public class CollectionPipeline {
         }
     }
 
-    private void store(RawPosting raw, RunRepository.SourceStats stats) {
+    private void store(RawPosting raw, RunRepository.SourceStats stats, MatchService.MatchSession session) {
         Optional<NormalizedPosting> normalized = Normalizer.normalize(raw);
         if (normalized.isEmpty()) {
             stats.errors++;
             return;
         }
         try {
-            switch (ingest.ingest(normalized.get(), clock.instant())) {
+            IngestService.Ingested ingested = ingest.ingest(normalized.get(), clock.instant());
+            switch (ingested.outcome()) {
                 case NEW -> stats.newCount++;
                 case UPDATED -> stats.updated++;
                 case DUPLICATE -> stats.duplicates++;
                 default -> { }
             }
+            session.match(ingested.vacancyId());
         } catch (DataAccessException | IllegalArgumentException e) {
             stats.errors++;
         }

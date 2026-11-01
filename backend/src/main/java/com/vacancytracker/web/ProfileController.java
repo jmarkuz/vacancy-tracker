@@ -1,11 +1,13 @@
 package com.vacancytracker.web;
 
 import com.vacancytracker.matching.ProfileInput;
+import com.vacancytracker.matching.RecalculationService;
 import com.vacancytracker.matching.SearchProfile;
 import com.vacancytracker.matching.SearchProfileService;
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,9 +24,21 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 public class ProfileController {
 
     private final SearchProfileService profiles;
+    private final RecalculationService recalculation;
+    private final boolean recalculateOnSave;
 
-    public ProfileController(SearchProfileService profiles) {
+    public ProfileController(SearchProfileService profiles, RecalculationService recalculation,
+                             @Value("${app.matching.recalculate-on-save:true}") boolean recalculateOnSave) {
         this.profiles = profiles;
+        this.recalculation = recalculation;
+        this.recalculateOnSave = recalculateOnSave;
+    }
+
+    /** Saving a profile version starts a background recalculation (docs/search-profiles.md section 8). */
+    private void recalculate() {
+        if (recalculateOnSave) {
+            recalculation.start();
+        }
     }
 
     @GetMapping
@@ -40,6 +54,7 @@ public class ProfileController {
     @PostMapping
     public ResponseEntity<SearchProfile> create(@RequestBody ProfileInput input) {
         SearchProfile created = profiles.create(input);
+        recalculate();
         URI location = ServletUriComponentsBuilder.fromCurrentContextPath()
                 .path("/api/profiles/{id}").buildAndExpand(created.id()).toUri();
         return ResponseEntity.created(location).body(created);
@@ -48,12 +63,15 @@ public class ProfileController {
     /** Saving always creates a new version; the previous one stays readable. */
     @PutMapping("/{id}")
     public SearchProfile update(@PathVariable UUID id, @RequestBody ProfileInput input) {
-        return profiles.update(id, input);
+        SearchProfile updated = profiles.update(id, input);
+        recalculate();
+        return updated;
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         profiles.delete(id);
+        recalculate();
         return ResponseEntity.noContent().build();
     }
 
@@ -69,6 +87,8 @@ public class ProfileController {
 
     @PostMapping("/{id}/versions/{version}/restore")
     public SearchProfile restore(@PathVariable UUID id, @PathVariable int version) {
-        return profiles.restore(id, version);
+        SearchProfile restored = profiles.restore(id, version);
+        recalculate();
+        return restored;
     }
 }

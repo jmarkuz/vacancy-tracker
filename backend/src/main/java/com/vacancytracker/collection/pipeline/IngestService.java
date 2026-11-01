@@ -21,6 +21,10 @@ public class IngestService {
 
     public enum Outcome { NEW, UPDATED, DUPLICATE }
 
+    /** What happened to the posting, and the vacancy it became or was merged into. */
+    public record Ingested(Outcome outcome, UUID vacancyId) {
+    }
+
     private final Deduplicator deduplicator;
     private final VacancyRepository vacancies;
 
@@ -30,7 +34,7 @@ public class IngestService {
     }
 
     @Transactional
-    public Outcome ingest(NormalizedPosting posting, Instant now) {
+    public Ingested ingest(NormalizedPosting posting, Instant now) {
         var match = deduplicator.match(posting);
         if (match.isEmpty()) {
             Vacancy created = Vacancy.discovered(UUID.randomUUID(), posting.title(), posting.company(), posting.url(),
@@ -40,7 +44,7 @@ public class IngestService {
                     posting.currency(), posting.salaryPeriod(), now));
             vacancies.save(created.toState());
             vacancies.upsertSource(created.getId(), posting.adapter(), posting.externalId(), posting.url(), now);
-            return Outcome.NEW;
+            return new Ingested(Outcome.NEW, created.getId());
         }
 
         UUID id = match.get().vacancyId();
@@ -58,6 +62,6 @@ public class IngestService {
                 || !Objects.equals(beforeMax, existing.getSalaryMax());
         vacancies.save(existing.toState());
         vacancies.upsertSource(id, posting.adapter(), posting.externalId(), posting.url(), now);
-        return changed ? Outcome.UPDATED : Outcome.DUPLICATE;
+        return new Ingested(changed ? Outcome.UPDATED : Outcome.DUPLICATE, id);
     }
 }
