@@ -13,7 +13,7 @@ T-011,Maven bootstrap Java 21 Spring Boot 3,M1,S,T-010,done
 T-012,docker compose PostgreSQL 16 and env example,M1,S,T-011,done
 T-013,Flyway baseline schema,M1,M,T-011,done
 T-014,Vacancy domain and status machine,M1,M,T-011,todo
-T-015,Vacancy REST API with paging,M1,M,"T-013,T-014",todo
+T-015,Vacancy REST API with paging,M1,M,"T-013,T-014",done
 T-016,Upsert rules and userEditedFields,M1,M,T-014,todo
 T-017,Canonical URL utility,M1,S,T-011,done
 T-018,Frontend bootstrap Vite TypeScript Preact,M1,M,"T-011,T-007",todo
