@@ -1064,3 +1064,130 @@ tr.editing {
 .company-list li .btn {
   margin-left: auto;
 }
+
+/* Dashboard */
+.grid-kpi {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+.kpi {
+  display: block;
+  padding: var(--space-4);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: inherit;
+  text-decoration: none;
+}
+
+.kpi:hover,
+.kpi:focus-visible {
+  border-color: var(--color-accent-border);
+}
+
+.kpi .label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.kpi .value {
+  margin-top: var(--space-1);
+  font-size: var(--font-size-2xl);
+}
+
+.panels {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.stack {
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+}
+
+.plain-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.list-item {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) 0;
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.list-item:last-child {
+  border-bottom: 0;
+}
+
+.list-item .meta {
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.list-item .meta:hover {
+  text-decoration: underline;
+}
+
+.funnel-row {
+  display: grid;
+  grid-template-columns: 90px 1fr 40px;
+  gap: var(--space-2);
+  align-items: center;
+  margin-top: var(--space-1);
+}
+
+.funnel-svg {
+  width: 100%;
+  height: 12px;
+}
+
+.funnel-track {
+  fill: var(--color-bg-subtle);
+}
+
+.funnel-bar,
+.week-bar {
+  fill: var(--color-accent);
+}
+
+.week-chart {
+  width: 100%;
+  height: auto;
+  max-height: 200px;
+}
+
+.week-value,
+.week-label {
+  fill: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.overdue {
+  color: var(--color-danger);
+}
+
+@media (max-width: 900px) {
+  .grid-kpi {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .panels {
+    grid-template-columns: 1fr;
+  }
+
+  .kpi .value {
+    font-size: var(--font-size-xl);
+  }
+}
