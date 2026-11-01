@@ -5,6 +5,7 @@ All notable changes are recorded here. Format: date, task ID, short description.
 ## [Unreleased]
 
 ### 2026-11-01 — M1 core tracker
+- T-018: Frontend bootstrap in `frontend/`: Vite 6, Preact 10, TypeScript (strict). App shell with hash routing, theme toggle (system, light, dark) with guarded storage access, and placeholder screens that name the task that builds them. The production bundle goes into the Spring static folder; the Docker build compiles the UI in its own stage. `frontend/src/styles/tokens.css` is a copy of `design/tokens.css`; keep them in sync. Checked at 360 px width with a headless browser: 16 px gutter, bottom navigation, no horizontal page scroll.
 - T-020 (partial): Added country: stored, exported (CSV, XLSX, backup), importable and filterable. Only score is still missing from the T-020 acceptance list.
 - T-021 (backend part): Saved views API: `/api/views` CRUD (unique name, criteria validated on save), and `GET /api/views/{id}/vacancies` to apply a view. UI (chips, URL state) not yet started.
 - T-020 (partial): Criterion filters for views: `GET /api/vacancies?filter=<json>&sort=field:asc|desc` compiled to parameterized SQL. Supported fields: title, company, location, description, keywords, workMode, status, priority, salary, tags, source, firstSeenAt, lastSeenAt, nextActionAt. Modes require and exclude; missing values never satisfy a positive operator. Not yet: country and score (no column or score until M3), URL state (frontend).
