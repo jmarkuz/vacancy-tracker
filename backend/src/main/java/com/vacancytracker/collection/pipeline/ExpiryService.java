@@ -14,7 +14,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Expiry (T-045, ADR-014). A New or Saved vacancy becomes Expired after it was missed by N consecutive
- * successful runs of its sources. A source that failed in a run does not count for that run.
+ * successful runs of its sources. A source that failed in a run does not count for that run. Email sources never
+ * count: an alert email arrives once, so not seeing its vacancy again says nothing about the posting (ADR-030).
  */
 @Service
 public class ExpiryService {
@@ -29,7 +30,8 @@ public class ExpiryService {
                    WHERE r.started_at > v.last_seen_at
                      AND r.status IN ('completed', 'completed_with_errors')
                      AND s.error_message IS NULL
-                     AND s.adapter IN (SELECT vs.adapter FROM vacancy_source vs WHERE vs.vacancy_id = v.id)
+                     AND s.adapter IN (SELECT vs.adapter FROM vacancy_source vs WHERE vs.vacancy_id = v.id
+                                        AND vs.adapter NOT LIKE 'email-%')
                   ) >= :runs
             """;
 

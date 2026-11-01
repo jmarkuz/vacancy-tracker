@@ -434,3 +434,18 @@ Status: Accepted (T-064)
 - Disabled unless `app.mail.imap.enabled=true` and a host and user are set.
 
 **Consequences.** A message handled while the database was reset would be handled again. IMAP IDLE (push) is not used; the reader is polled. Which folder holds the alerts is the user's choice (default "Job alerts").
+
+## ADR-030 Email sources: one parser per sender, no expiry
+
+Status: Accepted (T-065)
+
+**Context.** Alert emails are read once (ADR-029). A vacancy found only in an email is not listed again, so the expiry rule (ADR-014) would expire it after three runs although nothing is known about the posting.
+
+**Decision.**
+- Each sender has one `MailParser` and one adapter (`email-<sender>`). A parser reads only the email content; it never opens a link, never logs in to the sender's site and rewrites job links to their plain form without tracking parameters.
+- An adapter handles mail of its own sender, leaves mail of another known sender for that sender's adapter (RETRY), and logs and marks as processed mail of a sender nobody handles, so unknown mail cannot pile up.
+- An email that its parser accepts but finds no vacancies in is processed and logged as a warning, because a changed layout would otherwise be retried forever.
+- Vacancies whose only sources are email sources do not take part in expiry. The user closes them by hand.
+- The vacancy's posting date is the date of the email.
+
+**Consequences.** Email vacancies stay in the Inbox or Saved until the user acts. A changed email layout shows as a warning in the log and as no new vacancies from that source.
