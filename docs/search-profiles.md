@@ -138,6 +138,12 @@ Where:
 - `maxNegativeAbsorb = sum of weight for all avoid criteria` keeps the scale symmetric: a vacancy that satisfies every avoid rule and no prefer rule scores 0, one that satisfies every prefer rule and no avoid rule scores 100.
 - If `maxPositive + maxNegativeAbsorb + allowlistBonus = 0` (no scoring criteria), the score is `0` and `matchReasons` is empty.
 
+Clarifications (T-052, ADR-025):
+- A criterion that `ignore` skips because its value is missing takes no part in the formula: it is left out of `maxPositive` and `maxNegativeAbsorb` as well, as if it did not exist. This keeps "ignore" meaning "no score change".
+- A penalized missing value adds its weight to `negative` in every mode. Prefer criteria with a penalized missing value stay in `maxPositive`.
+- Integer arithmetic is used: `score = min(100, (200 * max(0, raw + absorb) + denominator) / (2 * denominator))`.
+- A filtered vacancy has no score (stored as null with `hidden = true`); its reasons list the filters.
+
 Properties:
 - Deterministic: same vacancy, profile version and rules always give the same score.
 - Monotonic: adding a satisfied prefer criterion never lowers the score.
