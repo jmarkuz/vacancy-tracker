@@ -511,3 +511,19 @@ Status: Accepted (T-072)
 - Run metrics are log lines: one per source (fetched, new, updated, duplicates, errors, duration) and one summary per run (status, sources, totals, failed sources, duration). In the vps profile the numbers are JSON fields.
 
 **Consequences.** A secret that is neither shaped like the patterns nor configured through a property with such a name (for example one typed into a notes field by the user and then logged) is not masked. Masking is best effort on the way out; the main protection stays not to put secrets into messages. Logs written by other libraries are masked too, because masking is in the output, not in our log calls. The run metrics are not exposed through Actuator or Micrometer; there is no metrics endpoint.
+
+## ADR-035 Generic HTML adapter: approved sites only
+
+Status: Accepted (T-073)
+
+**Context.** Tier 3 reads career pages that have no API. The brief forbids reading sites whose terms or `robots.txt` do not allow it, and requires a written terms check per site.
+
+**Decision.**
+- One adapter, `html`, driven by configuration. The repository ships no site and none is enabled by default.
+- A site is requested only when it is enabled and its configuration records a terms check (date and terms page). The check itself is written in docs/sources.md ("Approved sites") before the configuration is added; the adapter cannot verify that, it only refuses sites with no record.
+- `robots.txt` is read first, for every site and every run, and honoured as RFC 9309 describes: the group of the most specific matching agent (`VacancyTracker`), longest rule wins, Allow wins a tie, `*` and `$`. A 4xx answer allows. A 5xx or no answer blocks and counts as a failure, so the owner sees it. A page that is disallowed is never requested. `Crawl-delay` (capped at 30 s) is waited between pages.
+- Pages are fetched without validators: a "not modified" answer would hide which vacancies still exist, and the adapter parses the page itself.
+- The adapter opens list pages only, never a vacancy page, at most 5 pages per site and 200 cards per page, at the shared one request per second per host.
+- Vacancies use the source id `html` for all sites so that the run statistics and the expiry rule (ADR-014) agree on the source; the site is the first part of the external id.
+
+**Consequences.** A site that is blocked by `robots.txt` is skipped with a warning, not an error. Selectors break when the page changes; the result is no vacancies or a failed source, never wrong ones, because cards without a title and a real link are dropped. Health is per source (`html`), not per site; the log names the site. Whether a site's terms really allow reading is the owner's judgement and is recorded, not enforced.

@@ -37,7 +37,42 @@ Notes for Tier 2:
 
 ## Tier 3: generic HTML (Jsoup + CSS selectors)
 
-Only where `robots.txt` and the site's terms allow it. Each site needs a written terms check recorded here before its config is added. No sites are enabled by default.
+Only where `robots.txt` and the site's terms allow it. Each site needs a written terms check recorded here before its config is added. No sites are enabled by default, and the repository contains none.
+
+The adapter is `html` (T-073, ADR-035). It reads vacancy cards from a list page with CSS selectors and opens no vacancy page. It never requests a site unless **all** of this holds:
+
+- the site is configured and `enabled` is true;
+- the configuration records the terms check: `terms-checked-on` (the date) and `terms-url` (the page whose terms were read), matching a row in the table below;
+- `robots.txt` of the site allows the list page for the `VacancyTracker` agent (RFC 9309: the most specific group, the longest rule wins, `Crawl-delay` is waited between pages). No `robots.txt` (a 4xx answer) means allowed; one that cannot be read (5xx, no answer) means the site is not fetched and counts as failed.
+
+Settings are ordinary properties; in a deployment they are environment variables (`APP_SOURCES_HTML_SITES_0_ID`, and so on):
+
+```yaml
+app:
+  sources:
+    html:
+      sites:
+        - id: example                    # short name
+          enabled: true
+          list-url: https://careers.example.test/jobs?page={page}   # {page} is optional
+          max-pages: 3                   # at most 5, and only with {page}
+          terms-checked-on: 2026-11-01   # required
+          terms-url: https://careers.example.test/terms             # required
+          item: li.job                   # CSS selector of one vacancy card
+          title: a.title                 # inside the card; its text is the title
+          link: ""                       # inside the card; default: the title element, else the first a[href]
+          company: .company              # inside the card; or use company-name for one company's own page
+          company-name: ""
+          location: .location
+```
+
+Limits: at most 200 cards per page, 5 pages per site, one request per second per host. A site that fails does not stop the others; the source counts as failed only when no site could be read. Vacancies carry the source `html`; the site is the first part of the vacancy's external id. The terms and `robots.txt` can change: the check is a record of what was read on that date, not a permanent permission.
+
+### Approved sites
+
+| Site | Terms page read | Date | What the terms say about automated reading | `robots.txt` on that date | Config id |
+|---|---|---|---|---|---|
+| (none) | | | | | |
 
 ## Reference data: exchange rates
 
