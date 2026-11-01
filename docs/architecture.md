@@ -60,7 +60,7 @@ Deployment units: `app` (backend with bundled static UI) and `postgres` (with a 
 | `collection` | Adapters, HTTP client, rate limits, circuit breaker, pipeline stages, scheduler, run lock, SSE progress | `vacancy`, `matching` (interfaces) |
 | `matching` | SearchProfile, Criterion, rule engine, score, VacancyMatch, recalculation, currency rates | `vacancy` |
 | `export` | CSV, XLSX, JSON backup and import with validation | `vacancy`, `matching` |
-| `notification` | Telegram digest (disabled by default) | `vacancy`, `matching` |
+| `notification` | Telegram digest (disabled by default) | `vacancy`, `matching`, `collection` (run-finished events) |
 | `web` | REST controllers, SSE endpoints, static UI serving, auth filter | all of the above |
 | `common` | Time, IDs, error model, logging and masking helpers | none |
 
