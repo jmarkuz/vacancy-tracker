@@ -13,6 +13,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import com.vacancytracker.support.AbstractIntegrationTest;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -62,6 +63,16 @@ class VacancyFilterApiTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void countryFilterUsesStoredCountry() throws Exception {
+        String id = com.jayway.jsonpath.JsonPath.read(mvc.perform(post("/api/vacancies").contentType(JSON)
+                .content("{\"title\":\"Remote Dev\",\"company\":\"Gamma\",\"location\":\"Berlin\"}"))
+                .andReturn().getResponse().getContentAsString(), "$.id");
+        assertThat(id).isNotBlank();
+        mvc.perform(get("/api/vacancies").param("filter", filter("{\"field\":\"country\",\"operator\":\"exists\"}")))
+                .andExpect(jsonPath("$.total").value(0));
+    }
+
+    @Test
     void existsAndPriorityFilters() throws Exception {
         mvc.perform(get("/api/vacancies").param("filter",
                         filter("{\"field\":\"priority\",\"operator\":\"gte\",\"value\":1}")))
@@ -73,7 +84,7 @@ class VacancyFilterApiTest extends AbstractIntegrationTest {
 
     @Test
     void invalidFilterOrSortIsUnprocessable() throws Exception {
-        mvc.perform(get("/api/vacancies").param("filter", filter("{\"field\":\"country\",\"operator\":\"equals\",\"value\":\"DE\"}")))
+        mvc.perform(get("/api/vacancies").param("filter", filter("{\"field\":\"city\",\"operator\":\"equals\",\"value\":\"DE\"}")))
                 .andExpect(status().isUnprocessableEntity());
         mvc.perform(get("/api/vacancies").param("sort", "salary:up"))
                 .andExpect(status().isUnprocessableEntity());

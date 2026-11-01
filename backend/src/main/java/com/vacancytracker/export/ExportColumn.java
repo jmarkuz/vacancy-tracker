@@ -13,6 +13,7 @@ public enum ExportColumn {
     URL("url", Vacancy::getUrl),
     CANONICAL_URL("canonical_url", Vacancy::getCanonicalUrl),
     LOCATION("location", Vacancy::getLocation),
+    COUNTRY("country", Vacancy::getCountry),
     WORK_MODE("work_mode", Vacancy::getWorkMode),
     STATUS("status", v -> v.getStatus().label()),
     PRIORITY("priority", Vacancy::getPriority),
@@ -30,7 +31,7 @@ public enum ExportColumn {
     DESCRIPTION("description", Vacancy::getDescription);
 
     /** Columns exported when the request does not name any. */
-    public static final List<ExportColumn> DEFAULT = List.of(ID, TITLE, COMPANY, URL, LOCATION, WORK_MODE, STATUS,
+    public static final List<ExportColumn> DEFAULT = List.of(ID, TITLE, COMPANY, URL, LOCATION, COUNTRY, WORK_MODE, STATUS,
             PRIORITY, SALARY_MIN, SALARY_MAX, CURRENCY, SALARY_PERIOD, TAGS, NOTES, CONTACT, NEXT_ACTION_AT,
             FIRST_SEEN_AT, LAST_SEEN_AT);
 

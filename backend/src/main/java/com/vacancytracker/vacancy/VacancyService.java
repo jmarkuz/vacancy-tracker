@@ -36,7 +36,7 @@ public class VacancyService {
     @Transactional
     public Vacancy createImported(String url, com.vacancytracker.collection.JobPostingExtractor.ExtractedJob job) {
         Vacancy vacancy = create(job.title(), job.company(), url, job.description());
-        vacancy.setPlacement(job.location(), job.workMode());
+        vacancy.setPlacement(job.location(), null, job.workMode());
         vacancy.applyAutomated(new AutomatedFields(null, job.salaryMin(), job.salaryMax(), job.currency(),
                 job.salaryPeriod(), clock.instant()));
         repository.save(vacancy.toState());

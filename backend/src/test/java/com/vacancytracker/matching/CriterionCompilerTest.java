@@ -68,7 +68,7 @@ class CriterionCompilerTest {
 
     @Test
     void rejectsUnknownFieldOperatorOrMode() throws Exception {
-        assertThatThrownBy(() -> compiler.validate(List.of(c("{\"field\":\"country\",\"operator\":\"equals\",\"value\":\"DE\"}"))))
+        assertThatThrownBy(() -> compiler.validate(List.of(c("{\"field\":\"city\",\"operator\":\"equals\",\"value\":\"DE\"}"))))
                 .isInstanceOf(CriterionException.class).hasMessageContaining("not yet supported");
         assertThatThrownBy(() -> compiler.validate(List.of(c("{\"field\":\"priority\",\"operator\":\"contains_any\",\"value\":[1]}"))))
                 .isInstanceOf(CriterionException.class).hasMessageContaining("not allowed");

@@ -15,6 +15,7 @@ public record BackupVacancy(
         String company,
         String url,
         String location,
+        String country,
         String workMode,
         String description,
         String status,
@@ -37,7 +38,7 @@ public record BackupVacancy(
 
     static BackupVacancy from(Vacancy v, List<BackupStatusEvent> history) {
         return new BackupVacancy(v.getId(), v.getTitle(), v.getCompany(), v.getUrl(), v.getLocation(),
-                v.getWorkMode(), v.getDescription(), v.getStatus().label(), v.getPriority(), v.getSalaryMin(),
+                v.getCountry(), v.getWorkMode(), v.getDescription(), v.getStatus().label(), v.getPriority(), v.getSalaryMin(),
                 v.getSalaryMax(), v.getCurrency(), v.getSalaryPeriod(), v.getTags(), v.getNotes(), v.getContact(),
                 v.getNextActionAt(), v.getNextActionNote(), v.getUserEditedFields(), v.getFirstSeenAt(),
                 v.getLastSeenAt(), history);

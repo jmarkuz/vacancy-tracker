@@ -24,6 +24,7 @@ public class Vacancy {
     private final String url;
     private final String canonicalUrl;
     private String location;
+    private String country;
     private String workMode;
     private String description;
     private BigDecimal salaryMin;
@@ -71,8 +72,9 @@ public class Vacancy {
     }
 
     /** Placement is set by the user or by an importer; automation does not change it. */
-    public void setPlacement(String newLocation, String newWorkMode) {
+    public void setPlacement(String newLocation, String newCountry, String newWorkMode) {
         location = newLocation;
+        country = newCountry;
         workMode = newWorkMode;
     }
 
@@ -81,6 +83,7 @@ public class Vacancy {
         Vacancy v = new Vacancy(state.id(), state.title(), state.company(), state.url(), state.canonicalUrl(),
                 state.description(), state.status(), state.firstSeenAt(), state.lastSeenAt());
         v.location = state.location();
+        v.country = state.country();
         v.workMode = state.workMode();
         v.salaryMin = state.salaryMin();
         v.salaryMax = state.salaryMax();
@@ -98,7 +101,7 @@ public class Vacancy {
     }
 
     public VacancyState toState() {
-        return new VacancyState(id, title, company, url, canonicalUrl, location, workMode, description, salaryMin, salaryMax, currency,
+        return new VacancyState(id, title, company, url, canonicalUrl, location, country, workMode, description, salaryMin, salaryMax, currency,
                 salaryPeriod, status, priority, notes, contact, nextActionNote, nextActionAt, List.copyOf(tags),
                 Set.copyOf(userEditedFields), firstSeenAt, lastSeenAt, isNew);
     }
@@ -189,6 +192,10 @@ public class Vacancy {
 
     public String getLocation() {
         return location;
+    }
+
+    public String getCountry() {
+        return country;
     }
 
     public String getWorkMode() {
