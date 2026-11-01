@@ -5,6 +5,7 @@ All notable changes are recorded here. Format: date, task ID, short description.
 ## [Unreleased]
 
 ### 2026-11-01 — M1 core tracker
+- T-019: Pipeline table in the UI: sortable columns (the sort is in the URL), column picker (choice in the URL, at least one column kept), sticky header, paging of 100 rows, loading and error states with retry, empty state, and phone cards instead of the table below 760 px. Checked against 2,500 seeded vacancies: sorted page loads from the API in about 80 ms; screenshots at 1280 and 360 px. Smooth scrolling was not measured, and the frontend has no unit tests yet (typecheck and build only).
 - T-018: Frontend bootstrap in `frontend/`: Vite 6, Preact 10, TypeScript (strict). App shell with hash routing, theme toggle (system, light, dark) with guarded storage access, and placeholder screens that name the task that builds them. The production bundle goes into the Spring static folder; the Docker build compiles the UI in its own stage. `frontend/src/styles/tokens.css` is a copy of `design/tokens.css`; keep them in sync. Checked at 360 px width with a headless browser: 16 px gutter, bottom navigation, no horizontal page scroll.
 - T-020 (partial): Added country: stored, exported (CSV, XLSX, backup), importable and filterable. Only score is still missing from the T-020 acceptance list.
 - T-021 (backend part): Saved views API: `/api/views` CRUD (unique name, criteria validated on save), and `GET /api/views/{id}/vacancies` to apply a view. UI (chips, URL state) not yet started.
