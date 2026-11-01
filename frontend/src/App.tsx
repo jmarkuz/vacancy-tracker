@@ -2,6 +2,7 @@ import { useEffect, useState } from "preact/hooks";
 import { Placeholder } from "./screens/Placeholder";
 import { RefreshControl } from "./components/RefreshControl";
 import { type Screen, useRoute } from "./router";
+import { Dashboard } from "./screens/Dashboard";
 import { Pipeline } from "./screens/Pipeline";
 import { Inbox } from "./screens/Inbox";
 import { Profiles } from "./screens/Profiles";
@@ -83,6 +84,8 @@ export function App() {
             <Sources />
           ) : screen === "inbox" ? (
             <Inbox params={params} />
+          ) : screen === "dashboard" ? (
+            <Dashboard />
           ) : screen === "profiles" ? (
             <Profiles params={params} />
           ) : (
