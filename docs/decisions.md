@@ -321,6 +321,8 @@ Status: Accepted
 
 **Consequences.** CI must run Docker for Testcontainers.
 
+**Coverage gate (T-068).** `mvn verify` runs a JaCoCo check for each of `vacancy`, `collection` and `matching` (all their subpackages together) and fails the build when line coverage of one falls below `jacoco.minimum.line` (0.80). Integration tests with a real PostgreSQL in Testcontainers are part of the measured run. At the time of writing the modules stand at 97.7%, 91.4% and 90.9%. Only lines are gated; branch coverage is reported (about 77%) but not enforced. `web`, `export` and `notification` are measured but not gated. Adapter tests use a local JDK HTTP server instead of WireMock (see the note above).
+
 ---
 
 ## ADR-023 Status transition table

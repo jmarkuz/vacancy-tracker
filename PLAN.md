@@ -114,7 +114,7 @@ Phase 0 ended with an approval request to the owner. Approved 2026-11-01.
 
 | Done | ID | Title | Est | Depends on | Acceptance criteria |
 |---|---|---|---|---|---|
-| [ ] | T-068 | Testcontainers integration suite and 80% core coverage gate | M | T-043, T-052 | JaCoCo gate fails the build below 80% for vacancy, collection, matching |
+| [x] 2026-11-01 | T-068 | Testcontainers integration suite and 80% core coverage gate | M | T-043, T-052 | JaCoCo gate fails the build below 80% for vacancy, collection, matching |
 | [ ] | T-069 | ArchUnit package boundary test | S | T-011 | No package depends on `web` |
 | [ ] | T-070 | Daily pg_dump backup service | S | T-012 | Backup file appears in the volume daily; restore documented |
 | [ ] | T-071 | VPS access token and login rate limit | M | T-012 | Requests without token get 401; repeated failures are rate limited |
