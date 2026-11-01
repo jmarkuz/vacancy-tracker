@@ -1,0 +1,124 @@
+package com.vacancytracker.web;
+
+import com.vacancytracker.vacancy.StatusEvent;
+import com.vacancytracker.vacancy.Vacancy;
+import com.vacancytracker.vacancy.VacancyService;
+import com.vacancytracker.vacancy.VacancyStatus;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import java.net.URI;
+import java.time.Instant;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+@RestController
+@RequestMapping("/api/vacancies")
+public class VacancyController {
+
+    private static final int MAX_PAGE_SIZE = 200;
+
+    private final VacancyService service;
+
+    public VacancyController(VacancyService service) {
+        this.service = service;
+    }
+
+    @GetMapping
+    public PageResponse<VacancyResponse> list(
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        if (page < 0 || size < 1 || size > MAX_PAGE_SIZE) {
+            throw new IllegalArgumentException("page must be >= 0 and size between 1 and " + MAX_PAGE_SIZE);
+        }
+        VacancyStatus filter = status == null || status.isBlank() ? null : VacancyStatus.fromLabel(status);
+        List<VacancyResponse> items = service.list(filter, page, size).stream().map(VacancyResponse::from).toList();
+        return new PageResponse<>(items, page, size, service.count(filter));
+    }
+
+    @GetMapping("/{id}")
+    public VacancyResponse get(@PathVariable UUID id) {
+        return VacancyResponse.from(service.get(id));
+    }
+
+    @PostMapping
+    public ResponseEntity<VacancyResponse> create(@Valid @RequestBody CreateRequest request) {
+        Vacancy created = service.create(request.title(), request.company(), request.url(), request.description());
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(created.getId()).toUri();
+        return ResponseEntity.created(location).body(VacancyResponse.from(created));
+    }
+
+    @PatchMapping("/{id}")
+    public VacancyResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateRequest request) {
+        return VacancyResponse.from(service.update(id, new VacancyService.UpdateCommand(
+                request.description(), request.notes(), request.contact(), request.priority(), request.tags(),
+                request.nextActionAt(), request.nextActionNote())));
+    }
+
+    @PostMapping("/{id}/status")
+    public VacancyResponse changeStatus(@PathVariable UUID id, @Valid @RequestBody StatusRequest request) {
+        return VacancyResponse.from(service.changeStatus(id, VacancyStatus.fromLabel(request.status()), request.note()));
+    }
+
+    @GetMapping("/{id}/history")
+    public List<StatusEventResponse> history(@PathVariable UUID id) {
+        return service.history(id).stream().map(StatusEventResponse::from).toList();
+    }
+
+    public record CreateRequest(
+            @NotBlank @Size(max = 300) String title,
+            @NotBlank @Size(max = 200) String company,
+            @Size(max = 2000) String url,
+            @Size(max = 100_000) String description) {
+    }
+
+    public record UpdateRequest(
+            @Size(max = 100_000) String description,
+            @Size(max = 10_000) String notes,
+            @Size(max = 300) String contact,
+            Integer priority,
+            List<@Size(max = 50) String> tags,
+            Instant nextActionAt,
+            @Size(max = 1000) String nextActionNote) {
+    }
+
+    public record StatusRequest(@NotBlank String status, @Size(max = 2000) String note) {
+    }
+
+    public record PageResponse<T>(List<T> items, int page, int size, long total) {
+    }
+
+    public record VacancyResponse(
+            UUID id, String title, String company, String url, String canonicalUrl, String description,
+            java.math.BigDecimal salaryMin, java.math.BigDecimal salaryMax, String currency, String salaryPeriod,
+            String status, Integer priority, String notes, String contact, String nextActionNote, Instant nextActionAt,
+            List<String> tags, Set<String> userEditedFields, Instant firstSeenAt, Instant lastSeenAt, boolean isNew) {
+
+        static VacancyResponse from(Vacancy v) {
+            return new VacancyResponse(v.getId(), v.getTitle(), v.getCompany(), v.getUrl(), v.getCanonicalUrl(),
+                    v.getDescription(), v.getSalaryMin(), v.getSalaryMax(), v.getCurrency(), v.getSalaryPeriod(),
+                    v.getStatus().label(), v.getPriority(), v.getNotes(), v.getContact(), v.getNextActionNote(),
+                    v.getNextActionAt(), v.getTags(), v.getUserEditedFields(), v.getFirstSeenAt(), v.getLastSeenAt(),
+                    v.isNew());
+        }
+    }
+
+    public record StatusEventResponse(String from, String to, Instant at, String note) {
+
+        static StatusEventResponse from(StatusEvent e) {
+            return new StatusEventResponse(e.from() == null ? null : e.from().label(), e.to().label(), e.at(), e.note());
+        }
+    }
+}

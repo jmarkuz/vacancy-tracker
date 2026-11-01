@@ -68,10 +68,29 @@ public class Vacancy {
         return new Vacancy(id, title, company, url, canonicalUrl, description, VacancyStatus.NEW, seenAt, seenAt);
     }
 
-    /** Rebuilds a vacancy from storage. Not for use by application code. */
-    public static Vacancy restore(UUID id, String title, String company, String url, String canonicalUrl,
-                                  String description, VacancyStatus status, Instant firstSeenAt, Instant lastSeenAt) {
-        return new Vacancy(id, title, company, url, canonicalUrl, description, status, firstSeenAt, lastSeenAt);
+    /** Rebuilds a vacancy from its stored state. Used by the repository only. */
+    public static Vacancy restore(VacancyState state) {
+        Vacancy v = new Vacancy(state.id(), state.title(), state.company(), state.url(), state.canonicalUrl(),
+                state.description(), state.status(), state.firstSeenAt(), state.lastSeenAt());
+        v.salaryMin = state.salaryMin();
+        v.salaryMax = state.salaryMax();
+        v.currency = state.currency();
+        v.salaryPeriod = state.salaryPeriod();
+        v.priority = state.priority();
+        v.notes = state.notes();
+        v.contact = state.contact();
+        v.nextActionNote = state.nextActionNote();
+        v.nextActionAt = state.nextActionAt();
+        v.tags = new ArrayList<>(state.tags());
+        v.userEditedFields.addAll(state.userEditedFields());
+        v.isNew = state.isNew();
+        return v;
+    }
+
+    public VacancyState toState() {
+        return new VacancyState(id, title, company, url, canonicalUrl, description, salaryMin, salaryMax, currency,
+                salaryPeriod, status, priority, notes, contact, nextActionNote, nextActionAt, List.copyOf(tags),
+                Set.copyOf(userEditedFields), firstSeenAt, lastSeenAt, isNew);
     }
 
     /**

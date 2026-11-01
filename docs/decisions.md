@@ -60,6 +60,8 @@ Status: Accepted
 
 **Consequences.** More SQL to write by hand; fewer hidden queries; no N+1 surprises. Entity lifecycle is simpler for upserts. Revisit only if the number of aggregates grows significantly.
 
+**Implementation note (T-015).** The vacancy repository uses `JdbcClient` with explicit SQL and maps rows to a `VacancyState` record; no Spring Data repository interfaces are used yet. The aggregate is rebuilt with `Vacancy.restore(VacancyState)`.
+
 ---
 
 ## ADR-004 PostgreSQL 16 with Flyway migrations

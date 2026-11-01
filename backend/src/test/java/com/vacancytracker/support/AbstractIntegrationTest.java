@@ -2,17 +2,19 @@ package com.vacancytracker.support;
 
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
- * Base class for integration tests: one PostgreSQL 16 container per test JVM,
- * with Flyway migrations applied at context startup (ADR-022).
+ * Base class for integration tests (ADR-022). One PostgreSQL 16 container is started per test JVM
+ * and shared by all classes: Spring caches application contexts across classes, so a per-class
+ * container would leave cached contexts pointing at a stopped database. Flyway migrations run at
+ * context startup.
  */
-@Testcontainers
 public abstract class AbstractIntegrationTest {
 
-    @Container
     @ServiceConnection
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16");
+
+    static {
+        POSTGRES.start();
+    }
 }

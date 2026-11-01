@@ -41,7 +41,7 @@ Phase 0 ended with an approval request to the owner. Approved 2026-11-01.
 | [x] 2026-11-01 | T-012 | docker compose with PostgreSQL 16 and `.env.example` | S | T-011 | `docker compose up` starts app and db; `/actuator/health` is UP |
 | [x] 2026-11-01 | T-013 | Flyway baseline schema: vacancy, vacancy_source, status_event, saved_view | M | T-011 | Migration applies on Testcontainers PostgreSQL 16; matches ERD |
 | [ ] | T-014 | Vacancy domain and status machine | M | T-011 | Allowed transitions tested; terminal states enforced; every change produces a StatusEvent |
-| [ ] | T-015 | Vacancy REST API: create, read, update, list with paging | M | T-013, T-014 | Endpoints work; invalid input returns 422 with field errors; integration test |
+| [x] 2026-11-01 | T-015 | Vacancy REST API: create, read, update, list with paging | M | T-013, T-014 | Endpoints work; invalid input returns 422 with field errors; integration test |
 | [ ] | T-016 | Upsert rules and userEditedFields | M | T-014 | Unit tests prove automation never changes status, notes, tags, priority, statusHistory, nextAction*, contact; edited fields are recorded |
 | [x] 2026-11-01 | T-017 | Canonical URL utility | S | T-011 | Strips utm_* and tracking parameters; lowercases host; unit tests |
 | [ ] | T-018 | Frontend bootstrap: Vite, TypeScript, Preact, app shell, tokens | M | T-011, T-007 | `npm run build` output is served by Spring at `/`; layout works at 360 px width with 16 px gutter |

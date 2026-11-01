@@ -4,11 +4,20 @@ All notable changes are recorded here. Format: date, task ID, short description.
 
 ## [Unreleased]
 
+### 2026-11-01 — M1 core tracker
+- T-011: Maven bootstrap in `backend/`: Java 21, Spring Boot 3.5.6, package skeleton, Checkstyle lint (`config/checkstyle.xml`), JaCoCo, health smoke test.
+- T-012: `backend/Dockerfile` (multi-stage, non-root), `docker-compose.yml` (app and PostgreSQL 16 with volume and healthcheck), `.env.example`. App port bound to 127.0.0.1.
+- T-013: Flyway baseline `V1__baseline.sql`: vacancy, vacancy_source, status_event, saved_view; FTS generated column; status check. Datasource from environment. Testcontainers PostgreSQL 16 base test.
+- T-014: `VacancyStatus` with the transition table (ADR-023), `Vacancy` aggregate, `StatusEvent`, `InvalidStatusTransitionException`.
+- T-015: Vacancy REST API under `/api/vacancies`: list with status filter and paging, get, create, partial update, status change, history. Errors as RFC 9457 problem details: 404, 409 for invalid transitions, 422 with field errors.
+- T-016: Upsert rules: `Vacancy.applyAutomated(AutomatedFields)` writes only lastSeenAt, and description and salary unless user-edited.
+- T-017: `CanonicalUrl`: lowercases scheme and host, drops default ports, fragments, trailing slash, utm_* and tracking parameters.
+
 ### 2026-11-01 — Phase 0: plan and design (M0)
 - T-001: `docs/research.md`: comparable solutions and what we borrow.
 - T-002: `docs/sources.md`: source table, adapter capabilities matrix, forbidden sources.
 - T-003: `docs/architecture.md`: C4 context and container, package layout, pipeline, ERD (Mermaid).
-- T-004: `docs/decisions.md`: ADR-001 to ADR-022.
+- T-004: `docs/decisions.md`: ADR-001 to ADR-023.
 - T-005: `docs/search-profiles.md` and `docs/examples/search-profile.example.yml`.
 - T-006: `PLAN.md` and `tasks.csv`.
 - T-007: `design/tokens.css`: light and dark design tokens.
