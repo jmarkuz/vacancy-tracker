@@ -3,7 +3,12 @@ package com.vacancytracker.web;
 import com.vacancytracker.collection.JobPostingExtractor;
 import com.vacancytracker.collection.NoJobPostingException;
 import com.vacancytracker.collection.UrlFetcher;
+import com.fasterxml.jackson.databind.node.TextNode;
+import com.vacancytracker.common.SqlFragment;
+import com.vacancytracker.matching.Criterion;
+import com.vacancytracker.matching.CriterionCompiler;
 import com.vacancytracker.vacancy.StatusEvent;
+import com.vacancytracker.vacancy.VacancySort;
 import com.vacancytracker.vacancy.Vacancy;
 import com.vacancytracker.vacancy.VacancyService;
 import com.vacancytracker.vacancy.VacancyStatus;
@@ -12,6 +17,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.net.URI;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -34,23 +40,32 @@ public class VacancyController {
 
     private final VacancyService service;
     private final UrlFetcher urlFetcher;
+    private final CriterionCompiler compiler;
 
-    public VacancyController(VacancyService service, UrlFetcher urlFetcher) {
+    public VacancyController(VacancyService service, UrlFetcher urlFetcher, CriterionCompiler compiler) {
         this.service = service;
         this.urlFetcher = urlFetcher;
+        this.compiler = compiler;
     }
 
     @GetMapping
     public PageResponse<VacancyResponse> list(
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String filter,
+            @RequestParam(required = false) String sort,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
         if (page < 0 || size < 1 || size > MAX_PAGE_SIZE) {
             throw new IllegalArgumentException("page must be >= 0 and size between 1 and " + MAX_PAGE_SIZE);
         }
-        VacancyStatus filter = status == null || status.isBlank() ? null : VacancyStatus.fromLabel(status);
-        List<VacancyResponse> items = service.list(filter, page, size).stream().map(VacancyResponse::from).toList();
-        return new PageResponse<>(items, page, size, service.count(filter));
+        List<Criterion> criteria = new ArrayList<>(compiler.parse(filter));
+        if (status != null && !status.isBlank()) {
+            criteria.add(new Criterion(null, "status", "equals", TextNode.valueOf(status), "require", null, null, null));
+        }
+        SqlFragment where = compiler.compile(criteria);
+        List<VacancyResponse> items = service.search(where, VacancySort.parse(sort), page, size).stream()
+                .map(VacancyResponse::from).toList();
+        return new PageResponse<>(items, page, size, service.countMatching(where));
     }
 
     @GetMapping("/{id}")

@@ -3,7 +3,9 @@ package com.vacancytracker.vacancy;
 import com.vacancytracker.collection.CanonicalUrl;
 import java.time.Clock;
 import java.time.Instant;
+import com.vacancytracker.common.SqlFragment;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,15 +50,28 @@ public class VacancyService {
 
     @Transactional(readOnly = true)
     public List<Vacancy> list(VacancyStatus status, int page, int size) {
-        return repository.findPage(status == null ? null : status.label(), size, page * size)
-                .stream()
-                .map(Vacancy::restore)
-                .toList();
+        return search(statusFilter(status), VacancySort.DEFAULT, page, size);
     }
 
     @Transactional(readOnly = true)
     public long count(VacancyStatus status) {
-        return repository.count(status == null ? null : status.label());
+        return countMatching(statusFilter(status));
+    }
+
+    /** Vacancies matching a compiled filter, in the given order. Page is zero-based. */
+    @Transactional(readOnly = true)
+    public List<Vacancy> search(SqlFragment where, VacancySort sort, int page, int size) {
+        return repository.findPage(where, sort, size, page * size).stream().map(Vacancy::restore).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public long countMatching(SqlFragment where) {
+        return repository.count(where);
+    }
+
+    private static SqlFragment statusFilter(VacancyStatus status) {
+        return status == null ? SqlFragment.ALL
+                : new SqlFragment("status = :status", Map.of("status", status.label()));
     }
 
     @Transactional
