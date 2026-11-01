@@ -257,7 +257,9 @@ Status: Accepted
 - Circuit breaker per adapter (Resilience4j or a small in-house implementation): opens after 5 consecutive failures, half-open after 15 minutes. State is persisted in `SourceState.consecutiveFailures`.
 - A failure in one adapter is caught at the adapter boundary and recorded in `RunSourceStat`; other adapters continue.
 
-**Consequences.** Adapters are isolated. Tests use WireMock to simulate 429 and 5xx.
+**Consequences.** Adapters are isolated. Tests simulate 429 and 5xx with a local HTTP server (see ADR-022).
+
+**Pipeline rule for 304 (T-028).** A 304 Not Modified response means the source is unchanged since the last successful run. The pipeline treats every vacancy previously seen on that source as seen in this run, so expiry (ADR-014) is not triggered by an unchanged feed.
 
 ---
 
@@ -303,6 +305,7 @@ Status: Accepted
 - Rule engine tests: all operators and modes, `missingValuePolicy`, salary and currency normalization, recalculation on profile change, several profiles at once.
 - Adapter tests: WireMock fixtures only, no real network, including criteria-to-parameter translation.
 - Integration tests: Testcontainers PostgreSQL 16 with Flyway migrations.
+- HTTP adapter tests (T-028): a local JDK `HttpServer` serves fixtures instead of WireMock, to avoid another test dependency. The adapter contract is the same: no real network.
 - Coverage: at least 80% for core packages (`vacancy`, `collection`, `matching`), enforced by JaCoCo in Maven `verify`.
 - Frontend: Vitest for store and rule builder logic; Playwright smoke test in M5.
 
