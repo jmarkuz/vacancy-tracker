@@ -99,7 +99,7 @@ Phase 0 ended with an approval request to the owner. Approved 2026-11-01.
 | [x] 2026-11-01 | T-060 | Dashboard screen | M | T-052, T-046 | KPI cards open filtered Inbox or Pipeline; charts are plain SVG |
 | [x] 2026-11-01 | T-061 | Kanban with drag-and-drop and keyboard alternative | M | T-019, T-016 | Status change by drag and by keyboard; both create StatusEvent |
 | [x] 2026-11-01 | T-062 | Full-text search and Ctrl/Cmd+K palette | M | T-013, T-018 | Postgres FTS returns ranked results; palette opens with shortcut |
-| [ ] | T-063 | Bulk actions with Undo | S | T-019 | Undo restores previous statuses for the whole batch |
+| [x] 2026-11-01 | T-063 | Bulk actions with Undo | S | T-019 | Undo restores previous statuses for the whole batch |
 
 ## M4 Email & notifications
 

@@ -5,14 +5,18 @@ interface Props {
   tone: "info" | "error";
   /** Optional link, for example to the Inbox after a refresh. */
   link?: { href: string; label: string };
+  /** Optional button, for example Undo. A toast with an action stays longer. */
+  action?: { label: string; onClick: () => void };
   onDismiss: () => void;
 }
 
 /** How long an informational message stays. Errors stay until dismissed, so they cannot be missed. */
 export const INFO_TOAST_MS = 6000;
+/** An action such as Undo needs time to be found and pressed. */
+export const ACTION_TOAST_MS = 15000;
 
 /** Non-blocking message. Announced politely; the dismiss button is always reachable. */
-export function Toast({ message, tone, link, onDismiss }: Props) {
+export function Toast({ message, tone, link, action, onDismiss }: Props) {
   const dismiss = useRef(onDismiss);
   dismiss.current = onDismiss;
 
@@ -20,14 +24,15 @@ export function Toast({ message, tone, link, onDismiss }: Props) {
     if (tone !== "info") {
       return undefined;
     }
-    const timer = setTimeout(() => dismiss.current(), INFO_TOAST_MS);
+    const timer = setTimeout(() => dismiss.current(), action ? ACTION_TOAST_MS : INFO_TOAST_MS);
     return () => clearTimeout(timer);
-  }, [message, tone]);
+  }, [message, tone, action]);
 
   return (
     <div class={`toast toast-${tone}`} role={tone === "error" ? "alert" : "status"}>
       <span>{message}</span>
       {link && <a href={link.href}>{link.label}</a>}
+      {action && <button type="button" class="btn" onClick={action.onClick}>{action.label}</button>}
       <button type="button" class="btn ghost" onClick={onDismiss} aria-label="Dismiss message">
         ×
       </button>

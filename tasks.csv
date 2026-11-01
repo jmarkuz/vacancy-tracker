@@ -61,7 +61,7 @@ T-059,Allowlist and blocklist,M3,S,T-052,done
 T-060,Dashboard screen,M3,M,"T-052,T-046",done
 T-061,Kanban with drag and drop,M3,M,"T-019,T-016",done
 T-062,Full-text search and command palette,M3,M,"T-013,T-018",done
-T-063,Bulk actions with Undo,M3,S,T-019,todo
+T-063,Bulk actions with Undo,M3,S,T-019,done
 T-064,IMAP reader,M4,M,T-043,todo
 T-065,Email parser framework and LinkedIn parser,M4,M,T-064,todo
 T-066,Parsers Jobs.cz StartupJobs.cz Indeed,M4,M,T-065,todo
