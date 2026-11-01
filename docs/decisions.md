@@ -188,6 +188,8 @@ Status: Accepted
 
 When a duplicate is found, the vacancy gets a new `VacancySource` row instead of a new vacancy. Dedup match type is stored in the source row for debugging.
 
+**Implementation note (T-042).** Fuzzy matching uses `JaroWinklerSimilarity` from Apache commons-text on the key `title | location` (lower-cased), among vacancies with the same company. Candidates are capped at 200 per lookup.
+
 **Consequences.** Fuzzy matching can merge two different jobs with the same title at the same company and location; the threshold is conservative and a manual "split" action is added in M2.
 
 ---
