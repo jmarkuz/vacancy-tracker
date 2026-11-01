@@ -12,7 +12,11 @@ import java.util.Map;
 /** A local HTTP server for adapter tests. Routes match path plus query, for example "/x?page=2". */
 public final class TestHttp {
 
-    public record Route(int status, String body) {
+    public record Route(int status, String body, String etag) {
+
+        public Route(int status, String body) {
+            this(status, body, null);
+        }
     }
 
     private TestHttp() {
@@ -24,6 +28,9 @@ public final class TestHttp {
             String key = ex.getRequestURI().toString();
             Route route = routes.getOrDefault(key, new Route(404, ""));
             byte[] bytes = route.body().getBytes(StandardCharsets.UTF_8);
+            if (route.etag() != null) {
+                ex.getResponseHeaders().add("ETag", route.etag());
+            }
             ex.sendResponseHeaders(route.status(), bytes.length == 0 ? -1 : bytes.length);
             if (bytes.length > 0) {
                 try (OutputStream out = ex.getResponseBody()) {
