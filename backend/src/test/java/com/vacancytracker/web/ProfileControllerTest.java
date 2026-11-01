@@ -99,6 +99,64 @@ class ProfileControllerTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void metaOffersFieldsOperatorsWithValueShapesModesAndPolicies() throws Exception {
+        mvc.perform(get("/api/profiles/meta"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.fields.length()").value(19))
+                .andExpect(jsonPath("$.fields[0].name").value("title"))
+                .andExpect(jsonPath("$.fields[12].name").value("salary"))
+                .andExpect(jsonPath("$.fields[12].operators[?(@.name == 'gte')].valueShape")
+                        .value(org.hamcrest.Matchers.hasItem("SALARY")))
+                .andExpect(jsonPath("$.modes[1]").value("prefer"))
+                .andExpect(jsonPath("$.missingValuePolicies[2]").value("hide"))
+                .andExpect(jsonPath("$.minWeight").value(1))
+                .andExpect(jsonPath("$.maxWeight").value(10))
+                .andExpect(jsonPath("$.defaultThresholds.inboxMinScore").value(40));
+    }
+
+    @Test
+    void validateIsADryRunThatNeverStoresAnything() throws Exception {
+        mvc.perform(post("/api/profiles/validate").contentType(JSON).content(PROFILE))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.valid").value(true))
+                .andExpect(jsonPath("$.profile.criteria[1].missingValuePolicy").value("ignore"));
+
+        String bad = PROFILE.replace("\"operator\":\"gte\"", "\"operator\":\"regex\"").replace("\"weight\":6", "\"weight\":11");
+        mvc.perform(post("/api/profiles/validate").contentType(JSON).content(bad))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.valid").value(false))
+                .andExpect(jsonPath("$.errors['criteria[1].operator']").exists())
+                .andExpect(jsonPath("$.errors['criteria[1].weight']").value("Weight must be between 1 and 10"));
+
+        mvc.perform(get("/api/profiles")).andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void anUnknownPropertyIsRejectedWithItsPathInsteadOfBeingIgnored() throws Exception {
+        String typo = PROFILE.replace("\"weight\":5", "\"weigth\":5");
+
+        mvc.perform(post("/api/profiles").contentType(JSON).content(typo))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.errors['criteria[0].weigth']").value("Unknown property"));
+        mvc.perform(post("/api/profiles/validate").contentType(JSON).content(typo))
+                .andExpect(jsonPath("$.valid").value(false))
+                .andExpect(jsonPath("$.errors['criteria[0].weigth']").value("Unknown property"));
+        mvc.perform(get("/api/profiles")).andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void aWrongTypeIsReportedAtItsPathAndBrokenJsonIsABadRequest() throws Exception {
+        String wrongType = PROFILE.replace("\"weight\":5", "\"weight\":\"heavy\"");
+
+        mvc.perform(post("/api/profiles").contentType(JSON).content(wrongType))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.errors['criteria[0].weight']").value("Wrong type or value"));
+        mvc.perform(post("/api/profiles").contentType(JSON).content("{\"name\": "))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("Malformed request body"));
+    }
+
+    @Test
     void duplicateNameIsConflictAndUnknownIdIsNotFound() throws Exception {
         create();
 

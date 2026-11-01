@@ -52,6 +52,57 @@ public class ProfileValidator {
             Kind.LIST, Set.of("contains_any", "contains_all", "not_contains", "exists", "not_exists"),
             Kind.SALARY, Set.of("gte", "lte", "between", "exists", "not_exists"));
 
+    /** The shape of the value an operator needs, for the rule builder and for the consistency test. */
+    public enum ValueShape { NONE, LIST, TEXT, PATTERN, NUMBER, RANGE, BOOLEAN, SALARY, SALARY_RANGE }
+
+    public record OperatorInfo(String name, ValueShape valueShape) {
+    }
+
+    public record FieldInfo(String name, String kind, List<OperatorInfo> operators) {
+    }
+
+    /** Everything the rule builder needs to offer only valid choices. Built from the validator's own tables. */
+    public record Catalog(List<FieldInfo> fields, List<String> modes, List<String> missingValuePolicies,
+                          int minWeight, int maxWeight, Thresholds defaultThresholds) {
+    }
+
+    private static final List<String> FIELD_ORDER = List.of("title", "description", "keywords", "company", "companyType",
+            "industry", "location", "country", "city", "workMode", "employmentType", "seniority", "salary",
+            "workLanguage", "visaSponsorship", "relocationSupport", "postedAge", "source", "tags");
+
+    private static final List<String> OPERATOR_ORDER = List.of("contains_any", "contains_all", "not_contains", "equals",
+            "in", "not_in", "regex", "gte", "lte", "between", "exists", "not_exists");
+
+    public static Catalog catalog() {
+        List<FieldInfo> fields = new ArrayList<>();
+        for (String name : FIELD_ORDER) {
+            Kind kind = FIELDS.get(name);
+            List<OperatorInfo> operators = OPERATOR_ORDER.stream()
+                    .filter(OPERATORS.get(kind)::contains)
+                    .map(op -> new OperatorInfo(op, shapeOf(kind, op)))
+                    .toList();
+            fields.add(new FieldInfo(name, kind.name().toLowerCase(java.util.Locale.ROOT), operators));
+        }
+        return new Catalog(fields, List.of("require", "prefer", "avoid", "exclude"),
+                List.of("ignore", "penalize", "hide"), 1, 10, Thresholds.defaults());
+    }
+
+    /** All field names the validator knows, in the order of the brief. */
+    public static List<String> fieldNames() {
+        return FIELD_ORDER;
+    }
+
+    static ValueShape shapeOf(Kind kind, String op) {
+        return switch (op) {
+            case "exists", "not_exists" -> ValueShape.NONE;
+            case "regex" -> ValueShape.PATTERN;
+            case "contains_any", "contains_all", "not_contains", "in", "not_in" -> ValueShape.LIST;
+            case "between" -> kind == Kind.SALARY ? ValueShape.SALARY_RANGE : ValueShape.RANGE;
+            case "gte", "lte" -> kind == Kind.SALARY ? ValueShape.SALARY : ValueShape.NUMBER;
+            default -> kind == Kind.BOOLEAN ? ValueShape.BOOLEAN : kind == Kind.NUMBER ? ValueShape.NUMBER : ValueShape.TEXT;
+        };
+    }
+
     /** The value kind of a profile field, or null when the field is unknown. Shared with the rule engine. */
     static Kind kindOf(String field) {
         return field == null ? null : FIELDS.get(field);
