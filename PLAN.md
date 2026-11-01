@@ -86,7 +86,7 @@ Phase 0 ended with an approval request to the owner. Approved 2026-11-01.
 | Done | ID | Title | Est | Depends on | Acceptance criteria |
 |---|---|---|---|---|---|
 | [x] 2026-11-01 | T-049 | SearchProfile model and versioning | M | T-013 | Each save creates a version row; previous versions are readable |
-| [ ] | T-050 | Rule engine: operators, modes, missingValuePolicy | M | T-020, T-049 | Matrix tests cover every operator and mode and every policy |
+| [x] 2026-11-01 | T-050 | Rule engine: operators, modes, missingValuePolicy | M | T-020, T-049 | Matrix tests cover every operator and mode and every policy |
 | [ ] | T-051 | Salary normalization and ECB rate cache | M | T-041 | Period and currency conversion tested; missing rate treated as missing data |
 | [ ] | T-052 | Score formula, matchReasons, VacancyMatch storage | M | T-050, T-051 | Score in 0..100; monotonic property test; reasons reference criterion IDs |
 | [ ] | T-053 | Profile recalculation job and "Recalculate scores" button | S | T-052 | Background job; user statuses unchanged after recalculation |

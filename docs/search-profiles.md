@@ -99,10 +99,12 @@ Applies when the field is absent from the vacancy (for example, no salary is sta
 | Policy | Effect when the field is missing |
 |---|---|
 | `ignore` (default) | The criterion is skipped: no filter, no score change |
-| `penalize` | The criterion counts as not satisfied (applies its mode's "not satisfied" effect; for `prefer`, no bonus; for `avoid`, no penalty) |
+| `penalize` | The criterion's weight is subtracted from the score, in every mode. The vacancy is not filtered. "Unknown" counts against it |
 | `hide` | The vacancy is filtered out (`Hidden`), regardless of mode |
 
 Default `ignore` keeps useful vacancies visible.
+
+`exists` and `not_exists` test presence itself, so they are never "missing": they are simply satisfied or not. The missing-value policy applies to every other operator.
 
 ### 2.5 Salary and currency
 
