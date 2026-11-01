@@ -1,5 +1,7 @@
 package com.vacancytracker.web;
 
+import com.vacancytracker.collection.NoJobPostingException;
+import com.vacancytracker.collection.UrlFetchException;
 import com.vacancytracker.vacancy.InvalidStatusTransitionException;
 import com.vacancytracker.vacancy.VacancyNotFoundException;
 import java.util.LinkedHashMap;
@@ -28,6 +30,16 @@ public class ApiExceptionHandler {
     @ExceptionHandler(DataIntegrityViolationException.class)
     ProblemDetail integrity(DataIntegrityViolationException e) {
         return problem(HttpStatus.CONFLICT, "Conflicting data", "A vacancy with the same canonical URL already exists.");
+    }
+
+    @ExceptionHandler(NoJobPostingException.class)
+    ProblemDetail noJobPosting(NoJobPostingException e) {
+        return problem(HttpStatus.UNPROCESSABLE_ENTITY, "No job data on page", e.getMessage());
+    }
+
+    @ExceptionHandler(UrlFetchException.class)
+    ProblemDetail fetchFailed(UrlFetchException e) {
+        return problem(HttpStatus.BAD_GATEWAY, "Source unavailable", e.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

@@ -49,7 +49,7 @@ Phase 0 ended with an approval request to the owner. Approved 2026-11-01.
 | [ ] | T-020 | Criterion model and filter evaluation for views | M | T-015 | Criteria translate to SQL for status, source, country, workMode, score, dates; URL state round-trips |
 | [ ] | T-021 | Filter chips and saved views | M | T-019, T-020 | Filters stored in URL; a saved view can be reopened and edited |
 | [ ] | T-022 | Vacancy drawer: view, edit, status change, notes | M | T-015, T-018 | Status change creates StatusEvent; edited fields are marked and protected from upsert |
-| [ ] | T-023 | Manual add by URL with JSON-LD JobPosting | M | T-017, T-015 | Fixture pages parsed; fallback to a manual form when no JSON-LD |
+| [x] 2026-11-01 | T-023 | Manual add by URL with JSON-LD JobPosting | M | T-017, T-015 | Fixture pages parsed; fallback to a manual form when no JSON-LD |
 | [ ] | T-024 | CSV export: UTF-8 with BOM, column selection, current filter | S | T-020 | Test checks BOM and quoting; Cyrillic and accented text intact |
 | [ ] | T-025 | XLSX export with streaming writer | S | T-024 | File opens; row count equals the filtered set |
 | [ ] | T-026 | JSON backup export and JSON/CSV import with per-row errors | M | T-015 | Round-trip test; error report lists row numbers and reasons |

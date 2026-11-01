@@ -5,6 +5,7 @@ All notable changes are recorded here. Format: date, task ID, short description.
 ## [Unreleased]
 
 ### 2026-11-01 — M1 core tracker
+- T-023: Manual import by URL: `POST /api/vacancies/import-url` fetches the page (http/https only, custom User-Agent, timeouts, 2 MB cap) and reads schema.org JobPosting from JSON-LD (including @graph). 422 when no data, 502 when the source fails. Vacancies gain location and workMode.
 - T-011: Maven bootstrap in `backend/`: Java 21, Spring Boot 3.5.6, package skeleton, Checkstyle lint (`config/checkstyle.xml`), JaCoCo, health smoke test.
 - T-012: `backend/Dockerfile` (multi-stage, non-root), `docker-compose.yml` (app and PostgreSQL 16 with volume and healthcheck), `.env.example`. App port bound to 127.0.0.1.
 - T-013: Flyway baseline `V1__baseline.sql`: vacancy, vacancy_source, status_event, saved_view; FTS generated column; status check. Datasource from environment. Testcontainers PostgreSQL 16 base test.

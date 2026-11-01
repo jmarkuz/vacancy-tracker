@@ -23,6 +23,8 @@ public class Vacancy {
     private final String company;
     private final String url;
     private final String canonicalUrl;
+    private String location;
+    private String workMode;
     private String description;
     private BigDecimal salaryMin;
     private BigDecimal salaryMax;
@@ -68,10 +70,18 @@ public class Vacancy {
         return new Vacancy(id, title, company, url, canonicalUrl, description, VacancyStatus.NEW, seenAt, seenAt);
     }
 
+    /** Placement is set by the user or by an importer; automation does not change it. */
+    public void setPlacement(String newLocation, String newWorkMode) {
+        location = newLocation;
+        workMode = newWorkMode;
+    }
+
     /** Rebuilds a vacancy from its stored state. Used by the repository only. */
     public static Vacancy restore(VacancyState state) {
         Vacancy v = new Vacancy(state.id(), state.title(), state.company(), state.url(), state.canonicalUrl(),
                 state.description(), state.status(), state.firstSeenAt(), state.lastSeenAt());
+        v.location = state.location();
+        v.workMode = state.workMode();
         v.salaryMin = state.salaryMin();
         v.salaryMax = state.salaryMax();
         v.currency = state.currency();
@@ -88,7 +98,7 @@ public class Vacancy {
     }
 
     public VacancyState toState() {
-        return new VacancyState(id, title, company, url, canonicalUrl, description, salaryMin, salaryMax, currency,
+        return new VacancyState(id, title, company, url, canonicalUrl, location, workMode, description, salaryMin, salaryMax, currency,
                 salaryPeriod, status, priority, notes, contact, nextActionNote, nextActionAt, List.copyOf(tags),
                 Set.copyOf(userEditedFields), firstSeenAt, lastSeenAt, isNew);
     }
@@ -175,6 +185,14 @@ public class Vacancy {
 
     public String getUrl() {
         return url;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public String getWorkMode() {
+        return workMode;
     }
 
     public String getCanonicalUrl() {
