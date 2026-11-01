@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -33,16 +35,19 @@ public class ProfileController {
     private final ProfileInputParser parser;
     private final ProfileValidator validator;
     private final ProfilePreviewService preview;
+    private final ProfileTransfer transfer;
     private final boolean recalculateOnSave;
 
     public ProfileController(SearchProfileService profiles, RecalculationService recalculation,
                              ProfileInputParser parser, ProfileValidator validator, ProfilePreviewService preview,
+                             ProfileTransfer transfer,
                              @Value("${app.matching.recalculate-on-save:true}") boolean recalculateOnSave) {
         this.profiles = profiles;
         this.recalculation = recalculation;
         this.parser = parser;
         this.validator = validator;
         this.preview = preview;
+        this.transfer = transfer;
         this.recalculateOnSave = recalculateOnSave;
     }
 
@@ -84,6 +89,29 @@ public class ProfileController {
     @GetMapping
     public List<SearchProfile> list() {
         return profiles.list();
+    }
+
+    /** The profile as a YAML (default) or JSON file; see docs/search-profiles.md section 6. */
+    @GetMapping("/{id}/export")
+    public ResponseEntity<String> export(@PathVariable UUID id, @RequestParam(defaultValue = "yaml") String format) {
+        boolean asYaml = !"json".equalsIgnoreCase(format);
+        SearchProfile profile = profiles.get(id);
+        String file = profile.name().replaceAll("[^A-Za-z0-9._-]+", "-") + (asYaml ? ".yml" : ".json");
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=\"" + file + "\"")
+                .contentType(asYaml ? MediaType.parseMediaType("application/yaml") : MediaType.APPLICATION_JSON)
+                .body(transfer.export(profile, asYaml));
+    }
+
+    /**
+     * Imports a YAML or JSON profile file as the request body. Creates a profile, or a new version of the profile
+     * with the same name. Invalid files are a 422 with the problems by path and store nothing.
+     */
+    @PostMapping("/import")
+    public ResponseEntity<ProfileTransfer.ImportResult> importProfile(@RequestBody String body) {
+        ProfileTransfer.ImportResult result = transfer.importProfile(body);
+        recalculate();
+        return ResponseEntity.status(result.created() ? 201 : 200).body(result);
     }
 
     @GetMapping("/{id}")

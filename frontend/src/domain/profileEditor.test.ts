@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Criterion, Meta, SearchProfile } from "../api/profiles";
 import {
   changeField,
+  importProblems,
   changeOperator,
   copyOfProfile,
   defaultValue,
@@ -256,5 +257,16 @@ describe("lists and new profiles", () => {
 
   it("removes a rule by index", () => {
     expect(removeRule([rule("a"), rule("b")], 0).map((r) => r.id)).toEqual(["b"]);
+  });
+});
+
+describe("importProblems", () => {
+  it("lists each problem with its path", () => {
+    expect(importProblems({ "criteria[1].weigth": "Unknown property", schemaVersion: "Unsupported schema version" }))
+      .toEqual(["criteria[1].weigth: Unknown property", "schemaVersion: Unsupported schema version"]);
+  });
+
+  it("gives a generic line when the server sent no details", () => {
+    expect(importProblems({})).toEqual(["The file is not a valid profile."]);
   });
 });

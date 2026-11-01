@@ -84,7 +84,9 @@ profile:
       weight: 3
       missingValuePolicy: ignore
 
-  companyLists:
-    allowlist: []           # company names always shown with a bonus
-    blocklist:
-      - Example Blocked Company
+  # Company allowlist and blocklist are not part of the profile file yet (T-059).
+  # Import rejects a companyLists key instead of silently dropping it.
+  # companyLists:
+  #   allowlist: []           # company names always shown with a bonus
+  #   blocklist:
+  #     - Example Blocked Company

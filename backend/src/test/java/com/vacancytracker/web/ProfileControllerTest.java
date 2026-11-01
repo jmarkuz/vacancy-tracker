@@ -149,6 +149,30 @@ class ProfileControllerTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void exportAndImportOverHttp() throws Exception {
+        String id = com.jayway.jsonpath.JsonPath.read(mvc.perform(post("/api/profiles").contentType(JSON).content(PROFILE))
+                .andReturn().getResponse().getContentAsString(), "$.id");
+
+        String yaml = mvc.perform(get("/api/profiles/" + id + "/export"))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("Content-Disposition",
+                        org.hamcrest.Matchers.containsString(".yml")))
+                .andReturn().getResponse().getContentAsString();
+        mvc.perform(get("/api/profiles/" + id + "/export?format=json"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.schemaVersion").value(1))
+                .andExpect(jsonPath("$.profile.name").exists());
+
+        mvc.perform(post("/api/profiles/import").contentType("text/plain").content(yaml))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.created").value(false))
+                .andExpect(jsonPath("$.profile.version").value(2));
+        mvc.perform(post("/api/profiles/import").contentType("text/plain").content("schemaVersion: 9\nprofile: {}\n"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.errors.schemaVersion").exists());
+    }
+
+    @Test
     void previewOfAnInvalidDraftIsUnprocessable() throws Exception {
         String bad = PROFILE.replace("\"operator\":\"gte\"", "\"operator\":\"regex\"");
 
