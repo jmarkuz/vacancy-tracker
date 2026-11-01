@@ -4,9 +4,9 @@ A personal, self-hosted job search tool for a single user. It collects vacancies
 
 The code contains no roles, technologies, countries or salary thresholds. Everything is defined by you as data in search profiles.
 
-Status: Phase 0 (plan and design). No production code yet. See [PLAN.md](PLAN.md).
+Status: built through the plan (PLAN.md), run on your own computer or on a VPS. See [PLAN.md](PLAN.md) for what is done and what is open.
 
-## Features (planned)
+## Features
 
 - Automatic and on-demand collection ("Refresh" button with live per-source progress)
 - Inbox with keyboard triage (J/K, S, X, O) and score badges with reasons
@@ -16,6 +16,15 @@ Status: Phase 0 (plan and design). No production code yet. See [PLAN.md](PLAN.md
 - Full-text search and Ctrl/Cmd+K command palette
 - Export to CSV (UTF-8 with BOM), XLSX and full JSON backup; import with per-row error reports
 - Optional Telegram digest (disabled by default)
+
+## Quick start
+
+```sh
+cp .env.example .env        # set POSTGRES_PASSWORD
+docker compose up -d --build
+```
+
+Open <http://127.0.0.1:8080>. For a server with HTTPS and an access token see [docs/deployment.md](docs/deployment.md); for backups and restore see [docs/operations.md](docs/operations.md).
 
 ## Sources and compliance
 
@@ -34,6 +43,7 @@ docs/
   architecture.md              C4 context and container, pipeline, ERD (Mermaid)
   decisions.md                 architecture decision records (ADRs)
   search-profiles.md           profile and criterion schema, score formula
+  deployment.md                run locally, run on a VPS with HTTPS
   operations.md                backups and restore
   examples/
     search-profile.example.yml neutral example, never loaded automatically
@@ -47,18 +57,23 @@ design/
   README.md                    design rationale, states, keyboard shortcuts
 ```
 
-Planned after Phase 0 (not yet created): `backend/` (Java 21, Spring Boot 3.x, Maven), `frontend/` (Vite, TypeScript, Preact), `docker-compose.yml`, `.env.example`.
+Also in the repository: `backend/` (Java 21, Spring Boot, Maven), `frontend/` (Vite, TypeScript, Preact; built into the backend jar), `docker-compose.yml` and `docker-compose.vps.yml` (HTTPS and the access token), `ops/caddy/` (the proxy settings), `.github/workflows/ci.yml` and `.env.example`.
 
-## Tech stack (planned)
+## Tech stack
 
-- Backend: Java 21, Spring Boot 3.x, Maven, PostgreSQL 16, Flyway, Spring Data JDBC, Jsoup, Rome, Jakarta Mail, Actuator
-- Frontend: Vite, TypeScript, Preact; built into static assets served by the backend
-- Deployment: `docker compose up` (app and PostgreSQL with a volume); secrets only in `.env`
+- Backend: Java 21, Spring Boot 3.5, Maven, PostgreSQL 16, Flyway, plain SQL through `JdbcClient`, Jsoup, Jakarta Mail (IMAP), Apache POI (XLSX), Actuator; Checkstyle, JaCoCo (80% line gate for the core modules) and ArchUnit in every build
+- Frontend: Vite, TypeScript (strict), Preact, no UI library; Vitest for the logic; built into static assets served by the backend
+- End-to-end: a Playwright smoke test in `e2e/`
+- Deployment: Docker Compose (`app`, `postgres`, `backup`, and `caddy` on a VPS); secrets only in `.env`
 
-## How to run
+## Tests
 
-Not available yet. This section will be filled in by task T-075 once the application exists.
+```sh
+cd backend && mvn verify                   # unit and integration tests (needs Docker), style, coverage gate, architecture
+cd frontend && npm ci && npm test          # logic tests; `npm run typecheck` for types
+cd e2e && npm ci && npm run test:local     # browser smoke test; needs the built jar, Docker and Chrome
+```
 
-## Language
+## Running it
 
-Repository content (code, comments, docs, commits, changelog) is in English. See [docs/decisions.md](docs/decisions.md) ADR-020.
+See [docs/deployment.md](docs/deployment.md).

@@ -121,4 +121,4 @@ Phase 0 ended with an approval request to the owner. Approved 2026-11-01.
 | [x] 2026-11-01 | T-072 | Structured logs with key masking, run metrics | S | T-043 | Test proves no API key appears in logs |
 | [x] 2026-11-01 | T-073 | Tier 3 generic HTML adapter, approved sites only | M | T-030, T-027 | Adapter runs only for sites with a recorded terms check; robots.txt honored |
 | [x] 2026-11-01 | T-074 | Playwright smoke test | S | T-055, T-048 | Smoke test runs in CI |
-| [ ] | T-075 | Deployment docs: VPS and reverse proxy HTTPS; run instructions | S | T-012, T-070 | Steps followed on a clean machine produce a running instance |
+| [x] 2026-11-01 | T-075 | Deployment docs: VPS and reverse proxy HTTPS; run instructions | S | T-012, T-070 | Steps followed on a clean machine produce a running instance |
