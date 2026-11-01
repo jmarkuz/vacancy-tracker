@@ -68,9 +68,9 @@ Phase 0 ended with an approval request to the owner. Approved 2026-11-01.
 | [ ] | T-034 | Adapter: arbeitnow | M | T-027, T-030 | As T-031; visa filter translated when criterion exists |
 | [ ] | T-035 | Adapter: adzuna | M | T-027, T-030 | Key from `.env`; country validated against documented list; key never appears in logs |
 | [ ] | T-036 | Adapter: jooble | M | T-027, T-030 | POST body built; key masked in logs and errors |
-| [ ] | T-037 | Adapter: remotive with daily quota and attribution | S | T-027, T-030 | At most 4 calls per day enforced; attribution stored with each vacancy |
-| [ ] | T-038 | Adapter: himalayas | S | T-027, T-030 | Pagination with limit 20; 429 handled |
-| [ ] | T-039 | Adapter: jobicy | S | T-027, T-030 | `count` parameter used; fixtures tested |
+| [x] 2026-11-01 | T-037 | Adapter: remotive with daily quota and attribution | S | T-027, T-030 | At most 4 calls per day enforced; attribution stored with each vacancy |
+| [x] 2026-11-01 | T-038 | Adapter: himalayas | S | T-027, T-030 | Pagination with limit 20; 429 handled |
+| [x] 2026-11-01 | T-039 | Adapter: jobicy | S | T-027, T-030 | `count` parameter used; fixtures tested |
 | [ ] | T-040 | Generic RSS/Atom adapter (Rome) | M | T-030 | Fixture feed parsed; HTML in items sanitized |
 | [ ] | T-041 | Normalization: HTML cleanup, salary parsing, workMode, country, seniority | M | T-017 | Unit tests for edge cases: missing salary, period words, currency symbols |
 | [x] 2026-11-01 | T-042 | Dedup: canonical URL, externalId, fuzzy company+title+location | M | T-016, T-041 | Tests for each rule in order; duplicates add VacancySource rows |

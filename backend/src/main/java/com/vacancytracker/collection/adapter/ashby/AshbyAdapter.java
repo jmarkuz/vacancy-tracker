@@ -2,6 +2,7 @@ package com.vacancytracker.collection.adapter.ashby;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vacancytracker.collection.adapter.AdapterDates;
 import com.vacancytracker.collection.adapter.FetchOutcome;
 import com.vacancytracker.collection.adapter.RawPosting;
 import com.vacancytracker.collection.adapter.SourceAdapter;
@@ -9,7 +10,6 @@ import com.vacancytracker.collection.http.FetchResult;
 import com.vacancytracker.collection.http.HttpFetcher;
 import com.vacancytracker.collection.http.UpstreamException;
 import java.io.IOException;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -98,7 +98,7 @@ public class AshbyAdapter implements SourceAdapter {
                 null,
                 null,
                 null,
-                job.hasNonNull("publishedAt") ? Instant.parse(job.get("publishedAt").asText()) : null);
+                AdapterDates.instantOrNull(job.path("publishedAt").asText(null)));
     }
 
     static String workMode(String ashby) {

@@ -50,9 +50,17 @@ public class HttpFetcher {
     }
 
     public FetchResult get(String url, Map<String, String> headers) {
+        return get(url, url, headers);
+    }
+
+    /**
+     * cacheKey identifies the validators in the cache. Sources that put secrets in the query string pass a
+     * key without them, so keys are never stored in the database.
+     */
+    public FetchResult get(String url, String cacheKey, Map<String, String> headers) {
         URI uri = URI.create(url);
         requireHttp(uri);
-        Optional<ConditionalCache.Validators> known = cache.find(url);
+        Optional<ConditionalCache.Validators> known = cache.find(cacheKey);
         for (int attempt = 1; ; attempt++) {
             limiter.acquire(uri.getHost());
             HttpResponse<String> response;
@@ -80,11 +88,11 @@ public class HttpFetcher {
                 sleeper.sleep(retry.delayMillis(attempt, retryAfter));
                 continue;
             }
-            return finish(url, response, status);
+            return finish(cacheKey, response, status);
         }
     }
 
-    private FetchResult finish(String url, HttpResponse<String> response, int status) {
+    private FetchResult finish(String cacheKey, HttpResponse<String> response, int status) {
         String body = response.body();
         if (body.length() > MAX_BODY_CHARS) {
             body = body.substring(0, MAX_BODY_CHARS);
@@ -92,7 +100,7 @@ public class HttpFetcher {
         String etag = response.headers().firstValue("ETag").orElse(null);
         String lastModified = response.headers().firstValue("Last-Modified").orElse(null);
         if (status / 100 == 2 && (etag != null || lastModified != null)) {
-            cache.save(url, new ConditionalCache.Validators(etag, lastModified));
+            cache.save(cacheKey, new ConditionalCache.Validators(etag, lastModified));
         }
         return new FetchResult(status, body, etag, lastModified, false);
     }

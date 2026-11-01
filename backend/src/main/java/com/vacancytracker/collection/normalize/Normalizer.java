@@ -58,7 +58,7 @@ public final class Normalizer {
     }
 
     /** HTML to plain text, whitespace collapsed; blank becomes null. */
-    static String plainText(String html) {
+    public static String plainText(String html) {
         if (html == null || html.isBlank()) {
             return null;
         }

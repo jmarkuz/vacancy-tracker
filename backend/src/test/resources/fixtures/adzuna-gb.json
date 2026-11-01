@@ -1,0 +1,16 @@
+{
+  "count": 1,
+  "results": [
+    {
+      "id": "az-9",
+      "redirect_url": "https://www.adzuna.co.uk/details/az-9",
+      "title": "Backend Developer",
+      "company": { "display_name": "Lumen Works" },
+      "location": { "display_name": "Leeds" },
+      "description": "Java and Kotlin services.",
+      "salary_min": 50000,
+      "salary_max": 60000,
+      "created": "2026-10-30T10:00:00Z"
+    }
+  ]
+}
