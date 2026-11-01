@@ -52,7 +52,7 @@ Phase 0 ended with an approval request to the owner. Approved 2026-11-01.
 | [x] 2026-11-01 | T-023 | Manual add by URL with JSON-LD JobPosting | M | T-017, T-015 | Fixture pages parsed; fallback to a manual form when no JSON-LD |
 | [x] 2026-11-01 | T-024 | CSV export: UTF-8 with BOM, column selection, current filter | S | T-020 | Test checks BOM and quoting; Cyrillic and accented text intact |
 | [x] 2026-11-01 | T-025 | XLSX export with streaming writer | S | T-024 | File opens; row count equals the filtered set |
-| [ ] | T-026 | JSON backup export and JSON/CSV import with per-row errors | M | T-015 | Round-trip test; error report lists row numbers and reasons |
+| [x] 2026-11-01 | T-026 | JSON backup export and JSON/CSV import with per-row errors | M | T-015 | Round-trip test; error report lists row numbers and reasons |
 
 ## M2 Collection
 

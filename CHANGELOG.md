@@ -5,6 +5,7 @@ All notable changes are recorded here. Format: date, task ID, short description.
 ## [Unreleased]
 
 ### 2026-11-01 — M1 core tracker
+- T-026: JSON backup: `GET /api/export/backup.json` (schemaVersion 1) with every vacancy and its status history. Import: `POST /api/import/vacancies` accepts the JSON backup or CSV with a header; rows are validated one by one, invalid rows are reported with row and field, and valid rows are stored. Unsupported version or unknown CSV column gives 422.
 - T-025: XLSX export: `GET /api/export/vacancies.xlsx` with the same filter and columns as CSV. Apache POI streaming workbook (SXSSF), numeric salaries kept as numbers.
 - T-024: CSV export: `GET /api/export/vacancies.csv` with optional status filter and column selection. UTF-8 with BOM, CRLF, RFC 4180 quoting, streamed in batches. Test isolation: each integration test starts with an empty database.
 - T-023: Manual import by URL: `POST /api/vacancies/import-url` fetches the page (http/https only, custom User-Agent, timeouts, 2 MB cap) and reads schema.org JobPosting from JSON-LD (including @graph). 422 when no data, 502 when the source fails. Vacancies gain location and workMode.
