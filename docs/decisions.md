@@ -28,6 +28,7 @@ Index:
 - ADR-023 Status transition table
 - ADR-024 Frontend test tooling and accepted dev-only advisories
 - ADR-025 missingValuePolicy penalize means a weight penalty
+- ADR-026 Automatic inbox hiding and its limits
 
 ---
 
@@ -369,4 +370,19 @@ Status: Accepted
 **Decision.** A missing value with policy `penalize` subtracts the criterion's weight from the score, in every mode, and never filters the vacancy. `hide` filters regardless of mode. `ignore` skips the criterion. `exists` and `not_exists` are never missing.
 
 **Consequences.** `penalize` has its own effect, so a user can say "an unknown salary is worse than a known good one" without hiding it. The rule engine and the score formula agree.
+
+---
+
+## ADR-026 Automatic inbox hiding and its limits
+Status: Accepted
+
+**Context.** A profile's `inboxMinScore` and its filters decide whether a vacancy belongs in the Inbox (docs/search-profiles.md section 4). ADR-012 says automation never overwrites status. Without any automatic change the threshold would have no effect, and a user could not trust a profile edit not to override their own decisions.
+
+**Decision.** Scoring (during a run, and in the recalculation job) may move a vacancy between New and Hidden, under these rules:
+- A New vacancy becomes Hidden when no applicable profile accepts it: every applicable profile either filters it out or scores it below that profile's `inboxMinScore`. One accepting profile is enough. With no applicable profile nothing is filtered.
+- A vacancy that was hidden automatically becomes New again when it qualifies.
+- Automation acts only while the vacancy's whole status history consists of automatic events (status event notes starting with `auto-`). When the user has changed the status even once, including hiding or restoring a vacancy, automation never touches it again.
+- Automatic changes keep the `isNew` flag, because the user has not seen the vacancy.
+
+**Consequences.** Recalculation after a profile change can hide or restore vacancies, but never reverses a decision of the user. The history shows every automatic change with its note.
 

@@ -45,9 +45,15 @@ class CollectionPipelineTest extends AbstractIntegrationTest {
     @Autowired
     private PlatformTransactionManager transactions;
 
+    @Autowired
+    private com.vacancytracker.matching.MatchService matchService;
+
+    @Autowired
+    private com.vacancytracker.matching.SearchProfileService profileService;
+
     @BeforeEach
     void clean() {
-        template.execute("TRUNCATE run, source_state, http_cache CASCADE");
+        template.execute("TRUNCATE run, source_state, http_cache, search_profile CASCADE");
     }
 
     private static RawPosting posting(String adapter, String ext, String url, String title, String company,
@@ -80,7 +86,7 @@ class CollectionPipelineTest extends AbstractIntegrationTest {
         SourceHealth health = new SourceHealth(jdbc, clock);
         IngestService ingest = new IngestService(deduplicator, vacancies);
         ExpiryService expiry = new ExpiryService(jdbc, vacancies, clock, transactions, 3);
-        return new CollectionPipeline(adapters, health, ingest, runs, vacancies, expiry, new RunEventBus(), clock);
+        return new CollectionPipeline(adapters, health, ingest, runs, vacancies, expiry, matchService, new RunEventBus(), clock);
     }
 
     @Test
@@ -102,6 +108,24 @@ class CollectionPipelineTest extends AbstractIntegrationTest {
         assertThat(failed.stats().errors).isEqualTo(1);
         assertThat(failed.error()).contains("503");
         assertThat(runs.status(summary.runId())).isEqualTo("completed_with_errors");
+    }
+
+    @Test
+    void newPostingsAreScoredDuringTheRunAndLowScoresAreHidden() throws Exception {
+        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        profileService.create(new com.vacancytracker.matching.ProfileInput("Main", true, List.of("all"), null,
+                com.vacancytracker.matching.Thresholds.defaults(), List.of(new com.vacancytracker.matching.Criterion(
+                "kw", "title", "contains_any", mapper.readTree("[\"java\"]"), "prefer", 5, null, "Java"))));
+        SourceAdapter source = fixed("fake-ok", () -> FetchOutcome.of(List.of(
+                posting("fake-ok", "1", "https://ex.com/a", "Java Developer", "Acme", "Berlin"),
+                posting("fake-ok", "2", "https://ex.com/b", "Cobol Developer", "Acme", "Berlin"))));
+
+        pipeline(List.of(source)).run("manual");
+
+        assertThat(jdbc.sql("SELECT count(*) FROM vacancy_match").query(Integer.class).single()).isEqualTo(2);
+        assertThat(jdbc.sql("SELECT match_score FROM vacancy WHERE title = 'Java Developer'").query(Integer.class).single()).isEqualTo(100);
+        assertThat(jdbc.sql("SELECT status FROM vacancy WHERE title = 'Java Developer'").query(String.class).single()).isEqualTo("New");
+        assertThat(jdbc.sql("SELECT status FROM vacancy WHERE title = 'Cobol Developer'").query(String.class).single()).isEqualTo("Hidden");
     }
 
     @Test
