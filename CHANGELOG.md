@@ -5,6 +5,7 @@ All notable changes are recorded here. Format: date, task ID, short description.
 ## [Unreleased]
 
 ### 2026-11-01 — M1 core tracker
+- T-025: XLSX export: `GET /api/export/vacancies.xlsx` with the same filter and columns as CSV. Apache POI streaming workbook (SXSSF), numeric salaries kept as numbers.
 - T-024: CSV export: `GET /api/export/vacancies.csv` with optional status filter and column selection. UTF-8 with BOM, CRLF, RFC 4180 quoting, streamed in batches. Test isolation: each integration test starts with an empty database.
 - T-023: Manual import by URL: `POST /api/vacancies/import-url` fetches the page (http/https only, custom User-Agent, timeouts, 2 MB cap) and reads schema.org JobPosting from JSON-LD (including @graph). 422 when no data, 502 when the source fails. Vacancies gain location and workMode.
 - T-011: Maven bootstrap in `backend/`: Java 21, Spring Boot 3.5.6, package skeleton, Checkstyle lint (`config/checkstyle.xml`), JaCoCo, health smoke test.
