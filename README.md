@@ -34,8 +34,11 @@ docs/
   architecture.md              C4 context and container, pipeline, ERD (Mermaid)
   decisions.md                 architecture decision records (ADRs)
   search-profiles.md           profile and criterion schema, score formula
+  operations.md                backups and restore
   examples/
     search-profile.example.yml neutral example, never loaded automatically
+ops/
+  backup/                      backup script and its Docker test
 design/
   tokens.css                   design tokens (light and dark)
   dashboard.html               static clickable mockup with fake data

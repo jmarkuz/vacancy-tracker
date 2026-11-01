@@ -468,3 +468,17 @@ Status: Accepted (T-067)
 - The digest runs in its own thread after the run is finished; it never delays or fails a run.
 
 **Consequences.** Whoever can read the chat sees the vacancy titles. A vacancy that scores above its threshold only after a later recalculation is announced after the next run. There is no "send a test message" button yet.
+
+## ADR-032 Backup service
+
+Status: Accepted (T-070)
+
+**Context.** ADR-019 promised a `backup` service that runs `pg_dump` daily. The data is the user's own job search history, which is hard to recreate.
+
+**Decision.**
+- A `backup` service in docker-compose uses the `postgres:16` image and a small shell script (`ops/backup/backup.sh`). It backs up at start and then every `BACKUP_INTERVAL_SECONDS` (one day), in PostgreSQL's custom format, into the `backups` volume.
+- A dump becomes a backup only after it was written completely and read back with `pg_restore --list`. Failures are logged and retried at the next interval; the container does not exit.
+- Retention is by age (`BACKUP_KEEP_DAYS`, 14 days). Only files named like its own dumps are deleted.
+- Restore is documented and tested against a real compose stack (docs/operations.md). The script has a Docker test (`ops/backup/test-backup.sh`).
+
+**Consequences.** The volume is on the same machine as the database, so it does not protect against losing the machine; copying files off the host is up to the user, and the JSON export is a second, independent route. Backups run at fixed intervals from the container start, not at a chosen hour. A restore needs the app stopped.
