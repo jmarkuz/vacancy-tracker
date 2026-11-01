@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
+import com.vacancytracker.matching.CompanyListService;
 import com.vacancytracker.matching.ProfileInput;
 import com.vacancytracker.matching.ProfileValidationException;
 import com.vacancytracker.matching.SearchProfile;
@@ -14,6 +15,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Profile import and export (T-057, docs/search-profiles.md section 6). The file is a wrapper with
@@ -34,11 +36,14 @@ public class ProfileTransfer {
             .enable(YAMLGenerator.Feature.MINIMIZE_QUOTES));
     private final ProfileInputParser parser;
     private final SearchProfileService profiles;
+    private final CompanyListService lists;
 
-    public ProfileTransfer(ObjectMapper json, ProfileInputParser parser, SearchProfileService profiles) {
+    public ProfileTransfer(ObjectMapper json, ProfileInputParser parser, SearchProfileService profiles,
+                           CompanyListService lists) {
         this.json = json;
         this.parser = parser;
         this.profiles = profiles;
+        this.lists = lists;
     }
 
     public String export(SearchProfile profile, boolean asYaml) {
@@ -46,6 +51,10 @@ public class ProfileTransfer {
                 profile.scheduleOverride(), profile.thresholds(), profile.criteria()));
         profileNode.set("schedule", profileNode.remove("scheduleOverride"));
         ObjectNode file = json.createObjectNode();
+        Map<String, java.util.List<String>> own = lists.forProfile(profile.id());
+        if (!own.get("allowlist").isEmpty() || !own.get("blocklist").isEmpty()) {
+            profileNode.set("companyLists", json.valueToTree(new java.util.TreeMap<>(own)));
+        }
         file.put("schemaVersion", SCHEMA_VERSION);
         file.put("version", profile.version());
         file.set("profile", profileNode);
@@ -58,18 +67,61 @@ public class ProfileTransfer {
         }
     }
 
-    /** Creates a new profile, or a new version of the profile with the same name (case-insensitive). */
+    /**
+     * Creates a new profile, or a new version of the profile with the same name (case-insensitive). When the file
+     * has companyLists they replace the profile's own lists; the whole import is one transaction.
+     */
+    @Transactional
     public ImportResult importProfile(String text) {
-        ProfileInput input = parser.parse(read(text));
+        ObjectNode node = read(text);
+        JsonNode listsNode = node.remove("companyLists");
+        java.util.List<String> allow = names(listsNode, "allowlist");
+        java.util.List<String> block = names(listsNode, "blocklist");
+        ProfileInput input = parser.parse(node);
         Optional<SearchProfile> existing = profiles.list().stream()
                 .filter(p -> p.name().equalsIgnoreCase(input.name() == null ? "" : input.name().trim()))
                 .findFirst();
-        return existing
+        ImportResult result = existing
                 .map(p -> new ImportResult(profiles.update(p.id(), input), false))
                 .orElseGet(() -> new ImportResult(profiles.create(input), true));
+        if (listsNode != null) {
+            lists.replaceForProfile(result.profile().id(), allow, block);
+        }
+        return result;
     }
 
-    private JsonNode read(String text) {
+    /** The company names of one list in the file; a wrong shape is an error with its path. */
+    private static java.util.List<String> names(JsonNode listsNode, String key) {
+        if (listsNode == null) {
+            return java.util.List.of();
+        }
+        if (!listsNode.isObject()) {
+            throw new ProfileValidationException(Map.of("companyLists", "Expected allowlist and blocklist"));
+        }
+        for (Iterator<String> it = listsNode.fieldNames(); it.hasNext(); ) {
+            String name = it.next();
+            if (!name.equals("allowlist") && !name.equals("blocklist")) {
+                throw new ProfileValidationException(Map.of("companyLists." + name, "Unknown property"));
+            }
+        }
+        JsonNode list = listsNode.path(key);
+        if (list.isMissingNode() || list.isNull()) {
+            return java.util.List.of();
+        }
+        if (!list.isArray()) {
+            throw new ProfileValidationException(Map.of("companyLists." + key, "Expected a list of company names"));
+        }
+        java.util.List<String> out = new java.util.ArrayList<>();
+        for (int i = 0; i < list.size(); i++) {
+            if (!list.get(i).isTextual()) {
+                throw new ProfileValidationException(Map.of("companyLists." + key + "[" + i + "]", "Expected a company name"));
+            }
+            out.add(list.get(i).asText());
+        }
+        return out;
+    }
+
+    private ObjectNode read(String text) {
         JsonNode root;
         try {
             root = yaml.readTree(text == null ? "" : text);

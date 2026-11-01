@@ -27,6 +27,6 @@ public abstract class AbstractIntegrationTest {
     /** Each test starts with an empty database; the container and Spring context are shared. */
     @BeforeEach
     void truncateTables() {
-        jdbc.execute("TRUNCATE vacancy, saved_view, search_profile CASCADE");
+        jdbc.execute("TRUNCATE vacancy, saved_view, search_profile, company_list CASCADE");
     }
 }

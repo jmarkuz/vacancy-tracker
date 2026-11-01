@@ -47,21 +47,28 @@ public class MatchService {
     private final RuleEngine engine;
     private final Clock clock;
     private final TransactionTemplate tx;
+    private final CompanyListService lists;
+    private final int allowlistBonus;
 
     public MatchService(SearchProfileService profiles, VacancyMatchRepository matches, VacancyRepository vacancies,
-                        RateSalaryConverter converter, Clock clock, PlatformTransactionManager transactions) {
+                        RateSalaryConverter converter, Clock clock, PlatformTransactionManager transactions,
+                        CompanyListService lists,
+                        @org.springframework.beans.factory.annotation.Value("${app.matching.allowlist-bonus:10}") int allowlistBonus) {
         this.profiles = profiles;
         this.matches = matches;
         this.vacancies = vacancies;
         this.engine = new RuleEngine(converter);
         this.clock = clock;
         this.tx = new TransactionTemplate(transactions);
+        this.lists = lists;
+        this.allowlistBonus = allowlistBonus;
     }
 
     /** A session over the profiles as they are now. Each vacancy is matched in its own transaction. */
     public MatchSession session() {
         List<SearchProfile> enabled = profiles.list().stream().filter(SearchProfile::enabled).toList();
-        return vacancyId -> tx.execute(status -> matchWith(enabled, vacancyId));
+        CompanyLists companyLists = lists.snapshot();
+        return vacancyId -> tx.execute(status -> matchWith(enabled, companyLists, vacancyId));
     }
 
     /** Evaluates and stores one vacancy's matches, replacing earlier ones. */
@@ -77,7 +84,7 @@ public class MatchService {
         return matches.findForVacancy(vacancyId);
     }
 
-    private List<VacancyMatch> matchWith(List<SearchProfile> enabled, UUID vacancyId) {
+    private List<VacancyMatch> matchWith(List<SearchProfile> enabled, CompanyLists companyLists, UUID vacancyId) {
         Vacancy vacancy = Vacancy.restore(vacancies.findById(vacancyId)
                 .orElseThrow(() -> new NotFoundException("Vacancy not found: " + vacancyId)));
         List<String> adapters = vacancies.findSourceAdapters(vacancyId);
@@ -89,7 +96,8 @@ public class MatchService {
                 continue;
             }
             RuleResult result = engine.evaluate(profile.criteria(), facts);
-            ScoreOutcome outcome = Scorer.score(profile.criteria(), result, 0);
+            ScoreOutcome outcome = Scorer.score(profile.criteria(), result,
+                    companyLists.verdict(profile.id(), vacancy.getCompany()), allowlistBonus);
             matches.upsert(new VacancyMatch(vacancyId, profile.id(), profile.version(), outcome.score(),
                     outcome.hidden(), outcome.reasons(), clock.instant()));
             applicable.add(profile);
@@ -131,7 +139,8 @@ public class MatchService {
         Map<UUID, Integer> minScores = applicable.stream()
                 .collect(Collectors.toMap(SearchProfile::id, p -> p.thresholds().inboxMinScore(), (a, b) -> a));
         return stored.stream().anyMatch(m -> !m.hidden() && m.score() != null
-                && m.score() >= minScores.getOrDefault(m.profileId(), Integer.MAX_VALUE));
+                && (m.score() >= minScores.getOrDefault(m.profileId(), Integer.MAX_VALUE)
+                || m.reasons().stream().anyMatch(r -> "allowlist".equals(r.kind()))));
     }
 
     static boolean appliesTo(SearchProfile profile, List<String> adapters) {

@@ -57,7 +57,7 @@ T-055,Profile list and rule builder,M3,M,"T-054,T-018",done
 T-056,Live preview,M3,M,"T-052,T-055",done
 T-057,Profile YAML JSON import and export,M3,S,T-054,done
 T-058,Onboarding wizard,M3,S,T-055,done
-T-059,Allowlist and blocklist,M3,S,T-052,todo
+T-059,Allowlist and blocklist,M3,S,T-052,done
 T-060,Dashboard screen,M3,M,"T-052,T-046",todo
 T-061,Kanban with drag and drop,M3,M,"T-019,T-016",todo
 T-062,Full-text search and command palette,M3,M,"T-013,T-018",todo
