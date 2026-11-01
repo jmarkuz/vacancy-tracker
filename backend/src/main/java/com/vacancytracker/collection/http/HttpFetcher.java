@@ -20,7 +20,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class HttpFetcher {
 
-    static final String USER_AGENT = "VacancyTracker/0.1 (personal job search; no crawling)";
+    /** The name robots.txt rules are matched against (the product part of the User-Agent). */
+    public static final String PRODUCT_TOKEN = "VacancyTracker";
+    static final String USER_AGENT = PRODUCT_TOKEN + "/0.1 (personal job search; no crawling)";
     static final int MAX_BODY_CHARS = 5 * 1024 * 1024;
 
     private final HttpClient client = HttpClient.newBuilder()
@@ -58,6 +60,18 @@ public class HttpFetcher {
      * key without them, so keys are never stored in the database.
      */
     public FetchResult get(String url, String cacheKey, Map<String, String> headers) {
+        return fetch(url, cacheKey, headers, true);
+    }
+
+    /**
+     * A GET that sends no validators and stores none, so the answer is always the full page. For sources whose
+     * pages are parsed by the adapter itself and where "not modified" would hide which items still exist.
+     */
+    public FetchResult getUnconditional(String url) {
+        return fetch(url, url, Map.of(), false);
+    }
+
+    private FetchResult fetch(String url, String cacheKey, Map<String, String> headers, boolean conditional) {
         URI uri;
         try {
             uri = URI.create(url);
@@ -66,7 +80,7 @@ public class HttpFetcher {
             throw new UpstreamException("The address of the source is not valid");
         }
         requireHttp(uri);
-        Optional<ConditionalCache.Validators> known = cache.find(cacheKey);
+        Optional<ConditionalCache.Validators> known = conditional ? cache.find(cacheKey) : Optional.empty();
         for (int attempt = 1; ; attempt++) {
             limiter.acquire(uri.getHost());
             HttpResponse<String> response;
@@ -94,7 +108,7 @@ public class HttpFetcher {
                 sleeper.sleep(retry.delayMillis(attempt, retryAfter));
                 continue;
             }
-            return finish(cacheKey, response, status);
+            return finish(conditional ? cacheKey : null, response, status);
         }
     }
 
@@ -105,7 +119,7 @@ public class HttpFetcher {
         }
         String etag = response.headers().firstValue("ETag").orElse(null);
         String lastModified = response.headers().firstValue("Last-Modified").orElse(null);
-        if (status / 100 == 2 && (etag != null || lastModified != null)) {
+        if (cacheKey != null && status / 100 == 2 && (etag != null || lastModified != null)) {
             cache.save(cacheKey, new ConditionalCache.Validators(etag, lastModified));
         }
         return new FetchResult(status, body, etag, lastModified, false);

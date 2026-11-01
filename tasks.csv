@@ -71,6 +71,6 @@ T-069,ArchUnit boundary test,M5,S,T-011,done
 T-070,Daily pg_dump backup,M5,S,T-012,done
 T-071,VPS access token and login rate limit,M5,M,T-012,done
 T-072,Structured logs with key masking,M5,S,T-043,done
-T-073,Tier 3 generic HTML adapter,M5,M,"T-030,T-027",todo
+T-073,Tier 3 generic HTML adapter,M5,M,"T-030,T-027",done
 T-074,Playwright smoke test,M5,S,"T-055,T-048",todo
 T-075,Deployment docs and run instructions,M5,S,"T-012,T-070",todo
