@@ -42,8 +42,8 @@ T-040,Generic RSS Atom adapter,M2,M,T-030,todo
 T-041,Normalization,M2,M,T-017,todo
 T-042,Dedup,M2,M,"T-016,T-041",done
 T-043,Collection pipeline orchestration,M2,M,"T-029,T-041,T-042",done
-T-044,Run lock cron scheduler graceful shutdown,M2,M,T-043,todo
-T-045,Expiry detection,M2,S,T-043,todo
+T-044,Run lock cron scheduler graceful shutdown,M2,M,T-043,done
+T-045,Expiry detection,M2,S,T-043,done
 T-046,SSE progress and Refresh button,M2,M,"T-044,T-018",todo
 T-047,Sources and Runs screen,M2,M,"T-044,T-018",todo
 T-048,Inbox keyboard triage,M2,M,"T-043,T-018",todo

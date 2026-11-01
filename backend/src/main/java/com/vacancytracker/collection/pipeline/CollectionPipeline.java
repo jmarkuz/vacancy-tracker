@@ -36,23 +36,40 @@ public class CollectionPipeline {
     private final IngestService ingest;
     private final RunRepository runs;
     private final VacancyRepository vacancies;
+    private final ExpiryService expiry;
     private final Clock clock;
+    private volatile boolean stopRequested;
 
     public CollectionPipeline(List<SourceAdapter> adapters, SourceHealth health, IngestService ingest,
-                              RunRepository runs, VacancyRepository vacancies, Clock clock) {
+                              RunRepository runs, VacancyRepository vacancies, ExpiryService expiry, Clock clock) {
         this.adapters = adapters;
         this.health = health;
         this.ingest = ingest;
         this.runs = runs;
         this.vacancies = vacancies;
+        this.expiry = expiry;
         this.clock = clock;
     }
 
+    /** Creates a run and executes it in the calling thread. */
     public RunSummary run(String trigger) {
-        UUID runId = runs.start(trigger, clock.instant());
+        return execute(runs.start(trigger, clock.instant()));
+    }
+
+    /** Asks the running pipeline to stop before its next adapter (graceful shutdown, T-044). */
+    public void requestStop() {
+        stopRequested = true;
+    }
+
+    /** Executes an already created run. Stops between adapters when asked; then the run is interrupted. */
+    public RunSummary execute(UUID runId) {
         List<AdapterResult> results = new ArrayList<>();
         boolean anyFailed = false;
         for (SourceAdapter adapter : adapters) {
+            if (stopRequested) {
+                runs.finish(runId, "interrupted", clock.instant());
+                return new RunSummary(runId, "interrupted", results);
+            }
             long started = System.nanoTime();
             AdapterResult result = runAdapter(adapter);
             long durationMs = (System.nanoTime() - started) / 1_000_000;
@@ -62,6 +79,7 @@ public class CollectionPipeline {
         }
         String status = anyFailed ? "completed_with_errors" : "completed";
         runs.finish(runId, status, clock.instant());
+        expiry.expireUnseen();
         return new RunSummary(runId, status, results);
     }
 

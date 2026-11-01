@@ -3,6 +3,8 @@ package com.vacancytracker.collection.pipeline;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -53,8 +55,35 @@ public class RunRepository {
                 .update();
     }
 
+    public record RunRow(UUID id, String trigger, String status, Instant startedAt, Instant finishedAt) {
+    }
+
+    public record StatRow(String adapter, int fetched, int newCount, int updated, int duplicates, int errors,
+                          long durationMs, String errorMessage) {
+    }
+
+    public Optional<RunRow> findRun(UUID id) {
+        return jdbc.sql("SELECT id, trigger, status, started_at, finished_at FROM run WHERE id = :id")
+                .param("id", id)
+                .query((rs, n) -> new RunRow(rs.getObject("id", UUID.class), rs.getString("trigger"),
+                        rs.getString("status"), instant(rs.getObject("started_at", OffsetDateTime.class)),
+                        instant(rs.getObject("finished_at", OffsetDateTime.class))))
+                .optional();
+    }
+
+    public List<StatRow> findStats(UUID runId) {
+        return jdbc.sql("SELECT adapter, fetched, new_count, updated, duplicates, errors, duration_ms, error_message"
+                        + " FROM run_source_stat WHERE run_id = :id ORDER BY adapter")
+                .param("id", runId)
+                .query((rs, n) -> new StatRow(rs.getString("adapter"), rs.getInt("fetched"), rs.getInt("new_count"),
+                        rs.getInt("updated"), rs.getInt("duplicates"), rs.getInt("errors"), rs.getLong("duration_ms"),
+                        rs.getString("error_message")))
+                .list();
+    }
+
+    /** Only a running run can be finished, so a late finish cannot overwrite an interrupted run. */
     public void finish(UUID runId, String status, Instant at) {
-        jdbc.sql("UPDATE run SET status = :status, finished_at = :at WHERE id = :id")
+        jdbc.sql("UPDATE run SET status = :status, finished_at = :at WHERE id = :id AND status = 'running'")
                 .param("status", status)
                 .param("at", utc(at))
                 .param("id", runId)
@@ -63,6 +92,10 @@ public class RunRepository {
 
     public String status(UUID runId) {
         return jdbc.sql("SELECT status FROM run WHERE id = :id").param("id", runId).query(String.class).single();
+    }
+
+    private static Instant instant(OffsetDateTime value) {
+        return value == null ? null : value.toInstant();
     }
 
     private static OffsetDateTime utc(Instant instant) {

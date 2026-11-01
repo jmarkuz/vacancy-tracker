@@ -22,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.transaction.PlatformTransactionManager;
 
 @SpringBootTest
 class CollectionPipelineTest extends AbstractIntegrationTest {
@@ -40,6 +41,9 @@ class CollectionPipelineTest extends AbstractIntegrationTest {
 
     @Autowired
     private Deduplicator deduplicator;
+
+    @Autowired
+    private PlatformTransactionManager transactions;
 
     @BeforeEach
     void clean() {
@@ -75,7 +79,8 @@ class CollectionPipelineTest extends AbstractIntegrationTest {
         Clock clock = Clock.fixed(Instant.parse("2026-11-01T10:00:00Z"), ZoneId.of("UTC"));
         SourceHealth health = new SourceHealth(jdbc, clock);
         IngestService ingest = new IngestService(deduplicator, vacancies);
-        return new CollectionPipeline(adapters, health, ingest, runs, vacancies, clock);
+        ExpiryService expiry = new ExpiryService(jdbc, vacancies, clock, transactions, 3);
+        return new CollectionPipeline(adapters, health, ingest, runs, vacancies, expiry, clock);
     }
 
     @Test

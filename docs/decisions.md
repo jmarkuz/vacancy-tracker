@@ -98,6 +98,8 @@ Status: Accepted
 - Progress is published as Server-Sent Events from `/api/runs/{id}/events`.
 - Graceful shutdown: the scheduler stops accepting new runs; the current run finishes its current source and records `status = interrupted` if it cannot finish.
 
+**Implementation note (T-044).** The single-run lock is an in-process guard in `RunCoordinator`, plus a `run` row in status `running`. The PostgreSQL advisory lock from the decision above is not used yet: it needs a dedicated session for the whole run and only matters with more than one instance. Shutdown asks the run to stop between sources, waits 30 seconds, and then marks the run `interrupted`.
+
 **Consequences.** Simple and reliable on one instance. Multi-instance deployment is out of scope.
 
 ---
