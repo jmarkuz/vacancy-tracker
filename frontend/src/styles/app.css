@@ -750,3 +750,68 @@ tbody tr:hover {
 .small {
   font-size: var(--font-size-xs);
 }
+
+/* Inbox: keyboard-driven list. Selection and focus are both visible (outline and background). */
+.shortcut-legend {
+  margin: 0 0 var(--space-3);
+  font-size: var(--font-size-sm);
+}
+
+kbd {
+  padding: 0 var(--space-1);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.inbox-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  max-height: calc(100vh - var(--header-height) - 180px);
+  overflow-y: auto;
+}
+
+.inbox-list:focus-visible {
+  outline-offset: 2px;
+}
+
+.inbox-row {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr) minmax(0, 2fr) minmax(0, 2fr);
+  gap: var(--space-3);
+  align-items: baseline;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: var(--border-width) solid var(--color-border);
+  cursor: default;
+}
+
+.inbox-row:last-child {
+  border-bottom: 0;
+}
+
+.inbox-row.selected {
+  background: var(--color-accent-subtle);
+  box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
+.inbox-title {
+  font-weight: var(--font-weight-medium);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+  .inbox-row {
+    grid-template-columns: 1fr;
+    gap: var(--space-1);
+  }
+
+  .shortcut-legend {
+    display: none;
+  }
+}
