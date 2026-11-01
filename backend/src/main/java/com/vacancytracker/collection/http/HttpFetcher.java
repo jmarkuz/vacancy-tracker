@@ -37,7 +37,8 @@ public class HttpFetcher {
         this(cache, RetryPolicy.standard(), new DomainRateLimiter(1000, clock, Sleeper.THREAD), Sleeper.THREAD);
     }
 
-    HttpFetcher(ConditionalCache cache, RetryPolicy retry, DomainRateLimiter limiter, Sleeper sleeper) {
+    /** Explicit wiring for tests and for custom retry or pacing settings. */
+    public HttpFetcher(ConditionalCache cache, RetryPolicy retry, DomainRateLimiter limiter, Sleeper sleeper) {
         this.cache = cache;
         this.retry = retry;
         this.limiter = limiter;
