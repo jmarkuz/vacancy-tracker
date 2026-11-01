@@ -27,6 +27,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class CollectionPipeline {
 
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(CollectionPipeline.class);
+
     public record AdapterResult(String adapter, RunRepository.SourceStats stats, String error) {
     }
 
@@ -76,6 +78,7 @@ public class CollectionPipeline {
     /** scope limits the run to one adapter id; null runs all adapters. */
     public RunSummary execute(UUID runId, String scope) {
         List<AdapterResult> results = new ArrayList<>();
+        long runStarted = System.nanoTime();
         MatchService.MatchSession session = matching.session();
         events.publish(runId, "started", Map.of("runId", runId.toString()));
         for (SourceAdapter adapter : adapters) {
@@ -93,6 +96,7 @@ public class CollectionPipeline {
             long durationMs = (System.nanoTime() - started) / 1_000_000;
             results.add(result);
             runs.recordStat(runId, adapter.id(), result.stats(), durationMs, result.error());
+            logSource(runId, result, durationMs);
             events.publish(runId, "source", sourceEvent(result));
         }
         boolean anyFailed = results.stream().anyMatch(r -> r.error() != null);
@@ -100,7 +104,33 @@ public class CollectionPipeline {
         runs.finish(runId, status, clock.instant());
         expiry.expireUnseen();
         publishDone(runId, status, results);
+        logRun(runId, status, results, runStarted);
         return new RunSummary(runId, status, results);
+    }
+
+    /** One line per source: in the vps profile these are JSON fields, in text mode they are in the message. */
+    private static void logSource(UUID runId, AdapterResult result, long durationMs) {
+        RunRepository.SourceStats s = result.stats();
+        var event = result.error() == null ? LOG.atInfo() : LOG.atWarn();
+        event.addKeyValue("runId", runId.toString()).addKeyValue("adapter", result.adapter())
+                .addKeyValue("fetched", s.fetched).addKeyValue("new", s.newCount).addKeyValue("updated", s.updated)
+                .addKeyValue("duplicates", s.duplicates).addKeyValue("errors", s.errors).addKeyValue("durationMs", durationMs)
+                .log("Source {} {}: fetched {}, new {}, updated {}, duplicates {}, errors {}, {} ms{}", result.adapter(),
+                        result.error() == null ? "finished" : "failed", s.fetched, s.newCount, s.updated, s.duplicates, s.errors,
+                        durationMs, result.error() == null ? "" : " (" + result.error() + ")");
+    }
+
+    private static void logRun(UUID runId, String status, List<AdapterResult> results, long startedNanos) {
+        long durationMs = (System.nanoTime() - startedNanos) / 1_000_000;
+        int fetched = results.stream().mapToInt(r -> r.stats().fetched).sum();
+        int newCount = results.stream().mapToInt(r -> r.stats().newCount).sum();
+        int updated = results.stream().mapToInt(r -> r.stats().updated).sum();
+        int failed = (int) results.stream().filter(r -> r.error() != null).count();
+        LOG.atInfo().addKeyValue("runId", runId.toString()).addKeyValue("status", status).addKeyValue("sources", results.size())
+                .addKeyValue("fetched", fetched).addKeyValue("new", newCount).addKeyValue("updated", updated)
+                .addKeyValue("failedSources", failed).addKeyValue("durationMs", durationMs)
+                .log("Run {} {}: {} sources, fetched {}, new {}, updated {}, failed sources {}, {} ms", runId, status,
+                        results.size(), fetched, newCount, updated, failed, durationMs);
     }
 
     private static Map<String, Object> sourceEvent(AdapterResult result) {

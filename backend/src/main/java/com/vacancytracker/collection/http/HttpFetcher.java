@@ -58,7 +58,13 @@ public class HttpFetcher {
      * key without them, so keys are never stored in the database.
      */
     public FetchResult get(String url, String cacheKey, Map<String, String> headers) {
-        URI uri = URI.create(url);
+        URI uri;
+        try {
+            uri = URI.create(url);
+        } catch (IllegalArgumentException e) {
+            // The standard message quotes the whole address, which can carry a key.
+            throw new UpstreamException("The address of the source is not valid");
+        }
         requireHttp(uri);
         Optional<ConditionalCache.Validators> known = cache.find(cacheKey);
         for (int attempt = 1; ; attempt++) {

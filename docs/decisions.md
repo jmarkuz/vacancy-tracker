@@ -496,3 +496,18 @@ Status: Accepted (T-071)
 - The `local` profile has no token and the status endpoint says so.
 
 **Consequences.** A cookie plus `SameSite=Strict` is the protection against cross-site requests; there is no separate CSRF token. The cookie holds the token itself, so anyone who can read it (not scripts on the page, but the browser profile or a proxy log that records cookies) has the token. Rotating the token means changing `.env` and restarting; everyone signs in again. The limit is per address, so an attacker with many addresses is slowed, not stopped: the token must be long and random. The app must not be reachable except through the proxy, or the forwarded address can be forged. HTTPS comes from the proxy (T-075).
+
+## ADR-034 Log masking and structured logs
+
+Status: Accepted (T-072)
+
+**Context.** Keys travel in query strings (Adzuna), headers (Himalayas), paths (Telegram, Jooble) and the access token travels in headers and cookies. Exception messages and log lines often quote the whole address. ADR-019 promised that secrets are never printed.
+
+**Decision.**
+- `LogMasking.mask` hides secrets in two layers: known shapes (a key, token, password or signature in a query string; bearer and basic authorization values; a password inside an address; a Telegram bot address; the session cookie; a Jooble key in a path) and every secret value read from the configuration, matched as exact text. Properties whose name ends in password, secret, token or key are registered at startup (`SecretRegistration`), so a new setting named in the same way is covered without code. Values shorter than 6 characters are not registered. A masked value is `***`.
+- Every console log line goes through it: the message and the stack trace in text mode, and every text value (message, stack trace, key-value fields) in JSON mode.
+- The local profile prints readable text. The `vps` profile prints one JSON object per line (logstash format) for a log collector.
+- Messages that are stored or shown, not only logged, are masked at the source: `UpstreamException` masks its message (it goes to `source_state`, `run_source_stat` and the UI), and a source address that cannot be parsed no longer puts the address into the exception.
+- Run metrics are log lines: one per source (fetched, new, updated, duplicates, errors, duration) and one summary per run (status, sources, totals, failed sources, duration). In the vps profile the numbers are JSON fields.
+
+**Consequences.** A secret that is neither shaped like the patterns nor configured through a property with such a name (for example one typed into a notes field by the user and then logged) is not masked. Masking is best effort on the way out; the main protection stays not to put secrets into messages. Logs written by other libraries are masked too, because masking is in the output, not in our log calls. The run metrics are not exposed through Actuator or Micrometer; there is no metrics endpoint.

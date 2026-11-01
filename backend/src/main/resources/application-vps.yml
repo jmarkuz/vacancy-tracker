@@ -3,3 +3,8 @@
 # private addresses (its default trusted proxies), so a client cannot fake its address for the failure limit.
 server:
   forward-headers-strategy: native
+
+logging:
+  structured:
+    json:
+      customizer: com.vacancytracker.common.logging.MaskingJsonCustomizer
