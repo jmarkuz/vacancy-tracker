@@ -28,7 +28,7 @@ T-026,JSON backup and import,M1,M,T-015,done
 T-027,Re-verify source terms,M2,S,T-010,todo
 T-028,HTTP client rate limit ETag,M2,M,T-011,done
 T-029,Retries circuit breaker SourceState,M2,M,T-028,done
-T-030,Adapter SPI and WireMock harness,M2,S,T-028,todo
+T-030,Adapter SPI and WireMock harness,M2,S,T-028,done
 T-031,Adapter ats-greenhouse,M2,M,"T-027,T-030",todo
 T-032,Adapter ats-lever,M2,S,"T-027,T-030",todo
 T-033,Adapter ats-ashby,M2,S,"T-027,T-030",todo
