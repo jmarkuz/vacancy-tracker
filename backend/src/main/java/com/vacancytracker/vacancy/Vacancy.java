@@ -138,6 +138,20 @@ public class Vacancy {
     }
 
     /**
+     * Takes back a status change: the vacancy must still be in {@code expected}, which becomes {@code previous}
+     * again, bypassing the transition table. The unseen flag is restored as it was. Records an event.
+     */
+    public StatusEvent undoStatus(VacancyStatus previous, VacancyStatus expected, boolean wasNew, Instant at, String note) {
+        if (status != expected) {
+            throw new InvalidStatusTransitionException(status, previous);
+        }
+        StatusEvent event = new StatusEvent(id, status, previous, at, note);
+        status = previous;
+        isNew = wasNew;
+        return event;
+    }
+
+    /**
      * Status change made by automation, for example hiding a vacancy that scores below the inbox threshold.
      * It records an event like any change but keeps the isNew flag: the user has not seen the vacancy yet.
      */

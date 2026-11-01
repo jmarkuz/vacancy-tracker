@@ -59,8 +59,9 @@ class SourceControllerTest extends AbstractIntegrationTest {
 
     @Test
     void refreshOfOneSourceStoresTheScope() throws Exception {
-        // Earlier tests may still have a run in progress; a trigger would then join it instead.
-        long deadline = System.currentTimeMillis() + 10_000;
+        // RunControllerTest starts a full run against the real adapters, which can take a minute without a network.
+        // A trigger during that run would join it instead of starting its own, so wait for it to finish.
+        long deadline = System.currentTimeMillis() + 90_000;
         while (coordinator.activeRun().isPresent() && System.currentTimeMillis() < deadline) {
             Thread.sleep(50);
         }

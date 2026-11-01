@@ -2,6 +2,9 @@ import { useCallback, useEffect, useState } from "preact/hooks";
 import { getJson, ApiError } from "../api/client";
 import { changeStatus } from "../api/vacancies";
 import { Board } from "../components/Board";
+import { Toast } from "../components/Toast";
+import { bulkStatus, bulkUndo } from "../api/bulk";
+import { bulkSummary, optionLabel, targetOptions, toggle, togglePage, undoItems, undoSummary } from "../domain/bulk";
 import { BOARD_COLUMNS, withStatus } from "../domain/kanban";
 import type { PageResponse, Vacancy } from "../api/types";
 import { setQuery } from "../router";
@@ -36,6 +39,9 @@ export function Pipeline({ params }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [attempt, setAttempt] = useState(0);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [target, setTarget] = useState("");
+  const [toast, setToast] = useState<{ message: string; tone: "info" | "error"; undo?: () => void } | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -62,6 +68,43 @@ export function Pipeline({ params }: Props) {
       });
     return () => controller.abort();
   }, [sort, page, filterRaw, attempt, board]);
+
+  // A new page, filter or layout shows different rows, so an old selection would act on rows out of sight.
+  useEffect(() => {
+    setSelected([]);
+    setTarget("");
+  }, [page, filterRaw, board, sort]);
+
+  const selectedRows = (data?.items ?? []).filter((v) => selected.includes(v.id));
+  const options = targetOptions(selectedRows);
+
+  const applyBulk = async () => {
+    if (!target || selected.length === 0) {
+      return;
+    }
+    try {
+      const result = await bulkStatus(selected, target);
+      setSelected([]);
+      setTarget("");
+      setAttempt((n) => n + 1);
+      const items = undoItems(result, target);
+      setToast({
+        message: bulkSummary(result, target),
+        tone: result.changed.length === 0 ? "error" : "info",
+        undo: items.length === 0 ? undefined : async () => {
+          try {
+            const undone = await bulkUndo(items);
+            setAttempt((n) => n + 1);
+            setToast({ message: undoSummary(undone), tone: undone.skipped.length > 0 ? "error" : "info" });
+          } catch (e: unknown) {
+            setToast({ message: e instanceof Error ? e.message : "Could not undo.", tone: "error" });
+          }
+        },
+      });
+    } catch (e: unknown) {
+      setToast({ message: e instanceof Error ? e.message : "The change failed. Nothing was changed.", tone: "error" });
+    }
+  };
 
   const pageCount = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1;
 
@@ -117,10 +160,26 @@ export function Pipeline({ params }: Props) {
 
       {!board && data && data.total > 0 && (
         <>
+          {selected.length > 0 && (
+            <div class="bulk-bar" role="region" aria-label="Bulk actions">
+              <span class="num" role="status">{selected.length} selected</span>
+              <select class="input" aria-label="Change status to" value={target} onChange={(e) => setTarget((e.target as HTMLSelectElement).value)}>
+                <option value="">Change status to…</option>
+                {options.map((o) => <option key={o.status} value={o.status}>{optionLabel(o)}</option>)}
+              </select>
+              <button type="button" class="btn primary" disabled={!target} onClick={applyBulk}>Apply</button>
+              <button type="button" class="btn" onClick={() => setSelected([])}>Clear selection</button>
+            </div>
+          )}
           <div class="table-wrap" aria-busy={loading}>
             <table>
               <thead>
                 <tr>
+                  <th scope="col" class="check-col">
+                    <input type="checkbox" aria-label="Select all rows on this page"
+                      checked={data.items.length > 0 && data.items.every((v) => selected.includes(v.id))}
+                      onChange={() => setSelected(togglePage(selected, data.items.map((v) => v.id)))} />
+                  </th>
                   {visible.map((col) => (
                     <SortableHeader key={col.id} column={col} sort={sort} onSort={(next) => setQuery({ sort: next, page: null })} />
                   ))}
@@ -128,7 +187,11 @@ export function Pipeline({ params }: Props) {
               </thead>
               <tbody>
                 {data.items.map((v) => (
-                  <tr key={v.id}>
+                  <tr key={v.id} aria-selected={selected.includes(v.id)}>
+                    <td class="check-col">
+                      <input type="checkbox" aria-label={`Select ${v.title}`} checked={selected.includes(v.id)}
+                        onChange={() => setSelected(toggle(selected, v.id))} />
+                    </td>
                     {visible.map((col) => (
                       <td key={col.id} class={col.numeric ? "numeric" : undefined}>
                         {col.id === "title" ? (
@@ -181,6 +244,11 @@ export function Pipeline({ params }: Props) {
       )}
 
       {loading && !data && <p class="muted" role="status">Loading vacancies…</p>}
+
+      {toast && (
+        <Toast message={toast.message} tone={toast.tone} onDismiss={() => setToast(null)}
+          action={toast.undo ? { label: "Undo", onClick: () => { const undo = toast.undo; setToast(null); undo?.(); } } : undefined} />
+      )}
 
       {openId && (
         <VacancyDrawer

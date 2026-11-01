@@ -114,4 +114,33 @@ class VacancyControllerTest extends AbstractIntegrationTest {
         assertThat(id).isNotBlank();
         return id;
     }
+
+    @Test
+    void bulkStatusChangeAndUndoOverHttp() throws Exception {
+        String a = JsonPath.read(mvc.perform(post("/api/vacancies").contentType(JSON).content("{\"title\":\"Bulk A\",\"company\":\"Acme\"}"))
+                .andReturn().getResponse().getContentAsString(), "$.id");
+        String b = JsonPath.read(mvc.perform(post("/api/vacancies").contentType(JSON).content("{\"title\":\"Bulk B\",\"company\":\"Acme\"}"))
+                .andReturn().getResponse().getContentAsString(), "$.id");
+
+        String body = mvc.perform(post("/api/bulk/vacancies/status").contentType(JSON)
+                        .content("{\"ids\":[\"" + a + "\",\"" + b + "\",\"" + java.util.UUID.randomUUID() + "\"],\"status\":\"Saved\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.changed.length()").value(2))
+                .andExpect(jsonPath("$.skipped[0].reason").value("Not found"))
+                .andReturn().getResponse().getContentAsString();
+        mvc.perform(get("/api/vacancies/" + a)).andExpect(jsonPath("$.status").value("Saved"));
+
+        mvc.perform(post("/api/bulk/vacancies/undo").contentType(JSON)
+                        .content("{\"items\":[{\"id\":\"" + a + "\",\"status\":\"New\",\"expected\":\"Saved\",\"wasNew\":true}]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.changed.length()").value(1));
+        mvc.perform(get("/api/vacancies/" + a)).andExpect(jsonPath("$.status").value("New")).andExpect(jsonPath("$.isNew").value(true));
+        mvc.perform(get("/api/vacancies/" + b)).andExpect(jsonPath("$.status").value("Saved"));
+        assertThat(body).contains("\"from\":\"New\"");
+
+        mvc.perform(post("/api/bulk/vacancies/status").contentType(JSON).content("{\"ids\":[],\"status\":\"Saved\"}"))
+                .andExpect(status().isUnprocessableEntity());
+        mvc.perform(post("/api/bulk/vacancies/status").contentType(JSON).content("{\"ids\":[\"" + a + "\"],\"status\":\"Nonsense\"}"))
+                .andExpect(status().is4xxClientError());
+    }
 }
