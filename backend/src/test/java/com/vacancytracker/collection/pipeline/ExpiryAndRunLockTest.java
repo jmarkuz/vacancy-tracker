@@ -122,6 +122,24 @@ class ExpiryAndRunLockTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void aVacancyFoundOnlyInAnAlertEmailNeverExpires() {
+        AtomicBoolean seen = new AtomicBoolean(true);
+        RawPosting fromMail = new RawPosting("email-example", "1", "https://ex.com/mail1", "Mail Engineer", "Acme", "Berlin",
+                null, "Plain.", null, null, null, null, null);
+        SourceAdapter source = adapter("email-example", () -> FetchOutcome.of(seen.get() ? List.of(fromMail) : List.of()));
+        CollectionPipeline pipeline = pipeline(List.of(source));
+        pipeline.run("manual");
+        seen.set(false);
+
+        for (int i = 0; i < 5; i++) {
+            clock.advance(Duration.ofHours(1));
+            pipeline.run("manual");
+        }
+
+        assertThat(statusOf("Mail Engineer")).isEqualTo("New");
+    }
+
+    @Test
     void failingSourceDoesNotCountTowardExpiry() {
         AtomicBoolean fail = new AtomicBoolean(false);
         SourceAdapter source = adapter("exp", () -> {
