@@ -14,6 +14,7 @@ public record VacancyState(
         String url,
         String canonicalUrl,
         String location,
+        String country,
         String workMode,
         String description,
         BigDecimal salaryMin,

@@ -7,7 +7,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Fields that can be filtered today. Brief fields not stored yet (country, city, industry, ...)
+ * Fields that can be filtered today. Brief fields not stored yet (city, industry, ...)
  * are rejected until their columns exist (M1 follow-up, see PLAN.md).
  */
 public enum CriterionField {
@@ -16,6 +16,7 @@ public enum CriterionField {
     LOCATION("location", Kind.TEXT, List.of("location")),
     DESCRIPTION("description", Kind.TEXT, List.of("description")),
     KEYWORDS("keywords", Kind.KEYWORDS, List.of("title", "description")),
+    COUNTRY("country", Kind.TEXT, List.of("country")),
     WORK_MODE("workMode", Kind.TEXT, List.of("work_mode")),
     STATUS("status", Kind.STATUS, List.of("status")),
     PRIORITY("priority", Kind.NUMBER, List.of("priority")),

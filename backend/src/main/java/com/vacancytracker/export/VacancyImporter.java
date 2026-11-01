@@ -26,7 +26,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class VacancyImporter {
 
-    private static final List<String> CSV_HEADERS = List.of("id", "title", "company", "url", "location", "work_mode",
+    private static final List<String> CSV_HEADERS = List.of("id", "title", "company", "url", "location", "country", "work_mode",
             "status", "priority", "salary_min", "salary_max", "currency", "salary_period", "tags", "notes", "contact",
             "next_action_at", "next_action_note", "first_seen_at", "last_seen_at");
 
@@ -136,6 +136,7 @@ public class VacancyImporter {
                 blankToNull(b.url()),
                 blankToNull(b.url()) == null ? null : CanonicalUrl.of(b.url()).orElse(null),
                 blankToNull(b.location()),
+                blankToNull(b.country()),
                 blankToNull(b.workMode()),
                 b.description(),
                 b.salaryMin(),
@@ -185,6 +186,7 @@ public class VacancyImporter {
                 v.get("company"),
                 v.get("url"),
                 v.get("location"),
+                v.get("country"),
                 v.get("work_mode"),
                 null,
                 v.get("status"),
