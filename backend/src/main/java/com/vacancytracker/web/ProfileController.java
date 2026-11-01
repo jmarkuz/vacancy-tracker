@@ -1,11 +1,15 @@
 package com.vacancytracker.web;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.vacancytracker.matching.ProfileInput;
+import com.vacancytracker.matching.ProfileValidationException;
+import com.vacancytracker.matching.ProfileValidator;
 import com.vacancytracker.matching.RecalculationService;
 import com.vacancytracker.matching.SearchProfile;
 import com.vacancytracker.matching.SearchProfileService;
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -25,13 +29,37 @@ public class ProfileController {
 
     private final SearchProfileService profiles;
     private final RecalculationService recalculation;
+    private final ProfileInputParser parser;
+    private final ProfileValidator validator;
     private final boolean recalculateOnSave;
 
     public ProfileController(SearchProfileService profiles, RecalculationService recalculation,
+                             ProfileInputParser parser, ProfileValidator validator,
                              @Value("${app.matching.recalculate-on-save:true}") boolean recalculateOnSave) {
         this.profiles = profiles;
         this.recalculation = recalculation;
+        this.parser = parser;
+        this.validator = validator;
         this.recalculateOnSave = recalculateOnSave;
+    }
+
+    /** Fields, operators with their value shapes, modes and policies: what the rule builder may offer. */
+    @GetMapping("/meta")
+    public ProfileValidator.Catalog meta() {
+        return ProfileValidator.catalog();
+    }
+
+    /** Dry run for live validation: 200 either way, with the normalized profile or every problem found. */
+    @PostMapping("/validate")
+    public ValidationResult validate(@RequestBody JsonNode body) {
+        try {
+            return new ValidationResult(true, validator.validate(parser.parse(body)), Map.of());
+        } catch (ProfileValidationException e) {
+            return new ValidationResult(false, null, e.errors());
+        }
+    }
+
+    public record ValidationResult(boolean valid, ProfileInput profile, Map<String, String> errors) {
     }
 
     /** Saving a profile version starts a background recalculation (docs/search-profiles.md section 8). */
@@ -52,8 +80,8 @@ public class ProfileController {
     }
 
     @PostMapping
-    public ResponseEntity<SearchProfile> create(@RequestBody ProfileInput input) {
-        SearchProfile created = profiles.create(input);
+    public ResponseEntity<SearchProfile> create(@RequestBody JsonNode body) {
+        SearchProfile created = profiles.create(parser.parse(body));
         recalculate();
         URI location = ServletUriComponentsBuilder.fromCurrentContextPath()
                 .path("/api/profiles/{id}").buildAndExpand(created.id()).toUri();
@@ -62,8 +90,8 @@ public class ProfileController {
 
     /** Saving always creates a new version; the previous one stays readable. */
     @PutMapping("/{id}")
-    public SearchProfile update(@PathVariable UUID id, @RequestBody ProfileInput input) {
-        SearchProfile updated = profiles.update(id, input);
+    public SearchProfile update(@PathVariable UUID id, @RequestBody JsonNode body) {
+        SearchProfile updated = profiles.update(id, parser.parse(body));
         recalculate();
         return updated;
     }

@@ -61,6 +61,11 @@ public class ApiExceptionHandler {
         return detail;
     }
 
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    ProblemDetail unreadable(org.springframework.http.converter.HttpMessageNotReadableException e) {
+        return problem(HttpStatus.BAD_REQUEST, "Malformed request body", "The request body is not valid JSON.");
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     ProblemDetail validation(MethodArgumentNotValidException e) {
         Map<String, String> errors = new LinkedHashMap<>();
