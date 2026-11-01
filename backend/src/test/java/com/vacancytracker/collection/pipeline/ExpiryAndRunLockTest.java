@@ -28,6 +28,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.PlatformTransactionManager;
 
 @SpringBootTest
+@org.junit.jupiter.api.extension.ExtendWith(org.springframework.boot.test.system.OutputCaptureExtension.class)
 class ExpiryAndRunLockTest extends AbstractIntegrationTest {
 
     private static final Instant START = Instant.parse("2026-11-01T10:00:00Z");
@@ -137,6 +138,21 @@ class ExpiryAndRunLockTest extends AbstractIntegrationTest {
         }
 
         assertThat(statusOf("Mail Engineer")).isEqualTo("New");
+    }
+
+    @Test
+    void aRunLogsOneLinePerSourceAndOneSummaryWithItsNumbers(org.springframework.boot.test.system.CapturedOutput output) {
+        SourceAdapter good = adapter("log-good", () -> FetchOutcome.of(List.of(posting("1"), posting("2"))));
+        SourceAdapter bad = adapter("log-bad", () -> {
+            throw new com.vacancytracker.collection.http.UpstreamException("HTTP 503 after 3 attempts");
+        });
+
+        pipeline(List.of(good, bad)).run("manual");
+
+        assertThat(output.getAll()).contains("Source log-good finished: fetched 2, new 1, updated 0, duplicates 1, errors 0")
+                .contains("Source log-bad failed: fetched 0, new 0, updated 0, duplicates 0, errors 1")
+                .contains("(HTTP 503 after 3 attempts)")
+                .containsPattern("Run [0-9a-f-]{36} completed_with_errors: 2 sources, fetched 2, new 1, updated 0, failed sources 1, \\d+ ms");
     }
 
     @Test
