@@ -9,6 +9,8 @@ import { Pipeline } from "./screens/Pipeline";
 import { Inbox } from "./screens/Inbox";
 import { Profiles } from "./screens/Profiles";
 import { Sources } from "./screens/Sources";
+import { getAuthStatus, logout, UNAUTHORIZED_EVENT } from "./api/auth";
+import { LoginScreen } from "./components/LoginScreen";
 import { listProfiles } from "./api/profiles";
 import { wizardSkipped } from "./domain/firstRun";
 import { applyTheme, nextTheme, readTheme, type Theme } from "./theme";
@@ -36,6 +38,21 @@ export function App() {
   const { screen, params } = useRoute();
   const [theme, setTheme] = useState<Theme>(readTheme);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  // "checking" until the server says whether a token is needed; "login" shows the sign-in page.
+  const [session, setSession] = useState<"checking" | "login" | "open">("checking");
+  const [tokenRequired, setTokenRequired] = useState(false);
+
+  useEffect(() => {
+    getAuthStatus()
+      .then((s) => {
+        setTokenRequired(s.required);
+        setSession(s.authenticated ? "open" : "login");
+      })
+      .catch(() => setSession("open"));
+    const lost = () => setSession("login");
+    window.addEventListener(UNAUTHORIZED_EVENT, lost);
+    return () => window.removeEventListener(UNAUTHORIZED_EVENT, lost);
+  }, []);
 
   useEffect(() => applyTheme(theme), [theme]);
 
@@ -53,6 +70,9 @@ export function App() {
 
   // First run: with no profile yet, a bare address leads to the wizard. A deep link or an earlier skip is left alone.
   useEffect(() => {
+    if (session !== "open") {
+      return;
+    }
     if (!/^#?\/?(dashboard)?$/.test(window.location.hash) || wizardSkipped()) {
       return;
     }
@@ -63,9 +83,15 @@ export function App() {
         }
       })
       .catch(() => undefined);
-  }, []);
+  }, [session]);
 
   const info = SCREEN_INFO[screen];
+  if (session === "checking") {
+    return <p class="muted" role="status">Loading…</p>;
+  }
+  if (session === "login") {
+    return <LoginScreen onLoggedIn={() => { setTokenRequired(true); setSession("open"); }} />;
+  }
   return (
     <div class="app">
       <aside class="sidebar" aria-label="Primary">
@@ -85,6 +111,9 @@ export function App() {
         <button class="btn ghost theme-toggle" onClick={() => setTheme(nextTheme(theme))}>
           Theme: {theme}
         </button>
+        {tokenRequired && (
+          <button class="btn ghost" type="button" onClick={() => { logout().then(() => setSession("login")); }}>Sign out</button>
+        )}
       </aside>
 
       <div class="main">

@@ -482,3 +482,17 @@ Status: Accepted (T-070)
 - Restore is documented and tested against a real compose stack (docs/operations.md). The script has a Docker test (`ops/backup/test-backup.sh`).
 
 **Consequences.** The volume is on the same machine as the database, so it does not protect against losing the machine; copying files off the host is up to the user, and the JSON export is a second, independent route. Backups run at fixed intervals from the container start, not at a chosen hour. A restore needs the app stopped.
+
+## ADR-033 Access token: how ADR-017 is implemented
+
+Status: Accepted (T-071)
+
+**Decision.**
+- The `vps` profile adds a filter that requires the token on every `/api/` request. The token is `Authorization: Bearer <token>` (scripts) or the `vt_token` cookie (browser). A token in a query string is never accepted. The static pages, `/actuator/health` and the auth endpoints are open: they hold no data, and the single-page app shows a sign-in page when the API says 401.
+- `POST /api/auth/login` checks the token and sets the cookie: HTTP-only, `SameSite=Strict`, path `/`, 30 days, `Secure` when the request came over HTTPS (directly, or through a proxy that sends `X-Forwarded-Proto`). `POST /api/auth/logout` clears it. `GET /api/auth/status` tells the page whether a token is needed and whether it is signed in. The page never stores the token.
+- The token is compared as SHA-256 digests with `MessageDigest.isEqual`, so timing does not reveal how much matched. The app refuses to start in the `vps` profile when `APP_ACCESS_TOKEN` is missing or shorter than 16 characters. The token is never logged.
+- Rate limit: after 5 wrong tokens (login or API) from one client address within 10 minutes the client gets 429 with `Retry-After` until its oldest failure leaves the window. While blocked, even the correct token is refused, so guessing cannot be paced under the limit. A correct token clears the client's failures. Requests with no token at all do not count. The table is in memory, capped at 10,000 addresses, and a restart clears it.
+- The client address comes from the connection; behind the reverse proxy Tomcat takes it from `X-Forwarded-For` only when the connection is from a private address (its default trusted proxies), so a client cannot fake it.
+- The `local` profile has no token and the status endpoint says so.
+
+**Consequences.** A cookie plus `SameSite=Strict` is the protection against cross-site requests; there is no separate CSRF token. The cookie holds the token itself, so anyone who can read it (not scripts on the page, but the browser profile or a proxy log that records cookies) has the token. Rotating the token means changing `.env` and restarting; everyone signs in again. The limit is per address, so an attacker with many addresses is slowed, not stopped: the token must be long and random. The app must not be reachable except through the proxy, or the forwarded address can be forged. HTTPS comes from the proxy (T-075).
