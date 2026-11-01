@@ -1010,3 +1010,32 @@ tr.editing {
     display: none;
   }
 }
+
+/* Live preview */
+.preview-stale {
+  opacity: 0.6;
+}
+
+.samples,
+.reasons {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.samples {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.sample {
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.reasons {
+  margin-top: var(--space-1);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}

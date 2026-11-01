@@ -116,3 +116,42 @@ async function save<T>(method: string, url: string, body: ProfileInput): Promise
   }
   throw new ProfileRejected(response.status, errors, message);
 }
+
+export interface MatchReason {
+  criterionId: string;
+  delta: number;
+  kind: string;
+  text: string;
+}
+
+export interface PreviewSample {
+  vacancyId: string;
+  title: string;
+  company: string;
+  kind: "inbox" | "below-threshold" | "filtered-out";
+  score: number | null;
+  reasons: MatchReason[];
+}
+
+export interface Preview {
+  total: number;
+  applicable: number;
+  matched: number;
+  inbox: number;
+  filteredOut: number;
+  samples: PreviewSample[];
+}
+
+/** Dry run against the stored vacancies; nothing is written. */
+export async function previewProfile(input: ProfileInput, signal?: AbortSignal): Promise<Preview> {
+  const response = await fetch("/api/profiles/preview", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(input),
+    signal,
+  });
+  if (!response.ok) {
+    throw new ApiError(response.status, `Preview failed (${response.status})`);
+  }
+  return (await response.json()) as Preview;
+}

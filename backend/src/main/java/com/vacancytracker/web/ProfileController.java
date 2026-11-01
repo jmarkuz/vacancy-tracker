@@ -2,6 +2,7 @@ package com.vacancytracker.web;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.vacancytracker.matching.ProfileInput;
+import com.vacancytracker.matching.ProfilePreviewService;
 import com.vacancytracker.matching.ProfileValidationException;
 import com.vacancytracker.matching.ProfileValidator;
 import com.vacancytracker.matching.RecalculationService;
@@ -31,15 +32,17 @@ public class ProfileController {
     private final RecalculationService recalculation;
     private final ProfileInputParser parser;
     private final ProfileValidator validator;
+    private final ProfilePreviewService preview;
     private final boolean recalculateOnSave;
 
     public ProfileController(SearchProfileService profiles, RecalculationService recalculation,
-                             ProfileInputParser parser, ProfileValidator validator,
+                             ProfileInputParser parser, ProfileValidator validator, ProfilePreviewService preview,
                              @Value("${app.matching.recalculate-on-save:true}") boolean recalculateOnSave) {
         this.profiles = profiles;
         this.recalculation = recalculation;
         this.parser = parser;
         this.validator = validator;
+        this.preview = preview;
         this.recalculateOnSave = recalculateOnSave;
     }
 
@@ -57,6 +60,15 @@ public class ProfileController {
         } catch (ProfileValidationException e) {
             return new ValidationResult(false, null, e.errors());
         }
+    }
+
+    /**
+     * Live preview of a draft: how many existing vacancies would match and land in the Inbox, with samples.
+     * Reads only. An invalid draft is a 422 with the problems by path.
+     */
+    @PostMapping("/preview")
+    public ProfilePreviewService.Preview preview(@RequestBody JsonNode body) {
+        return preview.preview(parser.parse(body));
     }
 
     public record ValidationResult(boolean valid, ProfileInput profile, Map<String, String> errors) {
