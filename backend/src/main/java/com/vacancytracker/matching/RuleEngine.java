@@ -35,10 +35,14 @@ public final class RuleEngine {
     public record SalaryFact(BigDecimal min, BigDecimal max, String currency, String period) {
     }
 
-    /** Converts an amount to a yearly amount in the profile currency. Empty means it cannot be compared. */
+    /**
+     * Converts an amount to a yearly amount in the target currency. Empty means it cannot be compared, for
+     * example an unknown currency or period (ADR-011). Each salary criterion names its own currency, so the
+     * vacancy's salary is converted into the currency of the criterion it is compared with.
+     */
     public interface SalaryConverter {
 
-        Optional<BigDecimal> toYearly(BigDecimal amount, String currency, String period);
+        Optional<BigDecimal> toYearly(BigDecimal amount, String currency, String period, String targetCurrency);
     }
 
     private final SalaryConverter salary;
@@ -178,22 +182,22 @@ public final class RuleEngine {
         }
         BigDecimal lowRaw = s.min() != null ? s.min() : s.max();
         BigDecimal highRaw = s.max() != null ? s.max() : s.min();
-        Optional<BigDecimal> low = salary.toYearly(lowRaw, s.currency(), s.period());
-        Optional<BigDecimal> high = salary.toYearly(highRaw, s.currency(), s.period());
+        String currency = value.path("currency").asText();
+        String period = value.path("period").asText();
+        Optional<BigDecimal> low = salary.toYearly(lowRaw, s.currency(), s.period(), currency);
+        Optional<BigDecimal> high = salary.toYearly(highRaw, s.currency(), s.period(), currency);
         if (low.isEmpty() || high.isEmpty()) {
             return Verdict.MISSING;
         }
-        String currency = value.path("currency").asText();
-        String period = value.path("period").asText();
         if ("between".equals(op)) {
-            Optional<BigDecimal> min = salary.toYearly(value.get("min").decimalValue(), currency, period);
-            Optional<BigDecimal> max = salary.toYearly(value.get("max").decimalValue(), currency, period);
+            Optional<BigDecimal> min = salary.toYearly(value.get("min").decimalValue(), currency, period, currency);
+            Optional<BigDecimal> max = salary.toYearly(value.get("max").decimalValue(), currency, period, currency);
             if (min.isEmpty() || max.isEmpty()) {
                 return Verdict.MISSING;
             }
             return flag(high.get().compareTo(min.get()) >= 0 && low.get().compareTo(max.get()) <= 0);
         }
-        Optional<BigDecimal> threshold = salary.toYearly(value.get("amount").decimalValue(), currency, period);
+        Optional<BigDecimal> threshold = salary.toYearly(value.get("amount").decimalValue(), currency, period, currency);
         if (threshold.isEmpty()) {
             return Verdict.MISSING;
         }

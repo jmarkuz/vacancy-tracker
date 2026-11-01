@@ -39,6 +39,12 @@ Notes for Tier 2:
 
 Only where `robots.txt` and the site's terms allow it. Each site needs a written terms check recorded here before its config is added. No sites are enabled by default.
 
+## Reference data: exchange rates
+
+| Source | Used by | Official page | Auth | Limits | Terms | Status |
+|---|---|---|---|---|---|---|
+| ECB euro reference rates | Salary comparison (T-051, ADR-011) | ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml; rates page and disclaimer read 2026-11-01 | None | No request limit stated. Published about 16:00 CET on working days; the feed sends Last-Modified, so unchanged days answer 304 | "Published for information purposes only. Using the rates for transaction purposes is strongly discouraged." Free reuse with the ECB cited as the source, reproduced accurately (disclaimer page; the conditions were read from a summary, not verbatim) | ok (constraints: cite the ECB wherever converted amounts are shown) |
+
 ## Forbidden
 
 | Target | Reason | Status |
