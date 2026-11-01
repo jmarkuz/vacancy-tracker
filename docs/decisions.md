@@ -417,3 +417,20 @@ Status: Accepted (T-059)
 - The live preview uses global lists only, because a draft has no id yet.
 
 **Consequences.** Lists are exact-name matches, so spelling variants need separate entries. The preview can differ slightly from the saved result for a profile with its own lists.
+
+## ADR-029 IMAP reader: read only, processed state in the database
+
+Status: Accepted (T-064)
+
+**Context.** Alert emails come from the user's own mailbox (docs/sources.md Tier 2). A message must not be handled twice, and the tool must not damage the mailbox.
+
+**Decision.**
+- The reader never deletes, moves or expunges. By default it opens the folder read-only and fetches with `peek`, so it does not even mark messages as read.
+- "Processed" is stored in the database (`processed_mail`), keyed by the Message-ID header, or by folder, UID validity and UID when there is none. This holds even on servers that cannot store flags, and when a message is copied to another folder.
+- With `app.mail.imap.mark-processed=true` the folder is opened read-write and handled messages also get the user flag `VacancyTrackerProcessed`, where the server allows user flags. The flag is for the user's convenience; the database decides.
+- A handler answers PROCESSED (done or deliberately skipped) or RETRY. Only PROCESSED is remembered, so a message that could not be handled yet is offered again.
+- At most `max-per-run` (default 50) messages are offered per read, oldest first; the rest waits for the next read. Bodies are capped at 2 million characters and attachments are never read.
+- The password comes from `.env` only. Error text shows the server's message but never the password, and TLS with host name checking is the default.
+- Disabled unless `app.mail.imap.enabled=true` and a host and user are set.
+
+**Consequences.** A message handled while the database was reset would be handled again. IMAP IDLE (push) is not used; the reader is polled. Which folder holds the alerts is the user's choice (default "Job alerts").
