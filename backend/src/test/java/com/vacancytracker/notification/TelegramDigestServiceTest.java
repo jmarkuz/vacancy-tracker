@@ -264,14 +264,12 @@ class TelegramDigestServiceTest extends AbstractIntegrationTest {
         RunEventBus bus = new RunEventBus();
         service(false, TOKEN, "42", 10, bus).listenForRuns();
         bus.publish(UUID.randomUUID(), "done", Map.of());
-        Thread.sleep(300);
-        assertThat(paths).isEmpty();
 
         TelegramDigestService enabled = service(true, TOKEN, "42", 10, bus);
         enabled.listenForRuns();
+        // Events come in order: the disabled service's "done" and this "source" were handled before the next "done"
+        // is, so exactly one message after it shows that neither of them sent anything.
         bus.publish(UUID.randomUUID(), "source", Map.of());
-        Thread.sleep(300);
-        assertThat(paths).isEmpty();
         bus.publish(UUID.randomUUID(), "done", Map.of());
         for (int i = 0; i < 50 && paths.isEmpty(); i++) {
             Thread.sleep(100);

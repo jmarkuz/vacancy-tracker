@@ -184,4 +184,18 @@ class MatchServiceTest extends AbstractIntegrationTest {
             throw new IllegalArgumentException(e);
         }
     }
+
+    @Test
+    void aSessionPicksUpAProfileSavedWhileItIsOpen() {
+        SearchProfile p = profile("Main", List.of("all"), true, c("a", "title", "contains_any", "[\"java\"]", "prefer", 5));
+        MatchService.MatchSession session = matchService.session();
+        UUID first = vacancy("Java Developer", "ats-lever", null);
+        assertThat(session.match(first).get(0).score()).isEqualTo(100);
+
+        profiles.update(p.id(), new ProfileInput("Main", true, List.of("all"), null, Thresholds.defaults(),
+                List.of(c("a", "title", "contains_any", "[\"cobol\"]", "prefer", 5))));
+        UUID second = vacancy("Java Developer", "ats-lever", null);
+
+        assertThat(session.match(second).get(0).score()).isZero();
+    }
 }

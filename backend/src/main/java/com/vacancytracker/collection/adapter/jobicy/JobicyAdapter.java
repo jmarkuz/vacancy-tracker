@@ -15,8 +15,6 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
-import java.time.ZoneOffset;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -62,8 +60,7 @@ public class JobicyAdapter implements SourceAdapter {
 
     @Override
     public FetchOutcome fetch() {
-        String hour = clock.instant().truncatedTo(ChronoUnit.HOURS).atZone(ZoneOffset.UTC).toLocalDateTime().toString();
-        if (!budget.tryAcquire(ID, hour, 1)) {
+        if (!budget.tryAcquireSpaced(ID, clock.instant(), java.time.Duration.ofHours(1))) {
             return FetchOutcome.noChange();
         }
         String url = baseUrl + "/api/jobs?count=100"

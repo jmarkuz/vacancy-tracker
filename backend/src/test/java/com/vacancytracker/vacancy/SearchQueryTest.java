@@ -36,4 +36,9 @@ class SearchQueryTest {
         assertThat(q.split(" & ")).hasSize(SearchQuery.MAX_TERMS);
         assertThat(SearchQuery.toTsQuery("x".repeat(100)).orElseThrow()).hasSize(SearchQuery.MAX_TERM_LENGTH + 2);
     }
+
+    @Test
+    void aDottedWordMatchesAsAWholeAndAsItsParts() {
+        assertThat(SearchQuery.toTsQuery("Node.js senior")).contains("('node.js':* | (node:* & js:*)) & senior:*");
+    }
 }

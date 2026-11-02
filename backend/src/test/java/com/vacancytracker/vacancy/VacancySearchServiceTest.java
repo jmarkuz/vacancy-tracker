@@ -92,4 +92,13 @@ class VacancySearchServiceTest extends AbstractIntegrationTest {
         assertThat(search.search("'; DROP TABLE vacancy; --", 10)).isEmpty();
         assertThat(search.search("engineer", 10)).hasSize(1);
     }
+
+    @Test
+    void aDottedNameFindsTheWholeToken() {
+        UUID node = add("Backend with Node.js", "Acme", "Services.");
+        add("Backend with Java", "Beta", "Services.");
+
+        assertThat(search.search("node.js", 10)).extracting(Hit::id).containsExactly(node);
+        assertThat(search.search("node", 10)).extracting(Hit::id).containsExactly(node);
+    }
 }

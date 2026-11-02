@@ -64,11 +64,26 @@ public class MatchService {
         this.allowlistBonus = allowlistBonus;
     }
 
-    /** A session over the profiles as they are now. Each vacancy is matched in its own transaction. */
+    /** A session over the profiles as they are now, reloaded if one is saved meanwhile. Each vacancy is matched in its own transaction. */
     public MatchSession session() {
-        List<SearchProfile> enabled = profiles.list().stream().filter(SearchProfile::enabled).toList();
-        CompanyLists companyLists = lists.snapshot();
-        return vacancyId -> tx.execute(status -> matchWith(enabled, companyLists, vacancyId));
+        return new MatchSession() {
+            private long loadedAt = -1;
+            private List<SearchProfile> enabled = List.of();
+            private CompanyLists companyLists;
+
+            @Override
+            public synchronized List<VacancyMatch> match(UUID vacancyId) {
+                // A profile saved while a long run is going is picked up from the next vacancy on, so the run does
+                // not write scores from the old version over the ones a recalculation has just stored.
+                long generation = profiles.generation();
+                if (companyLists == null || generation != loadedAt) {
+                    enabled = profiles.list().stream().filter(SearchProfile::enabled).toList();
+                    companyLists = lists.snapshot();
+                    loadedAt = generation;
+                }
+                return tx.execute(status -> matchWith(enabled, companyLists, vacancyId));
+            }
+        };
     }
 
     /** Evaluates and stores one vacancy's matches, replacing earlier ones. */

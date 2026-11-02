@@ -24,6 +24,15 @@ public class DashboardService {
     /** The funnel stages in order; a vacancy that skipped a stage still counts in the earlier ones. */
     static final List<String> FUNNEL = List.of("Saved", "Applied", "Screening", "Interview", "Offer");
     static final int WEEKS = 8;
+    /**
+     * Status changes that still stand: the one just before an "undo" entry was taken back, so it must not count as a
+     * stage reached.
+     */
+    private static final String EFFECTIVE_EVENTS = """
+            SELECT vacancy_id, to_status, at FROM (
+                SELECT vacancy_id, to_status, at, lead(note) OVER (PARTITION BY vacancy_id ORDER BY at, id) AS next_note
+                FROM status_event
+            ) e WHERE next_note IS DISTINCT FROM '%s'""".formatted(BulkStatusService.UNDO_NOTE);
     static final int TOP = 5;
     static final int NEXT_ACTIONS = 5;
 
@@ -102,10 +111,10 @@ public class DashboardService {
                     FROM (
                         SELECT id, status AS s FROM vacancy
                         UNION ALL
-                        SELECT vacancy_id, to_status FROM status_event
+                        SELECT vacancy_id, to_status FROM (%s) effective
                     ) all_statuses GROUP BY id
                 ) per_vacancy WHERE stage > 0 GROUP BY stage
-                """)
+                """.formatted(EFFECTIVE_EVENTS))
                 .query((rs, i) -> {
                     reached[rs.getInt("stage") - 1] = rs.getLong("n");
                     return null;
@@ -126,7 +135,7 @@ public class DashboardService {
         LocalDate first = thisMonday.minusWeeks(WEEKS - 1L);
         long[] counts = new long[WEEKS];
         // The day a vacancy first reached Applied, from its status history (the vacancy row has no such column in use).
-        jdbc.sql("SELECT min(at) AS applied_at FROM status_event WHERE to_status = 'Applied' GROUP BY vacancy_id HAVING min(at) >= :from")
+        jdbc.sql("SELECT min(at) AS applied_at FROM (" + EFFECTIVE_EVENTS + ") effective WHERE to_status = 'Applied' GROUP BY vacancy_id HAVING min(at) >= :from")
                 .param("from", java.sql.Timestamp.from(first.atStartOfDay(zone).toInstant()))
                 .query((rs, i) -> {
                     LocalDate day = rs.getTimestamp("applied_at").toInstant().atZone(zone).toLocalDate();
