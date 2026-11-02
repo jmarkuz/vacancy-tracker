@@ -34,8 +34,9 @@ Each source is an adapter that is switched on and configured in `.env` (see `.en
 
 | Kind | Sources |
 |---|---|
-| Official public APIs | Greenhouse, Lever, Ashby (company job boards you configure), Arbeitnow, Remotive, Himalayas, Jobicy, Adzuna (free key) |
-| Feeds | Any RSS or Atom feed you configure, after you have checked its terms |
+| Official public APIs | Greenhouse, Lever, Ashby (company job boards you configure), Arbeitnow, Remotive, Himalayas, Jobicy, Remote OK, Working Nomads, Adzuna (free key) |
+| Feeds | Djinni (shipped), and any RSS or Atom feed you configure after you have checked its terms |
+| Telegram | Posts you forward to your own bot; the tool never reads channels itself (Telegram's terms forbid it) |
 | Your job alert emails | LinkedIn, Jobs.cz, StartupJobs, Indeed. The tool reads alert emails from a mailbox folder you choose over IMAP; it never logs in to the job sites |
 | Generic HTML | Only sites you configure with the terms recorded and `robots.txt` checked (off by default) |
 

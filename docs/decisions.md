@@ -618,3 +618,18 @@ Status: Accepted (T-078). Gap G7 of [gap-analysis.md](gap-analysis.md).
 - The phrase lists are language data, not a list of jobs, countries or technologies, so the rule "no domain data in the code" (README) holds, as for country names (ADR-036).
 
 **Consequences.** Postings in other languages or with unusual wording stay unknown; a profile decides how to treat unknown. A wrong "false" is possible when a posting mentions the right to work for another reason; the drawer shows the value so the user can see it.
+
+## ADR-045 New sources from the owner's list
+
+Status: Accepted (T-088, T-089). The checks are in [sources.md](sources.md), section "Owner's list".
+
+**Context.** The owner listed 65 channels and sites (Telegram, Facebook, LinkedIn, job boards). The README's Compliance section forbids scraping sites that prohibit it, logging in to the owner's accounts, CAPTCHA bypass and proxy rotation.
+
+**Decision.**
+- A source is connected only when an official API or feed exists and neither its terms nor `robots.txt` forbid reading it: **Djinni** (RSS, shipped as a configured feed), **Remote OK** and **Working Nomads** (public JSON APIs, new adapters `remoteok` and `workingnomads`). Both APIs return a window of current jobs, so their vacancies never expire automatically (ADR-037). Remote OK requires a link back: each vacancy keeps the Remote OK page as its link and the source is named.
+- Where the terms forbid automated access, or contradict an invitation on a developer page (DOU, Jobgether, Jobico), the source is **blocked** until the owner has the site's consent in writing; the record says whom to ask. A server that refuses non-browser clients (Golang Projects) is protection and is not worked around.
+- **Telegram**: no reading of channels or groups, neither through `t.me/s/` previews (Telegram's terms forbid scraping) nor by signing in as the owner. Instead `telegram-forward` reads the owner's own bot with `getUpdates`: the owner forwards posts in the official app, which Telegram's Bot Developer Terms allow as data "submitted directly and voluntarily". Only messages from the owner's chat are used; the offset is stored after the vacancies are stored. The forwarded post's channel becomes the link (`t.me/<channel>/<id>`) and the company unless the text names one ("Компанія: …").
+- **Facebook** groups and pages and **LinkedIn** groups are blocked. LinkedIn job alerts by email remain (`email-linkedin`), and LinkedIn mail about applications is handled by the correspondence reader (ADR-043).
+- Email alerts of other sites are noted per site; a parser is written once a real alert mail is available as a fixture, as for the existing ones (ADR-030).
+
+**Consequences.** Coverage of Ukrainian boards depends on Djinni and on what the owner forwards; DOU needs a consent first. The Telegram route needs one action per post from the owner, which is also what keeps it compliant.
