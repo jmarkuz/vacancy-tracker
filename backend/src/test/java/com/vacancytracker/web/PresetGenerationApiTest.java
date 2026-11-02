@@ -69,7 +69,8 @@ class PresetGenerationApiTest extends AbstractIntegrationTest {
 
         String snapshot = JsonPath.read(draft, "$.snapshotId");
         String saved = mvc.perform(post("/api/vacancies/" + v + "/documents").contentType(JSON).content(
-                        "{\"kind\":\"resume\",\"content\":\"" + content.replace("\n", "\\n") + "\",\"origin\":\"ai\",\"snapshotId\":\"" + snapshot + "\"}"))
+                        "{\"kind\":\"resume\",\"content\":\"" + content.replace("\n", "\\n") + "\",\"origin\":\"ai\",\"snapshotId\":\"" + snapshot
+                                + "\",\"factsConfirmed\":true}"))
                 .andExpect(jsonPath("$.snapshotId").value(snapshot))
                 .andReturn().getResponse().getContentAsString();
 

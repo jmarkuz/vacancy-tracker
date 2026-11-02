@@ -76,7 +76,14 @@ public class AiController {
     @PostMapping("/api/vacancies/{id}/documents")
     public TailoredDocument save(@PathVariable UUID id, @Valid @RequestBody SaveRequest request) {
         return documents.save(id, request.kind(), request.content(), request.origin(), request.provider(), request.model(),
-                request.snapshotId());
+                request.snapshotId(), Boolean.TRUE.equals(request.factsConfirmed()));
+    }
+
+    /** The fact check of a text against the base documents its draft was made from (T-098). Never calls AI. */
+    @PostMapping("/api/vacancies/{id}/documents/facts")
+    public java.util.List<com.vacancytracker.application.documents.FactCheck.Finding> facts(@PathVariable UUID id,
+                                                                                         @Valid @RequestBody FactsRequest request) {
+        return documents.checkFacts(id, request.snapshotId(), request.text());
     }
 
     /** What a version was made from: the preset's goal, weights, prompt and base draft at that moment. */
@@ -139,6 +146,10 @@ public class AiController {
     }
 
     public record SaveRequest(@NotBlank String kind, @NotBlank @Size(max = 100_000) String content, String origin,
-                              @Size(max = 50) String provider, @Size(max = 100) String model, UUID snapshotId) {
+                              @Size(max = 50) String provider, @Size(max = 100) String model, UUID snapshotId,
+                              Boolean factsConfirmed) {
+    }
+
+    public record FactsRequest(@jakarta.validation.constraints.NotNull UUID snapshotId, @NotBlank @Size(max = 100_000) String text) {
     }
 }

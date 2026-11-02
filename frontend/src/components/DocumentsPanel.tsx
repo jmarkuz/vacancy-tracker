@@ -10,6 +10,8 @@ import {
   latestByKind,
   listDocuments,
   saveAsIs,
+  checkFacts,
+  type FactFinding,
   saveDocument,
   shortenResume,
   type TailoredDocument,
@@ -44,7 +46,13 @@ interface Editing {
   /** Resume: what the PDF check said about the draft (pages, shortening, or why it does not fit). */
   pageNote?: string | null;
   tooLong?: boolean;
+  /** The fact check of the current text against the base documents (T-098). */
+  facts?: FactFinding[];
+  /** The findings the owner confirmed as true; a confirmation counts only for exactly these findings. */
+  confirmedFacts?: string | null;
 }
+
+const factsKey = (facts: FactFinding[] | undefined) => JSON.stringify((facts ?? []).map((f) => `${f.category}:${f.value}`));
 
 /** A comparison being computed, computed, or failed. */
 type Scored = { label: string; pending?: boolean; comparison?: Comparison; error?: string };
@@ -70,6 +78,14 @@ function ScoreLine({ scored }: { scored: Scored | undefined }) {
     </div>
   );
 }
+
+const FACT_LABEL: Record<FactFinding["category"], string> = {
+  number: "Number",
+  date: "Date",
+  company: "Company",
+  title: "Job title",
+  technology: "Technology",
+};
 
 const pagesLabel = (n: number) => `${n} ${n === 1 ? "page" : "pages"}`;
 
@@ -173,6 +189,8 @@ export function DocumentsPanel({ vacancyId, presetId, onPresetChange, onSaved }:
         baseDraft: d.baseDraft,
         pageNote: d.pageProblem ?? (d.pages ? `PDF: ${pagesLabel(d.pages)}${d.shortened ? `, shortened by AI ${d.shortened === 1 ? "once" : "twice"} to fit` : ""}.` : null),
         tooLong: d.pageProblem !== null && d.pageProblem !== undefined,
+        facts: d.facts,
+        confirmedFacts: null,
       });
       setShowDiff(true);
       void score(kind, d.baseDraft, d.content, "Tailored");
@@ -191,7 +209,10 @@ export function DocumentsPanel({ vacancyId, presetId, onPresetChange, onSaved }:
   const save = () =>
     editing &&
     act("save", async () => {
-      const saved = await saveDocument(vacancyId, editing);
+      const saved = await saveDocument(vacancyId, {
+        ...editing,
+        factsConfirmed: !!editing.facts?.length && editing.confirmedFacts === factsKey(editing.facts),
+      });
       added(saved);
       setEditing(null);
       if (editing.baseDraft !== undefined) {
@@ -199,6 +220,25 @@ export function DocumentsPanel({ vacancyId, presetId, onPresetChange, onSaved }:
       }
     }, "Saving failed. Your text is still in the editor.").then(() => undefined);
 
+  const editedText = editing?.content;
+  const editedSnapshot = editing?.snapshotId;
+  useEffect(() => {
+    if (!editedSnapshot || editedText === undefined || !editedText.trim()) {
+      return;
+    }
+    let live = true;
+    const timer = window.setTimeout(() => {
+      checkFacts(vacancyId, editedSnapshot, editedText)
+        .then((facts) => live && setEditing((current) => (current && current.content === editedText ? { ...current, facts } : current)))
+        .catch(() => undefined);
+    }, 500);
+    return () => {
+      live = false;
+      window.clearTimeout(timer);
+    };
+  }, [vacancyId, editedText, editedSnapshot]);
+
+  const factsBlock = !!editing?.facts?.length && editing.confirmedFacts !== factsKey(editing.facts);
   const nextVersion = editing ? (latest[editing.kind]?.version ?? 0) + 1 : 1;
   const diff = editing?.baseDraft !== undefined ? diffLines(editing.baseDraft, editing.content) : null;
   const counts = diff ? diffCounts(diff) : null;
@@ -327,6 +367,26 @@ export function DocumentsPanel({ vacancyId, presetId, onPresetChange, onSaved }:
               )}
             </div>
           )}
+          {editing.facts && editing.facts.length > 0 && (
+            <div class="notice warn" role="alert">
+              <p class="small">
+                <strong>Not in your base draft.</strong> Check each fact; saving and the PDF wait until you fix the text or confirm.
+              </p>
+              <ul class="facts-list small">
+                {editing.facts.map((f) => (
+                  <li key={`${f.category}:${f.value}`}>
+                    <span class="fact-kind">{FACT_LABEL[f.category]}</span> <strong>{f.value}</strong>
+                    {f.line && <span class="muted"> — {f.line}</span>}
+                  </li>
+                ))}
+              </ul>
+              <label class="small">
+                <input type="checkbox" checked={editing.confirmedFacts === factsKey(editing.facts)}
+                  onChange={(e) => setEditing({ ...editing, confirmedFacts: (e.target as HTMLInputElement).checked ? factsKey(editing.facts) : null })} />{" "}
+                These facts are true and I can back them up in an interview
+              </label>
+            </div>
+          )}
           {editing.pageNote && <p class={`small ${editing.tooLong ? "warn-text" : "muted"}`} role="status">{editing.pageNote}</p>}
           <textarea class="input textarea" rows={14} aria-label={`${KIND_LABEL[editing.kind]} text`} value={editing.content}
             onInput={(e) => setEditing({ ...editing, content: (e.target as HTMLTextAreaElement).value })} />
@@ -345,7 +405,8 @@ export function DocumentsPanel({ vacancyId, presetId, onPresetChange, onSaved }:
             <button class="btn ghost" type="button" onClick={() => setEditing(null)}>
               Discard
             </button>
-            <button class="btn primary" type="button" disabled={busy !== null || !editing.content.trim()} onClick={save}>
+            <button class="btn primary" type="button" disabled={busy !== null || !editing.content.trim() || factsBlock}
+              title={factsBlock ? "Fix the facts or confirm them first" : undefined} onClick={save}>
               {busy === "save" ? "Saving…" : `Save as version ${nextVersion}`}
             </button>
           </div>

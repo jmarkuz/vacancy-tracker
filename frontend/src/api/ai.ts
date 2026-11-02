@@ -25,6 +25,15 @@ export interface Draft {
   pages: number | null;
   shortened: number;
   pageProblem: string | null;
+  /** Facts the draft has and its base draft does not (T-098). */
+  facts: FactFinding[];
+}
+
+/** A number, date, company, title or technology that is not in the base documents. */
+export interface FactFinding {
+  category: "number" | "date" | "company" | "title" | "technology";
+  value: string;
+  line: string;
 }
 
 export type DocumentOrigin = "ai" | "manual" | "base";
@@ -44,6 +53,8 @@ export interface TailoredDocument {
   snapshotId: string | null;
   /** Pages of the stored PDF (resumes saved since T-097). */
   pdfPages: number | null;
+  factFindings: FactFinding[] | null;
+  factsConfirmed: boolean;
 }
 
 export const getAiStatus = (signal?: AbortSignal) => getJson<AiStatus>("/api/ai/status", signal);
@@ -59,11 +70,23 @@ export const saveAsIs = (vacancyId: string, kind: DocumentKind, presetId: string
 
 export const saveDocument = (
   vacancyId: string,
-  doc: { kind: DocumentKind; content: string; origin: "ai" | "manual"; provider?: string; model?: string; snapshotId?: string | null },
+  doc: {
+    kind: DocumentKind;
+    content: string;
+    origin: "ai" | "manual";
+    provider?: string;
+    model?: string;
+    snapshotId?: string | null;
+    factsConfirmed?: boolean;
+  },
 ) => requestJson<TailoredDocument>("POST", `/api/vacancies/${encodeURIComponent(vacancyId)}/documents`, doc);
 
 export const listDocuments = (vacancyId: string, signal?: AbortSignal) =>
   getJson<TailoredDocument[]>(`/api/vacancies/${encodeURIComponent(vacancyId)}/documents`, signal);
+
+/** The fact check of a text against the base documents of its draft; never calls AI. */
+export const checkFacts = (vacancyId: string, snapshotId: string, text: string) =>
+  requestJson<FactFinding[]>("POST", `/api/vacancies/${encodeURIComponent(vacancyId)}/documents/facts`, { snapshotId, text });
 
 /** AI shortens a resume that does not fit two pages, at most twice. */
 export const shortenResume = (vacancyId: string, text: string) =>

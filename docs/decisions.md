@@ -767,3 +767,17 @@ Status: Accepted (T-097). Specification: [specs/M7-ai-presets.md](specs/M7-ai-pr
 - **Packages.** The ZIP carries the resume PDF and the checklist names it as the file to upload: the version's PDF, the uploaded PDF as it is, or a PDF made from the uploaded or pasted text (`application_package.resume_pdf`). A resume that does not fit two pages cannot go into a package. Versions saved before V22 get their PDF rendered when asked for.
 
 **Consequences.** The PDF layout is plain on purpose; a designed layout would need another renderer and an ADR. Shortening by AI removes content, so the owner checks the result (the fact check of T-098 still applies).
+
+## ADR-051 Deterministic fact check before saving
+
+Status: Accepted (T-098). Specification: [specs/M7-ai-presets.md](specs/M7-ai-presets.md).
+
+**Context.** The guardrail tells the model to use only facts from the base documents, but a model can still add a number, a date, an employer or a skill. Truth comes before the percentage: the owner must see every new fact and decide before the text becomes a version and a PDF.
+
+**Decision.**
+- `FactCheck` compares a text with the base documents of its snapshot (the base draft, plus the base resume for a cover letter) without AI: numbers and percentages (normalised, so 1,200 and 1200 are one number), dates (a year, a month and year, or month/year, in English and Ukrainian), job titles and companies (the `### Title, Company, City` lines of a resume, and "at Company" in prose), and technologies (the skill-like terms of ADR-040 the base does not mention). The vacancy's own company and title are not reported, since a letter may name its addressee.
+- The findings are shown above the editor with their line, and are checked again half a second after every edit.
+- **Saving waits.** A version made from a draft (or an edited copy of one) with findings is refused (422) unless the owner confirms the facts are true; a confirmation applies only to the exact findings shown, so new findings need a new confirmation. Because the PDF is made on saving, it waits too. Fixing the text removes the findings, and then no confirmation is needed.
+- The findings and the confirmation are stored with the version (`fact_findings`, `facts_confirmed`, V23).
+
+**Consequences.** The check is literal: a reworded fact that keeps its numbers and names passes, and a truthful new term (an abbreviation spelled out) has to be confirmed. That bias is deliberate.
