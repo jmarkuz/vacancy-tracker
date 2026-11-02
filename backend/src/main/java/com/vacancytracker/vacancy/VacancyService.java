@@ -137,6 +137,26 @@ public class VacancyService {
     }
 
     /**
+     * Moves the vacancy to the target status through the shortest chain of allowed transitions (StatusPath), each step
+     * a normal status event with the note. Already there: nothing changes. Unreachable (Accepted, for example): the
+     * same exception as a single invalid step.
+     */
+    @Transactional
+    public Vacancy moveTo(UUID id, VacancyStatus target, String note) {
+        Vacancy vacancy = lockForChange(id);
+        java.util.List<VacancyStatus> path = StatusPath.between(vacancy.getStatus(), target)
+                .orElseThrow(() -> new InvalidStatusTransitionException(vacancy.getStatus(), target));
+        for (VacancyStatus step : path) {
+            StatusEvent event = vacancy.changeStatus(step, clock.instant(), note);
+            repository.appendStatusEvent(event);
+        }
+        if (!path.isEmpty()) {
+            repository.save(vacancy.toState());
+        }
+        return vacancy;
+    }
+
+    /**
      * Stores an imported vacancy with its history, replacing any existing row with the same id.
      * Each row is its own transaction so one bad row does not undo the others.
      */

@@ -68,3 +68,33 @@ export function latestByKind(docs: TailoredDocument[]): Partial<Record<DocumentK
 export function coverLetterTemplate(title: string, company: string): string {
   return `Dear ${company} team,\n\nI am applying for the ${title} position.\n\n[Why this role and company]\n\n[Two or three results from your experience that match the vacancy]\n\nKind regards,\n`;
 }
+
+/** An application package (ApplicationPackage on the server). */
+export interface ApplicationPackage {
+  id: string;
+  vacancyId: string;
+  resumeDocumentId: string | null;
+  coverLetterDocumentId: string | null;
+  applyUrl: string | null;
+  note: string | null;
+  status: "prepared" | "submitted";
+  createdAt: string;
+  submittedAt: string | null;
+}
+
+export const preparePackage = (
+  vacancyId: string,
+  body: { resumeDocumentId?: string | null; coverLetterDocumentId?: string | null; applyUrl?: string; note?: string },
+) => requestJson<ApplicationPackage>("POST", `/api/vacancies/${encodeURIComponent(vacancyId)}/packages`, body);
+
+export const listPackages = (vacancyId: string, signal?: AbortSignal) =>
+  getJson<ApplicationPackage[]>(`/api/vacancies/${encodeURIComponent(vacancyId)}/packages`, signal);
+
+export const packageUrl = (packageId: string) => `/api/packages/${encodeURIComponent(packageId)}/download`;
+
+export const markSubmitted = (packageId: string, note?: string) =>
+  requestJson<{ applicationPackage: ApplicationPackage; vacancyStatus: string }>(
+    "POST",
+    `/api/packages/${encodeURIComponent(packageId)}/submitted`,
+    { note },
+  );

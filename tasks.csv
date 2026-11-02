@@ -82,8 +82,8 @@ T-080,Resume upload and text extraction,M6,M,T-076,done
 T-081,Resume fit score with reasons,M6,M,T-080,done
 T-082,Claude adapter (CLI and API key) behind an explicit opt-in,M6,M,T-080,done
 T-083,Tailored resume and cover letter with versions,M6,M,T-082,done
-T-084,Application package and the apply page,M6,M,T-083,todo
-T-085,Mark submitted and Applied in the pipeline,M6,S,T-084,todo
+T-084,Application package and the apply page,M6,M,T-083,done
+T-085,Mark submitted and Applied in the pipeline,M6,S,T-084,done
 T-086,Correspondence: job mail from IMAP classified,M6,M,T-076,todo
 T-087,Link mail to applications and suggest a status,M6,M,"T-086,T-085",todo
 T-088,Owner's source list terms check,M6,M,T-077,done
