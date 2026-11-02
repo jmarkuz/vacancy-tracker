@@ -702,3 +702,19 @@ Status: Accepted (T-090).
 - The keyboard inventory in [code-review.md](code-review.md) is the regression list; none was removed. The design README now states the real board and rule-builder keys (Alt+arrows), the Move buttons and the layout-independent letters. The selected Inbox row and palette option keep an outline in Windows High Contrast (`forced-colors`).
 
 **Consequences.** Light-theme users see a change of accent (navy instead of indigo). The Phase 0 mockup keeps its layout with the new tokens.
+
+## ADR-047 AI presets and base documents
+
+Status: Accepted (T-093). Specification: [specs/M7-ai-presets.md](specs/M7-ai-presets.md).
+
+**Context.** Generated documents were written from the resume and short instructions typed each time (ADR-042). The owner wants to set up once what they look for and how documents should be adapted, and wants AI to adapt their own base resume and cover letter rather than write new ones.
+
+**Decision.**
+- A **preset** (`ai_preset`, V19) holds a name, the Main goal prompt, weighted parameters of the goal, the resume and cover letter prompts, the base resume and the base cover letter. There is always at least one preset and exactly one default (partial unique index); the last preset cannot be deleted, and deleting the default makes the next one the default.
+- **Defaults live in resources** (`resources/presets/default/`): sections D1 to D7 of the specification word for word, the weights as JSON. A preset named Default is created from them on first use (at start-up and whenever the table is empty), so the defaults are never compiled into code. The guardrail (D7) is not a preset field: it is put in front of every generation and cannot be edited.
+- **One source of truth for the resume.** The base resume is a row of the `resume` table, not a copy. The default preset's base resume is the active resume of the Resume screen: uploading on either screen changes the same row, making another preset the default makes its base resume active, and resetting the default preset's base resume to the template leaves no active resume. When the Default preset is created, the resume already active becomes its base resume. A preset without a stored base resume shows the D5 template.
+- **Weights** are whole numbers from 0 to 1000; their sum need not be 100. Code normalises them (share = weight / sum) and the screen shows each share. At least one weight must be above zero.
+- **Placeholders.** A `{{…}}` mark in the main goal, a prompt or a base document means the default text was not filled in; generation of the documents that use that field is refused and the screen lists what to fill in. Saving such text is allowed.
+- **Backup.** Modules other than export add sections to the JSON backup through `common.BackupSection`; presets are written with their base resume (text, and the uploaded file in Base64) and restored by id or name, the default one becoming the default again. The schema version stays 1: older backups have no `presets` field and import as before.
+
+**Consequences.** An old resume row stays in the table when a new one is uploaded, as before; presets may share one base resume after Duplicate. Fit scores (ADR-040) follow the default preset's base resume, because it is the active resume.

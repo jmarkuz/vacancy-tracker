@@ -1610,3 +1610,14 @@ label.inline {
     flex-wrap: wrap;
   }
 }
+
+/* M7: presets, job analysis and tailored documents */
+.warn-text {
+  color: var(--color-warning);
+}
+
+.prewrap {
+  margin: var(--space-2) 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

@@ -26,10 +26,17 @@ public class ResumeRepository {
 
     /** Stores a new resume and makes it the active one. */
     void insertActive(Resume r, byte[] original) {
-        jdbc.sql("UPDATE resume SET active = FALSE WHERE active").update();
+        insert(r, original, true);
+    }
+
+    /** Stores a new resume; when active, it replaces the active one. A preset can own a resume that is not active. */
+    void insert(Resume r, byte[] original, boolean active) {
+        if (active) {
+            jdbc.sql("UPDATE resume SET active = FALSE WHERE active").update();
+        }
         jdbc.sql("INSERT INTO resume (id, name, file_name, content_type, original, text, keywords, revision, active,"
                         + " uploaded_at, updated_at) VALUES (:id, :name, :file, :type, :original, :text, CAST(:keywords AS TEXT[]),"
-                        + " :revision, TRUE, :uploaded, :updated)")
+                        + " :revision, :active, :uploaded, :updated)")
                 .param("id", r.id())
                 .param("name", r.name())
                 .param("file", r.fileName())
@@ -38,6 +45,7 @@ public class ResumeRepository {
                 .param("text", r.text())
                 .param("keywords", r.keywords().toArray(String[]::new))
                 .param("revision", r.revision())
+                .param("active", active)
                 .param("uploaded", OffsetDateTime.ofInstant(r.uploadedAt(), ZoneOffset.UTC))
                 .param("updated", OffsetDateTime.ofInstant(r.updatedAt(), ZoneOffset.UTC))
                 .update();
@@ -53,6 +61,18 @@ public class ResumeRepository {
 
     public Optional<Resume> findActive() {
         return jdbc.sql("SELECT " + COLUMNS + " FROM resume WHERE active").query(ResumeRepository::map).optional();
+    }
+
+    public Optional<Resume> find(UUID id) {
+        return jdbc.sql("SELECT " + COLUMNS + " FROM resume WHERE id = :id").param("id", id).query(ResumeRepository::map).optional();
+    }
+
+    /** Makes this resume the active one; null leaves no resume active. */
+    void activate(UUID id) {
+        jdbc.sql("UPDATE resume SET active = FALSE WHERE active AND id IS DISTINCT FROM :id").param("id", id).update();
+        if (id != null) {
+            jdbc.sql("UPDATE resume SET active = TRUE WHERE id = :id AND NOT active").param("id", id).update();
+        }
     }
 
     Optional<Original> findOriginal(UUID id) {

@@ -146,3 +146,17 @@ Goal (owner, 2026-11-02): one tool for the whole cycle: find relevant vacancies,
 | [x] 2026-11-02 | T-090 | third-party design file and dark-first UI | M | T-081 | design file copied with its licence; tokens and UI follow it; dark is the default theme; all shortcuts from docs/code-review.md still work |
 | [x] 2026-11-02 | T-091 | Full-cycle end-to-end test | M | T-087, T-089 | Playwright test with fake data, the fake AI adapter and a test letter: vacancy, fit, documents, package, Applied, reply, suggested status |
 | [ ] | T-092 | Backlog from the review | M | T-076 | Open findings of docs/code-review.md (body read deadline, board removal expiry, posted_at, Retry-After dates, token characters, list changes during a run, start-up sweep, palette, unsaved rules, component tests) |
+
+## M7 AI presets, base documents, match score, PDF
+
+Specification: [docs/specs/M7-ai-presets.md](docs/specs/M7-ai-presets.md) (owner, 2026-11-02). The owner sets up a preset once: the search goal, the weights of its parameters, the prompts and the base resume and cover letter. In the vacancy drawer each document is used as is or generated with AI, which adapts the base draft and never writes from scratch. The drawer shows the match before and after; the resume is always kept as a PDF of at most two pages. Truth comes before the percentage: code, not the model, computes the score, and the tests use only the fake AI.
+
+| Done | ID | Title | Est | Depends on | Acceptance criteria |
+|---|---|---|---|---|---|
+| [x] 2026-11-02 | T-093 | Presets: model and screen | M | T-083 | Presets screen: create, duplicate, rename, delete (not the last), make default; base resume and cover letter uploaded or pasted; the active resume is the Default preset's base resume (one source); defaults from resources with Reset to default; weights normalised; placeholders block generation; presets in the JSON backup |
+| [ ] | T-094 | Generation from the base draft | M | T-093 | Drawer: preset choice, Use as is or Generate with AI per document; adaptation of the base draft with a base vs tailored diff; the version keeps a snapshot of prompts, weights and base draft; the vacancy is a separate data block (injection test); consent text and README Security updated |
+| [ ] | T-095 | Employer match and Goal match | M | T-094 | One AI checklist per vacancy cached by text hash; per-requirement status with a quote the server checks; Skills-only mention at most partial; score by the formula in code; Goal match as a weighted average; quick fit without AI |
+| [ ] | T-096 | Progress bars, before and after | S | T-095 | Bars for both matches; Base → Tailored (+N) with newly covered and still missing requirements; recalculated after a saved edit; keyboard accessible, not colour only |
+| [ ] | T-097 | Resume PDF, two pages at most | M | T-094 | Every resume version and package has a PDF (A4, one column, embedded font with Cyrillic, 10 pt or more); an uploaded 1-2 page PDF is used as is; over two pages AI shortens at most twice, then the owner edits; 3+ pages are never saved |
+| [ ] | T-098 | Fact check | S | T-094 | New numbers, dates, companies, titles and technologies against the base draft are shown above the editor; saving and the PDF wait until fixed or confirmed; the confirmation is kept in the version |
+| [ ] | T-099 | Finish: tests and documents | M | T-093..T-098 | Fake AI answers for checklist, statuses and shortening; Playwright scenario of the whole M7 flow; PLAN, tasks.csv, CHANGELOG, README and architecture updated |
