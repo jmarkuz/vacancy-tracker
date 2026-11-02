@@ -107,7 +107,7 @@ Also in the repository: `backend/` (Java 21, Spring Boot, Maven), `frontend/` (V
 
 ## Tech stack
 
-- Backend: Java 21, Spring Boot 3.5, Maven, PostgreSQL 16, Flyway, plain SQL through `JdbcClient`, Jsoup, Rome (RSS and Atom), Jakarta Mail (IMAP), Apache POI (XLSX and DOCX), Apache PDFBox (PDF resumes), the Anthropic Java SDK (optional AI), Actuator; Checkstyle, JaCoCo (80% line gate for the core modules) and ArchUnit in every build; Testcontainers for integration tests
+- Backend: Java 21, Spring Boot 3.5, Maven, PostgreSQL 16, Flyway, plain SQL through `JdbcClient`, Jsoup, Rome (RSS and Atom), Jakarta Mail (IMAP), Apache POI (XLSX and DOCX), Apache PDFBox (reading resumes and writing the resume PDF, with the Liberation Sans font under the SIL Open Font License in `backend/src/main/resources/fonts`), the Anthropic Java SDK (optional AI), Actuator; Checkstyle, JaCoCo (80% line gate for the core modules) and ArchUnit in every build; Testcontainers for integration tests
 - Modules (backend): `vacancy`, `collection`, `matching`, `export`, `notification`, `web`, `common`; their allowed dependencies are checked by ArchUnit
 - Frontend: Vite, TypeScript (strict), Preact, no UI library; Vitest for the logic; built into static assets served by the backend
 - End-to-end: a Playwright smoke test in `e2e/`, run against the built jar in a local Chrome

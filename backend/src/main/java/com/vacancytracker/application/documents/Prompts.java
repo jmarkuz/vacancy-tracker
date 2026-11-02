@@ -53,6 +53,21 @@ public final class Prompts {
         return new AiPrompt(system(s), text.toString(), MAX_TOKENS);
     }
 
+    static final String SHORTEN_TASK = "Shorten the resume to at most two pages.";
+
+    /** Asks for a shorter resume (T-097): the least relevant content goes, no fact changes. */
+    static AiPrompt shorten(String guardrail, Vacancy vacancy, String resume, int pages) {
+        String system = guardrail + "\n\n" + """
+                The resume below renders to more than two A4 pages. Shorten it so that it fits on two: remove or condense \
+                what is least relevant to this vacancy first (older and unrelated roles, then weaker bullets, then extra \
+                skills). Keep the standard order and headings. Never add, change or merge facts. Return only the resume in \
+                Markdown.""";
+        StringBuilder user = new StringBuilder(vacancy(vacancy));
+        block(user, "document", resume);
+        user.append("It renders to ").append(pages).append(" pages now.\n\nTask: ").append(SHORTEN_TASK).append('\n');
+        return new AiPrompt(system, user.toString(), MAX_TOKENS);
+    }
+
     /** The goal block: the main goal prompt and each parameter's actual share of the weights. */
     public static String goal(String mainGoal, List<Preset.Weight> weights) {
         int total = weights.stream().mapToInt(Preset.Weight::weight).sum();

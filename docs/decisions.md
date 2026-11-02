@@ -752,3 +752,18 @@ Status: Accepted (T-095). Specification: [specs/M7-ai-presets.md](specs/M7-ai-pr
 - **Display (T-096).** Both matches are bars with the percentage and a level word (low, medium, high) written out; the bar is a focusable `meter` with its value spoken, so nothing depends on colour. A caption says the Employer match is coverage of the vacancy's requirements, not a chance of being hired. After a draft or a saved version the drawer shows `Base 62% → Tailored 78% (+16)` with the newly covered and the still missing requirements, scored on the same checklist; "Score my edit" scores the editor's text before saving.
 
 **Consequences.** Opening a vacancy with AI on costs up to four calls the first time (checklist, goal, base resume, base cover letter) and none afterwards while the texts stay the same. A model that quotes loosely loses points rather than gaining them.
+
+## ADR-050 Resume PDF of at most two pages
+
+Status: Accepted (T-097). Specification: [specs/M7-ai-presets.md](specs/M7-ai-presets.md).
+
+**Context.** Employers' systems and recruiters read a PDF; the owner wants every resume kept as a PDF of one or two pages, never longer, and the package to carry it.
+
+**Decision.**
+- **Renderer.** `ResumePdf` writes the PDF with PDFBox (already a dependency): A4, one column, real text, body at 10.5 pt, bold headings, bullets, a thin rule under each section; no tables, icons, photos or text boxes; contacts stay in the body. It reads the plain Markdown of the documents (`#` name, `##` section, `###` role, `- ` bullets); emphasis marks are dropped and a link shows its text and address. A character without a glyph becomes "?" rather than failing.
+- **Font.** Liberation Sans Regular and Bold 2.1.5 (SIL Open Font License 1.1, compatible with the project), chosen by the owner on 2026-11-02 and downloaded from the official release of github.com/liberationfonts; only these two files and the licence are in `resources/fonts`. They are embedded as subsets, so Cyrillic and Latin render the same everywhere. No new library.
+- **Two pages at most.** Code counts the pages after every render. Every saved resume version stores its PDF (`tailored_document.pdf`, V22); a text whose PDF has 3 or more pages is refused (422) and nothing is stored. After an AI draft of a resume over two pages, AI is asked to shorten the least relevant content, at most twice; if it still does not fit, the draft comes with the reason and the owner edits by hand ("Shorten with AI" stays available, with the same limit).
+- **Use as is.** When the base resume was uploaded as a PDF of one or two pages, that file is used unchanged; otherwise the PDF is rendered from the text. An uploaded PDF of three pages or more is refused.
+- **Packages.** The ZIP carries the resume PDF and the checklist names it as the file to upload: the version's PDF, the uploaded PDF as it is, or a PDF made from the uploaded or pasted text (`application_package.resume_pdf`). A resume that does not fit two pages cannot go into a package. Versions saved before V22 get their PDF rendered when asked for.
+
+**Consequences.** The PDF layout is plain on purpose; a designed layout would need another renderer and an ADR. Shortening by AI removes content, so the owner checks the result (the fact check of T-098 still applies).
