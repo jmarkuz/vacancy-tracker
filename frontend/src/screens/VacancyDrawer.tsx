@@ -7,6 +7,8 @@ import { allowedNext } from "../domain/statuses";
 import { safeLink } from "../domain/links";
 import { FitPanel } from "../components/FitPanel";
 import { DocumentsPanel } from "../components/DocumentsPanel";
+import { ApplyPanel } from "../components/ApplyPanel";
+import { markSubmitted } from "../api/ai";
 import { StatusBadge } from "../components/StatusBadge";
 import { formatDate, formatSalary } from "./columns";
 
@@ -47,6 +49,8 @@ export function VacancyDrawer({ id, onClose, onChange }: Props) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // Grows when a document version is saved, so the Apply section offers it.
+  const [docsVersion, setDocsVersion] = useState(0);
   const panelRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -197,7 +201,23 @@ export function VacancyDrawer({ id, onClose, onChange }: Props) {
 
             <FitPanel vacancyId={vacancy.id} />
 
-            <DocumentsPanel vacancyId={vacancy.id} title={vacancy.title} company={vacancy.company} />
+            <DocumentsPanel
+              vacancyId={vacancy.id}
+              title={vacancy.title}
+              company={vacancy.company}
+              onSaved={() => setDocsVersion((n) => n + 1)}
+            />
+
+            <ApplyPanel
+              key={vacancy.id}
+              vacancyId={vacancy.id}
+              vacancyUrl={safeLink(vacancy.url)}
+              docsVersion={docsVersion}
+              onSubmitted={async (packageId, note) => {
+                await markSubmitted(packageId, note || undefined);
+                await save(() => getVacancy(id), true);
+              }}
+            />
 
             <DescriptionEditor
               key={vacancy.id + vacancy.userEditedFields.includes("description")}
