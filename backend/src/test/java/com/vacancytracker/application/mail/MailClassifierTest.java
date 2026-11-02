@@ -49,6 +49,18 @@ class MailClassifierTest {
     }
 
     @Test
+    void aHugeMailIsClassifiedQuicklyOnItsFirstPart() {
+        String text = "recruiter " + "x ".repeat(2_000_000) + " position";
+        long started = System.nanoTime();
+
+        MailCategory category = MailClassifier.classify(mail("a@b.example", "Hello", text));
+
+        assertThat(category).isEqualTo(MailCategory.NOT_JOB);
+        assertThat(java.time.Duration.ofNanos(System.nanoTime() - started)).isLessThan(java.time.Duration.ofSeconds(2));
+        assertThat(MailClassifier.body(mail("a@b.example", "s", text))).hasSize(MailClassifier.MAX_TEXT);
+    }
+
+    @Test
     void snippetsAreShortPlainText() {
         MailMessage html = new MailMessage("<k@x>", "a@b.c", null, "s", null, null, "<p>Hello</p><p>" + "x".repeat(700) + "</p>");
 

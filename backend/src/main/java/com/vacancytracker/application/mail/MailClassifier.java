@@ -17,6 +17,8 @@ import java.util.regex.Pattern;
 public final class MailClassifier {
 
     private static final int FLAGS = Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE | Pattern.UNICODE_CHARACTER_CLASS;
+    /** At most this much of a mail's text is classified, linked and shown. */
+    static final int MAX_TEXT = 50_000;
     private static final Map<MailCategory, Pattern> RULES = new java.util.LinkedHashMap<>();
 
     static {
@@ -39,7 +41,7 @@ public final class MailClassifier {
                 "дякуємо за (?:ваш\\w* )?(?:відгук|резюме|заявк|інтерес)", "спасибо за (?:ваш\\w* )?(?:отклик|резюме)",
                 "dziękujemy za (?:aplikacj|zgłoszeni)", "vielen dank für ihre bewerbung");
         rule(MailCategory.RECRUITER_MESSAGE, "sent you a (?:new )?message", "inmail", "new message from",
-                "(?:recruiter|talent acquisition|hiring manager|рекрутер)\\b.*(?:position|role|opportunit|вакансі)",
+                "(?:recruiter|talent acquisition|hiring manager|рекрутер)\\b.{0,200}(?:position|role|opportunit|вакансі)",
                 "came across your profile", "your profile (?:caught|matches)");
         rule(MailCategory.JOB_ALERT, "job alert", "jobs? (?:recommended )?for you", "new jobs? (?:match|matching|that match)",
                 "recommended jobs", "jobs you may be interested", "нові вакансії", "новые вакансии", "nowe oferty pracy");
@@ -56,7 +58,7 @@ public final class MailClassifier {
     }
 
     public static MailCategory classify(MailMessage mail) {
-        String subject = mail.subject() == null ? "" : mail.subject();
+        String subject = mail.subject() == null ? "" : mail.subject().length() > 1000 ? mail.subject().substring(0, 1000) : mail.subject();
         String body = body(mail);
         String all = subject + "\n" + body;
         // An alert says so in its subject; checked first, because alerts often carry words such as "interview".
@@ -82,17 +84,25 @@ public final class MailClassifier {
                 .stream().anyMatch(d -> MailParser.fromDomain(mail.from(), d));
     }
 
-    /** Plain text of the mail: the text part, or the HTML reduced to text. */
+    /**
+     * Plain text of the mail: the text part, or the HTML reduced to text, cut at {@link #MAX_TEXT} characters. Mail comes
+     * from anyone, so no pattern ever runs over more than that.
+     */
     static String body(MailMessage mail) {
+        String text;
         if (mail.text() != null && !mail.text().isBlank()) {
-            return mail.text();
+            text = mail.text();
+        } else {
+            String html = mail.html() == null ? "" : mail.html();
+            text = Normalizer.plainText(html.length() > MAX_TEXT * 4 ? html.substring(0, MAX_TEXT * 4) : html);
         }
-        return mail.html() == null ? "" : Normalizer.plainText(mail.html());
+        return text.length() > MAX_TEXT ? text.substring(0, MAX_TEXT) : text;
     }
 
     /** The first characters of the body, one line per paragraph, for the list. */
     static String snippet(MailMessage mail, int max) {
-        String text = body(mail).replaceAll("[ \\t\\u00A0]+", " ").replaceAll("\\s*\\R\\s*", "\n").strip();
+        String raw = body(mail);
+        String text = (raw.length() > max * 4 ? raw.substring(0, max * 4) : raw).replaceAll("[ \\t\\u00A0]+", " ").replaceAll("\\s*\\R\\s*", "\n").strip();
         return text.length() > max ? text.substring(0, max).strip() + "…" : text;
     }
 
