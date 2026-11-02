@@ -5,6 +5,7 @@ import { changeStatus, getHistory, getVacancy, patchVacancy, type StatusEvent } 
 import type { Vacancy } from "../api/types";
 import { allowedNext } from "../domain/statuses";
 import { safeLink } from "../domain/links";
+import { FitPanel } from "../components/FitPanel";
 import { StatusBadge } from "../components/StatusBadge";
 import { formatDate, formatSalary } from "./columns";
 
@@ -192,6 +193,8 @@ export function VacancyDrawer({ id, onClose, onChange }: Props) {
                 </dd>
               </dl>
             </section>
+
+            <FitPanel vacancyId={vacancy.id} />
 
             <DescriptionEditor
               key={vacancy.id + vacancy.userEditedFields.includes("description")}

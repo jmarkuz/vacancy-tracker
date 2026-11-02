@@ -10,6 +10,7 @@ export const GO_TO: Command[] = [
   { id: "inbox", label: "Inbox", href: "#/inbox" },
   { id: "pipeline", label: "Pipeline", href: "#/pipeline" },
   { id: "board", label: "Pipeline board", href: "#/pipeline?layout=board" },
+  { id: "resume", label: "Resume", href: "#/resume" },
   { id: "sources", label: "Sources & Runs", href: "#/sources" },
   { id: "profiles", label: "Search profiles", href: "#/profiles" },
   { id: "export", label: "Export & import", href: "#/export" },

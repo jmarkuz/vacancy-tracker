@@ -633,3 +633,19 @@ Status: Accepted (T-088, T-089). The checks are in [sources.md](sources.md), sec
 - Email alerts of other sites are noted per site; a parser is written once a real alert mail is available as a fixture, as for the existing ones (ADR-030).
 
 **Consequences.** Coverage of Ukrainian boards depends on Djinni and on what the owner forwards; DOU needs a consent first. The Telegram route needs one action per post from the owner, which is also what keeps it compliant.
+
+## ADR-040 Resume and the fit score
+
+Status: Accepted (T-080, T-081). Gaps G1 and G2 of [gap-analysis.md](gap-analysis.md).
+
+**Context.** The full cycle starts with knowing how well a vacancy fits the owner. Profiles (ADR-008) score against rules the owner writes, not against the resume. JobMetasearch's core feature is "upload your resume once" and a match per job. The README forbids technologies and roles in the code.
+
+**Decision.**
+- **A new module, `application`,** for the resume, the fit, AI documents, packages and correspondence. It may use `vacancy`, `matching`, `collection` and `common`; nothing but `web` uses it (ArchitectureTest), and it has the same 80% line-coverage gate as the other core modules.
+- **The resume** is uploaded as PDF (Apache PDFBox 3.0.8, approved by the owner on 2026-11-02), DOCX (Apache POI, already present), TXT or Markdown, or pasted; up to 5 MB. The format is decided by the file's bytes, not the browser's claim. A scanned PDF without text is refused with an explanation (no OCR). One resume is active; the original file is kept for download.
+- **Keywords, not a dictionary.** Keywords are proposed from the text: the items under a "Skills"-like heading, then terms recognised by their shape (C#, Node.js, CI/CD, PostgreSQL, AWS, S3) or as capitalised words inside an enumeration but not at its start. The owner edits the list; that list is what the score uses. The only built-in words are common words, months and countries to leave out, as for country detection (ADR-036).
+- **The fit** (0..100) is deterministic and explained. The vacancy "asks" for its skill-like terms plus every resume keyword it mentions; coverage is the share the resume has; score = 85 × coverage, +15 when a keyword is in the title, -15 when the vacancy asks for more years than the resume shows (years from merged date ranges or "N years"). Reasons: matched skills, missing skills, title, years, little text. Stored per vacancy for a resume revision; any change of the resume or its keywords raises the revision.
+- **Freshness.** A resume change and the end of every collection run start a background pass over stale fits; reading a fit computes it first when it is stale, so the Inbox, the Pipeline and the drawer never show a fit older than the resume.
+- The fit is separate from the profile score: profiles filter and rank by the owner's rules, the fit says how the resume compares. Neither changes a status.
+
+**Consequences.** Shape-based terms also catch some non-skills (a city in a list, an all-caps word); the owner prunes the resume keywords, and the missing list is advice, not a verdict. Synonyms are not merged (k8s and Kubernetes are two terms).

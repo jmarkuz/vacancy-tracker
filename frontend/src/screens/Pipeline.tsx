@@ -15,6 +15,9 @@ import type { SavedView } from "../api/views";
 import { COLUMNS, DEFAULT_COLUMNS, type Column } from "./columns";
 import { VacancyDrawer } from "./VacancyDrawer";
 import { AddVacancy } from "../components/AddVacancy";
+import { getFits, type ResumeFit } from "../api/resume";
+import { fitsById } from "../domain/fit";
+import { FitBadge } from "../components/FitBadge";
 
 const PAGE_SIZE = 100;
 const DEFAULT_SORT = "lastSeenAt:desc";
@@ -47,6 +50,7 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
   const [target, setTarget] = useState("");
   const [toast, setToast] = useState<{ message: string; tone: "info" | "error"; undo?: () => void } | null>(null);
   const [adding, setAdding] = useState(false);
+  const [fits, setFits] = useState<Record<string, ResumeFit>>({});
 
   useEffect(() => {
     const controller = new AbortController();
@@ -92,6 +96,15 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
       const visibleIds = new Set(data.items.map((v) => v.id));
       setSelected((current) => (current.every((id) => visibleIds.has(id)) ? current : current.filter((id) => visibleIds.has(id))));
     }
+  }, [data]);
+
+  // Fit to the resume for the rows on show (T-081); none when no resume is uploaded.
+  useEffect(() => {
+    const controller = new AbortController();
+    getFits((data?.items ?? []).map((v) => v.id), controller.signal)
+      .then((list) => setFits(fitsById(list)))
+      .catch(() => undefined);
+    return () => controller.abort();
   }, [data]);
 
   const selectedRows = (data?.items ?? []).filter((v) => selected.includes(v.id));
@@ -231,9 +244,12 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
                     {visible.map((col) => (
                       <td key={col.id} class={col.numeric ? "numeric" : undefined}>
                         {col.id === "title" ? (
-                          <button type="button" class="row-open" onClick={() => setQuery({ open: v.id })}>
-                            {col.render(v)}
-                          </button>
+                          <>
+                            <button type="button" class="row-open" onClick={() => setQuery({ open: v.id })}>
+                              {col.render(v)}
+                            </button>{" "}
+                            <FitBadge fit={fits[v.id]} />
+                          </>
                         ) : (
                           col.render(v)
                         )}
@@ -251,6 +267,7 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
                 <button type="button" class="row-open vcard-title" onClick={() => setQuery({ open: v.id })}>
                   {v.title}
                 </button>
+                <FitBadge fit={fits[v.id]} />
                 <div class="muted">{v.company}</div>
                 <div class="vcard-meta">
                   <span class="badge-slot">{COLUMNS.find((c) => c.id === "status")?.render(v)}</span>

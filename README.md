@@ -16,6 +16,7 @@ Status: every planned task is done except a Jooble adapter (T-036), which is blo
 
 ## Features
 
+- Resume upload (PDF, DOCX, TXT, Markdown or pasted) and a fit score 0..100 for every vacancy with the reasons: matched and missing skills, title, years
 - Automatic and on-demand collection ("Refresh" button with live per-source progress)
 - Inbox with keyboard triage (J/K, S, X, O) and score badges with reasons
 - Pipeline as a table or a Kanban board, with status history, follow-up dates and bulk actions with Undo
