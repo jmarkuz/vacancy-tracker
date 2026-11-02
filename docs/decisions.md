@@ -702,3 +702,82 @@ Status: Accepted (T-090).
 - The keyboard inventory in [code-review.md](code-review.md) is the regression list; none was removed. The design README now states the real board and rule-builder keys (Alt+arrows), the Move buttons and the layout-independent letters. The selected Inbox row and palette option keep an outline in Windows High Contrast (`forced-colors`).
 
 **Consequences.** Light-theme users see a change of accent (navy instead of indigo). The Phase 0 mockup keeps its layout with the new tokens.
+
+## ADR-047 AI presets and base documents
+
+Status: Accepted (T-093). Specification: [specs/M7-ai-presets.md](specs/M7-ai-presets.md).
+
+**Context.** Generated documents were written from the resume and short instructions typed each time (ADR-042). The owner wants to set up once what they look for and how documents should be adapted, and wants AI to adapt their own base resume and cover letter rather than write new ones.
+
+**Decision.**
+- A **preset** (`ai_preset`, V19) holds a name, the Main goal prompt, weighted parameters of the goal, the resume and cover letter prompts, the base resume and the base cover letter. There is always at least one preset and exactly one default (partial unique index); the last preset cannot be deleted, and deleting the default makes the next one the default.
+- **Defaults live in resources** (`resources/presets/default/`): sections D1 to D7 of the specification word for word, the weights as JSON. A preset named Default is created from them on first use (at start-up and whenever the table is empty), so the defaults are never compiled into code. The guardrail (D7) is not a preset field: it is put in front of every generation and cannot be edited.
+- **One source of truth for the resume.** The base resume is a row of the `resume` table, not a copy. The default preset's base resume is the active resume of the Resume screen: uploading on either screen changes the same row, making another preset the default makes its base resume active, and resetting the default preset's base resume to the template leaves no active resume. When the Default preset is created, the resume already active becomes its base resume. A preset without a stored base resume shows the D5 template.
+- **Weights** are whole numbers from 0 to 1000; their sum need not be 100. Code normalises them (share = weight / sum) and the screen shows each share. At least one weight must be above zero.
+- **Placeholders.** A `{{…}}` mark in the main goal, a prompt or a base document means the default text was not filled in; generation of the documents that use that field is refused and the screen lists what to fill in. Saving such text is allowed.
+- **Backup.** Modules other than export add sections to the JSON backup through `common.BackupSection`; presets are written with their base resume (text, and the uploaded file in Base64) and restored by id or name, the default one becoming the default again. The schema version stays 1: older backups have no `presets` field and import as before.
+
+**Consequences.** An old resume row stays in the table when a new one is uploaded, as before; presets may share one base resume after Duplicate. Fit scores (ADR-040) follow the default preset's base resume, because it is the active resume.
+
+## ADR-048 Generation from the base draft, with a snapshot
+
+Status: Accepted (T-094). Specification: [specs/M7-ai-presets.md](specs/M7-ai-presets.md).
+
+**Context.** With presets (ADR-047) the documents should be adaptations of the owner's own base resume and cover letter, never new texts, and it must stay known later what a sent version was made from even after the preset changes.
+
+**Decision.**
+- **Input.** The system prompt is the guardrail (D7, from resources, not editable) followed by the preset's document prompt. The user message holds the data in tags: `<goal>` (Main goal prompt and each parameter's share of the weights), `<base_resume>` for a resume; `<base_cover_letter>` and, as the source of facts, `<base_resume>` for a cover letter; `<vacancy>` (title, company, location, description); optional `<instructions>`; and the task as the last line. The vacancy is one data block: anything in any data that looks like one of these tags is turned into `[tag]`, so a posting cannot close its block and add a task; a test sends such a posting and checks the prompt.
+- **Readiness.** Generation of a document is refused (422, with a pointer to the Presets screen) while the main goal, the weights, its prompt or its base draft still has a placeholder or the base resume is the template.
+- **Use as is** stores the base draft itself as the next version (origin `base`) without AI; it only needs a filled base draft, so it works with AI off.
+- **Snapshot.** Every draft and every "use as is" stores a `generation_snapshot` (V20): preset id and name, guardrail, main goal, weights, document prompt, base draft, the base resume given with a cover letter, and the stored resume a resume came from. A saved version points at it (`tailored_document.snapshot_id`), and an edited copy of a version keeps the pointer. Snapshots are never changed, so editing or deleting the preset later leaves the history as it was. A snapshot of another vacancy or kind is refused on save.
+- The drawer compares the base draft with the AI draft line by line (added lines marked +, removed lines marked −, not by colour alone) before the owner edits and saves.
+- The consent notice in Settings and README Security list what is sent now: the vacancy, the preset's goal, weights and prompt, the base documents and the owner's instructions; Use as is sends nothing.
+
+**Consequences.** A draft that is never saved leaves its snapshot behind; snapshots are small and deleted with the vacancy. The old "write from the resume" prompts are gone: a cover letter without a filled base cover letter cannot be generated.
+
+## ADR-049 Employer match and Goal match
+
+Status: Accepted (T-095). Specification: [specs/M7-ai-presets.md](specs/M7-ai-presets.md).
+
+**Context.** The quick fit (ADR-040) compares keywords. The owner wants to see how well a document covers what the employer asks for, and how well the vacancy fits their own goal, with numbers that mean the same before and after a document is tailored and that the model cannot inflate.
+
+**Decision.**
+- **Checklist.** With AI on, one call per vacancy text returns the core problem of the hire and up to 15 requirements with a priority (must-have, important, nice-to-have) and the vacancy's own terms. It is stored by the MD5 of title and description (`vacancy_checklist`, V21); the server numbers the requirements r1, r2, …
+- **Employer match.** For a document text, a call proposes a status (covered, partial, missing) and a word-for-word quote per requirement. The server checks every quote: a quote that is not in the document (whitespace aside) makes the requirement missing; a quote found only in a Skills section or a "Skills:" line makes it at most partial, because covered needs proof in experience or projects. The score is computed in code: round(100 × Σ(weight × status) / Σ(weight)), weights 3/2/1, statuses 1/0.5/0. The checked statuses are cached by the checklist's hash and the text's hash (`document_match`), so an unchanged text always has the same score and a tailored text is scored on the same checklist as its base.
+- **Goal match.** One call per vacancy text and goal (main goal plus weights, by hash; `goal_match`) rates each parameter of the preset 0..100 with a reason; code averages them with the normalised weights. A deal-breaker the vacancy hits is a separate warning, not part of the score. Generating documents does not change it.
+- **Staleness.** A changed vacancy text no longer matches the stored checklist: the drawer shows that the earlier analysis no longer applies (no checklist, no Employer match) and that the Goal match comes from the earlier text, and the next run computes both again.
+- **When AI is called.** The lists keep the quick fit (no AI). The drawer reads what is known without AI; with AI on it runs the analysis once, cached on the server, showing that it is working. Without AI the drawer shows the quick fit, labelled as a quick estimate. The consent text and README Security say what the analysis sends.
+- Every prompt starts with the guardrail and keeps the vacancy, the checklist and the document in their own data blocks (ADR-048).
+
+- **Display (T-096).** Both matches are bars with the percentage and a level word (low, medium, high) written out; the bar is a focusable `meter` with its value spoken, so nothing depends on colour. A caption says the Employer match is coverage of the vacancy's requirements, not a chance of being hired. After a draft or a saved version the drawer shows `Base 62% → Tailored 78% (+16)` with the newly covered and the still missing requirements, scored on the same checklist; "Score my edit" scores the editor's text before saving.
+
+**Consequences.** Opening a vacancy with AI on costs up to four calls the first time (checklist, goal, base resume, base cover letter) and none afterwards while the texts stay the same. A model that quotes loosely loses points rather than gaining them.
+
+## ADR-050 Resume PDF of at most two pages
+
+Status: Accepted (T-097). Specification: [specs/M7-ai-presets.md](specs/M7-ai-presets.md).
+
+**Context.** Employers' systems and recruiters read a PDF; the owner wants every resume kept as a PDF of one or two pages, never longer, and the package to carry it.
+
+**Decision.**
+- **Renderer.** `ResumePdf` writes the PDF with PDFBox (already a dependency): A4, one column, real text, body at 10.5 pt, bold headings, bullets, a thin rule under each section; no tables, icons, photos or text boxes; contacts stay in the body. It reads the plain Markdown of the documents (`#` name, `##` section, `###` role, `- ` bullets); emphasis marks are dropped and a link shows its text and address. A character without a glyph becomes "?" rather than failing.
+- **Font.** Liberation Sans Regular and Bold 2.1.5 (SIL Open Font License 1.1, compatible with the project), chosen by the owner on 2026-11-02 and downloaded from the official release of github.com/liberationfonts; only these two files and the licence are in `resources/fonts`. They are embedded as subsets, so Cyrillic and Latin render the same everywhere. No new library.
+- **Two pages at most.** Code counts the pages after every render. Every saved resume version stores its PDF (`tailored_document.pdf`, V22); a text whose PDF has 3 or more pages is refused (422) and nothing is stored. After an AI draft of a resume over two pages, AI is asked to shorten the least relevant content, at most twice; if it still does not fit, the draft comes with the reason and the owner edits by hand ("Shorten with AI" stays available, with the same limit).
+- **Use as is.** When the base resume was uploaded as a PDF of one or two pages, that file is used unchanged; otherwise the PDF is rendered from the text. An uploaded PDF of three pages or more is refused.
+- **Packages.** The ZIP carries the resume PDF and the checklist names it as the file to upload: the version's PDF, the uploaded PDF as it is, or a PDF made from the uploaded or pasted text (`application_package.resume_pdf`). A resume that does not fit two pages cannot go into a package. Versions saved before V22 get their PDF rendered when asked for.
+
+**Consequences.** The PDF layout is plain on purpose; a designed layout would need another renderer and an ADR. Shortening by AI removes content, so the owner checks the result (the fact check of T-098 still applies).
+
+## ADR-051 Deterministic fact check before saving
+
+Status: Accepted (T-098). Specification: [specs/M7-ai-presets.md](specs/M7-ai-presets.md).
+
+**Context.** The guardrail tells the model to use only facts from the base documents, but a model can still add a number, a date, an employer or a skill. Truth comes before the percentage: the owner must see every new fact and decide before the text becomes a version and a PDF.
+
+**Decision.**
+- `FactCheck` compares a text with the base documents of its snapshot (the base draft, plus the base resume for a cover letter) without AI: numbers and percentages (normalised, so 1,200 and 1200 are one number), dates (a year, a month and year, or month/year, in English and Ukrainian), job titles and companies (the `### Title, Company, City` lines of a resume, and "at Company" in prose), and technologies (the skill-like terms of ADR-040 the base does not mention). The vacancy's own company and title are not reported, since a letter may name its addressee.
+- The findings are shown above the editor with their line, and are checked again half a second after every edit.
+- **Saving waits.** A version made from a draft (or an edited copy of one) with findings is refused (422) unless the owner confirms the facts are true; a confirmation applies only to the exact findings shown, so new findings need a new confirmation. Because the PDF is made on saving, it waits too. Fixing the text removes the findings, and then no confirmation is needed.
+- The findings and the confirmation are stored with the version (`fact_findings`, `facts_confirmed`, V23).
+
+**Consequences.** The check is literal: a reworded fact that keeps its numbers and names passes, and a truthful new term (an abbreviation spelled out) has to be confirmed. That bias is deliberate.

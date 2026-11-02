@@ -1610,3 +1610,161 @@ label.inline {
     flex-wrap: wrap;
   }
 }
+
+/* M7: presets, job analysis and tailored documents */
+.warn-text {
+  color: var(--color-warning);
+}
+
+.prewrap {
+  margin: var(--space-2) 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.doc-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--space-3);
+}
+
+.doc-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+/* Base vs tailored: the + and − marks carry the meaning; colour only repeats it. */
+.diff {
+  max-height: 18rem;
+  margin: 0;
+  padding: var(--space-2);
+  overflow: auto;
+  list-style: none;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--font-size-xs);
+  white-space: pre-wrap;
+}
+
+.diff-mark {
+  display: inline-block;
+  width: 1.5ch;
+  font-weight: 600;
+}
+
+.diff-added {
+  background: var(--color-success-subtle);
+}
+
+.diff-removed {
+  background: var(--color-danger-subtle);
+  text-decoration: line-through;
+}
+
+/* Employer match: the status is a word; colour only repeats it. */
+.requirements {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.req-status {
+  display: inline-block;
+  min-width: 5.5em;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-sm, 4px);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-align: center;
+}
+
+.req-covered .req-status {
+  background: var(--color-success-subtle);
+  color: var(--color-success);
+}
+
+.req-partial .req-status {
+  background: var(--color-warning-subtle);
+  color: var(--color-warning);
+}
+
+.req-missing .req-status {
+  background: var(--color-danger-subtle);
+  color: var(--color-danger);
+}
+
+/* Match bars (T-096): the number and the level word carry the meaning. */
+.match-bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.match-bar-head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-weight: 540;
+}
+
+.match-track {
+  height: 0.6rem;
+  overflow: hidden;
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: 999px;
+  background: var(--color-bg-muted);
+}
+
+.match-track:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.match-fill {
+  height: 100%;
+  background: var(--color-accent);
+}
+
+.match-high .match-fill {
+  background: var(--color-success);
+}
+
+.match-low .match-fill {
+  background: var(--color-warning);
+}
+
+.comparison {
+  padding: var(--space-2);
+  border-left: 3px solid var(--color-accent-border);
+  background: var(--color-bg-subtle);
+}
+
+.comparison p {
+  margin: var(--space-1) 0 0;
+}
+
+/* Fact check (T-098) */
+.notice.warn {
+  border-color: var(--color-warning);
+  background: var(--color-warning-subtle);
+}
+
+.facts-list {
+  margin: var(--space-1) 0;
+  padding-left: var(--space-4);
+}
+
+.fact-kind {
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}

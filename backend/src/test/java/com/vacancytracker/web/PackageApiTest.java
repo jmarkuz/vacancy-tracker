@@ -32,6 +32,9 @@ class PackageApiTest extends AbstractIntegrationTest {
     @Autowired
     private MockMvc mvc;
 
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbc;
+
     private String vacancy;
 
     @BeforeEach
@@ -77,10 +80,11 @@ class PackageApiTest extends AbstractIntegrationTest {
 
         Map<String, String> files = unzip(mvc.perform(get("/api/packages/" + pkg + "/download"))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray());
-        assertThat(files.keySet()).containsExactlyInAnyOrder("resume-v2-Acme-Pay.docx", "resume-v2-Acme-Pay.md",
+        assertThat(files.keySet()).containsExactlyInAnyOrder("resume-v2-Acme-Pay.pdf", "resume-v2-Acme-Pay.docx", "resume-v2-Acme-Pay.md",
                 "cover-letter-v1-Acme-Pay.txt", "cover-letter-v1-Acme-Pay.docx", "vacancy.txt", "checklist.md");
         assertThat(files.get("resume-v2-Acme-Pay.md")).isEqualTo("# Jane v2");
-        assertThat(files.get("checklist.md")).contains("https://jobs.example.com/acme/1").contains("submit it yourself");
+        assertThat(files.get("checklist.md")).contains("https://jobs.example.com/acme/1").contains("submit it yourself")
+                .contains("Upload the resume: resume-v2-Acme-Pay.pdf");
         mvc.perform(get("/api/vacancies/" + vacancy)).andExpect(jsonPath("$.status").value("New"));
 
         mvc.perform(post("/api/packages/" + pkg + "/submitted").contentType(JSON).content("{\"note\":\"via the company site\"}"))
@@ -109,7 +113,8 @@ class PackageApiTest extends AbstractIntegrationTest {
                 .andReturn().getResponse().getContentAsByteArray());
 
         assertThat(files).containsEntry("resume-original-jane.txt", "Jane Doe, Java");
-        assertThat(files.get("checklist.md")).contains("Upload the resume: resume-original-jane.txt");
+        assertThat(files).containsKey("resume.pdf");
+        assertThat(files.get("checklist.md")).contains("Upload the resume: resume.pdf");
     }
 
     @Test
@@ -138,8 +143,14 @@ class PackageApiTest extends AbstractIntegrationTest {
         Map<String, String> files = unzip(mvc.perform(get("/api/packages/" + pkg + "/download"))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray());
 
-        assertThat(files).containsEntry("resume.txt", "Jane Doe, Java and Kafka").containsKey("resume.docx");
-        assertThat(files.get("checklist.md")).contains("Upload the resume: resume.docx");
+        assertThat(files).containsEntry("resume.txt", "Jane Doe, Java and Kafka").containsKey("resume.docx").containsKey("resume.pdf");
+        assertThat(files.get("checklist.md")).contains("Upload the resume: resume.pdf");
+
+        // A package prepared before resume PDFs were kept (no PDF stored) still downloads, with a PDF made now.
+        jdbc.update("UPDATE application_package SET resume_pdf = NULL WHERE id = CAST(? AS UUID)", pkg);
+        Map<String, String> legacy = unzip(mvc.perform(get("/api/packages/" + pkg + "/download"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray());
+        assertThat(legacy).containsKey("resume.pdf").containsEntry("resume.txt", "Jane Doe, Java and Kafka");
     }
 
     @Test

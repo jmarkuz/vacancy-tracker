@@ -12,12 +12,31 @@ export interface AiStatus {
 
 export type DocumentKind = "resume" | "cover_letter";
 
+/** A generated text not saved yet, with the base draft it adapts and the snapshot of what it was made from. */
 export interface Draft {
   kind: DocumentKind;
   content: string;
   provider: string;
   model: string;
+  snapshotId: string;
+  baseDraft: string;
+  presetName: string;
+  /** Resume only: pages of its PDF, how many times AI shortened it, and why it still does not fit two pages. */
+  pages: number | null;
+  shortened: number;
+  pageProblem: string | null;
+  /** Facts the draft has and its base draft does not (T-098). */
+  facts: FactFinding[];
 }
+
+/** A number, date, company, title or technology that is not in the base documents. */
+export interface FactFinding {
+  category: "number" | "date" | "company" | "title" | "technology";
+  value: string;
+  line: string;
+}
+
+export type DocumentOrigin = "ai" | "manual" | "base";
 
 /** A saved version (TailoredDocument). */
 export interface TailoredDocument {
@@ -26,28 +45,54 @@ export interface TailoredDocument {
   kind: DocumentKind;
   version: number;
   content: string;
-  origin: "ai" | "manual";
+  /** ai: adapted by AI and checked by you; manual: by hand; base: the preset's base draft as it is. */
+  origin: DocumentOrigin;
   provider: string | null;
   model: string | null;
   createdAt: string;
+  snapshotId: string | null;
+  /** Pages of the stored PDF (resumes saved since T-097). */
+  pdfPages: number | null;
+  factFindings: FactFinding[] | null;
+  factsConfirmed: boolean;
 }
 
 export const getAiStatus = (signal?: AbortSignal) => getJson<AiStatus>("/api/ai/status", signal);
 export const enableAi = () => requestJson<AiStatus>("POST", "/api/ai/consent");
 export const disableAi = () => requestJson<AiStatus>("DELETE", "/api/ai/consent");
 
-export const draftDocument = (vacancyId: string, kind: DocumentKind, instructions: string) =>
-  requestJson<Draft>("POST", `/api/vacancies/${encodeURIComponent(vacancyId)}/documents/draft`, { kind, instructions });
+export const draftDocument = (vacancyId: string, kind: DocumentKind, presetId: string | null, instructions: string) =>
+  requestJson<Draft>("POST", `/api/vacancies/${encodeURIComponent(vacancyId)}/documents/draft`, { kind, presetId, instructions });
+
+/** Saves the preset's base draft as the next version, unchanged; works with AI off. */
+export const saveAsIs = (vacancyId: string, kind: DocumentKind, presetId: string | null) =>
+  requestJson<TailoredDocument>("POST", `/api/vacancies/${encodeURIComponent(vacancyId)}/documents/as-is`, { kind, presetId });
 
 export const saveDocument = (
   vacancyId: string,
-  doc: { kind: DocumentKind; content: string; origin: "ai" | "manual"; provider?: string; model?: string },
+  doc: {
+    kind: DocumentKind;
+    content: string;
+    origin: "ai" | "manual";
+    provider?: string;
+    model?: string;
+    snapshotId?: string | null;
+    factsConfirmed?: boolean;
+  },
 ) => requestJson<TailoredDocument>("POST", `/api/vacancies/${encodeURIComponent(vacancyId)}/documents`, doc);
 
 export const listDocuments = (vacancyId: string, signal?: AbortSignal) =>
   getJson<TailoredDocument[]>(`/api/vacancies/${encodeURIComponent(vacancyId)}/documents`, signal);
 
-export const downloadUrl = (documentId: string, format: "docx" | "md" | "txt") =>
+/** The fact check of a text against the base documents of its draft; never calls AI. */
+export const checkFacts = (vacancyId: string, snapshotId: string, text: string) =>
+  requestJson<FactFinding[]>("POST", `/api/vacancies/${encodeURIComponent(vacancyId)}/documents/facts`, { snapshotId, text });
+
+/** AI shortens a resume that does not fit two pages, at most twice. */
+export const shortenResume = (vacancyId: string, text: string) =>
+  requestJson<{ content: string; pages: number; attempts: number }>("POST", `/api/vacancies/${encodeURIComponent(vacancyId)}/documents/shorten`, { text });
+
+export const downloadUrl = (documentId: string, format: "pdf" | "docx" | "md" | "txt") =>
   `/api/documents/${encodeURIComponent(documentId)}/download?format=${format}`;
 
 export const KIND_LABEL: Record<DocumentKind, string> = { resume: "Resume", cover_letter: "Cover letter" };

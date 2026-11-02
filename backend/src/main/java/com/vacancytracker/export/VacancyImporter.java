@@ -3,6 +3,7 @@ package com.vacancytracker.export;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vacancytracker.common.BackupSection;
 import com.vacancytracker.common.CanonicalUrl;
 import com.vacancytracker.export.BackupVacancy.BackupStatusEvent;
 import com.vacancytracker.vacancy.StatusEvent;
@@ -16,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.LinkedHashSet;
 import java.util.UUID;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
@@ -33,11 +35,13 @@ public class VacancyImporter {
     private final VacancyService service;
     private final ObjectMapper mapper;
     private final Clock clock;
+    private final ObjectProvider<BackupSection> sections;
 
-    public VacancyImporter(VacancyService service, ObjectMapper mapper, Clock clock) {
+    public VacancyImporter(VacancyService service, ObjectMapper mapper, Clock clock, ObjectProvider<BackupSection> sections) {
         this.service = service;
         this.mapper = mapper;
         this.clock = clock;
+        this.sections = sections;
     }
 
     public ImportReport importJson(String json) {
@@ -65,6 +69,12 @@ public class VacancyImporter {
                 report.fail(row, "record", "Not a valid vacancy object");
             } catch (IllegalArgumentException e) {
                 report.fail(row, "record", e.getMessage());
+            }
+        }
+        for (BackupSection section : sections.orderedStream().toList()) {
+            JsonNode value = root.get(section.name());
+            if (value != null && !value.isNull()) {
+                report.restored(section.name(), section.restore(value));
             }
         }
         return report.build();
@@ -343,8 +353,14 @@ public class VacancyImporter {
             errors.add(new ImportReport.RowError(row, field, message));
         }
 
+        private final java.util.Map<String, Integer> restored = new java.util.LinkedHashMap<>();
+
+        void restored(String section, int count) {
+            restored.put(section, count);
+        }
+
         ImportReport build() {
-            return new ImportReport(total, imported, List.copyOf(errors));
+            return new ImportReport(total, imported, List.copyOf(errors), java.util.Map.copyOf(restored));
         }
     }
 }
