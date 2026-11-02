@@ -97,11 +97,21 @@ class AdzunaContractTest extends AdapterContractTest {
     }
 
     @Test
-    void anUnknownCountryCodeIsRefusedBeforeAnyRequest() {
+    void anUnknownCountryCodeIsSkippedAndTheValidOnesStillRun() {
         HttpFetcher fetcher = new HttpFetcher(cache, new RetryPolicy(2, 1, 2, new Random(1)),
                 new DomainRateLimiter(0, clock, ms -> { }), ms -> { });
         var adapter = new AdzunaAdapter(fetcher, mapper, TestHttp.base(healthy), "id1", "key1",
-                List.of("gb", "../x"), "gb=GBP", "", 1);
+                List.of("GB", "../x"), "gb=GBP", "", 1);
+
+        assertThat(adapter.fetch().postings()).hasSize(1);
+    }
+
+    @Test
+    void whenNoCountryCodeIsValidTheSourceFailsBeforeAnyRequest() {
+        HttpFetcher fetcher = new HttpFetcher(cache, new RetryPolicy(2, 1, 2, new Random(1)),
+                new DomainRateLimiter(0, clock, ms -> { }), ms -> { });
+        var adapter = new AdzunaAdapter(fetcher, mapper, TestHttp.base(healthy), "id1", "key1",
+                List.of("../x"), "gb=GBP", "", 1);
 
         org.assertj.core.api.Assertions.assertThatThrownBy(adapter::fetch)
                 .isInstanceOf(com.vacancytracker.collection.http.UpstreamException.class)

@@ -71,7 +71,7 @@ public class RssAdapter implements SourceAdapter {
             try {
                 postings.addAll(readFeed(feed));
                 read++;
-            } catch (UpstreamException e) {
+            } catch (UpstreamException | IllegalArgumentException e) {
                 failed++;
                 String reason = "RSS feed " + feed.id() + ": " + e.getMessage();
                 firstError = firstError == null ? reason : firstError;
@@ -112,7 +112,7 @@ public class RssAdapter implements SourceAdapter {
             }
             String link = entry.getLink();
             String title = entry.getTitle() == null ? "" : entry.getTitle().trim();
-            if (title.isEmpty() || link == null || !(link.startsWith("http://") || link.startsWith("https://"))) {
+            if (title.isEmpty() || link == null || !(link.regionMatches(true, 0, "http://", 0, 7) || link.regionMatches(true, 0, "https://", 0, 8))) {
                 continue;
             }
             String id = entry.getUri() != null && !entry.getUri().isBlank() ? entry.getUri() : link;
@@ -122,8 +122,14 @@ public class RssAdapter implements SourceAdapter {
             String company = !feed.companyName().isBlank() ? feed.companyName() : !author.isEmpty() ? author : feed.id();
             found.putIfAbsent(id, new RawPosting(ID, feed.id() + ":" + id, link, title, company, null, null,
                     html == null ? null : Normalizer.plainText(html), null, null, null, null,
-                    entry.getPublishedDate() == null ? null : entry.getPublishedDate().toInstant()));
+                    postedAt(entry)));
         }
         return List.copyOf(found.values());
+    }
+
+    /** Atom requires only "updated", so it stands in when "published" is absent. */
+    private static java.time.Instant postedAt(SyndEntry entry) {
+        java.util.Date date = entry.getPublishedDate() != null ? entry.getPublishedDate() : entry.getUpdatedDate();
+        return date == null ? null : date.toInstant();
     }
 }

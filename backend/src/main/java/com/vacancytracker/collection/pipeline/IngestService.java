@@ -57,10 +57,12 @@ public class IngestService {
         if (existing.getLocation() == null && posting.location() != null) {
             existing.setPlacement(posting.location(), existing.getCountry(), existing.getWorkMode());
         }
-        if (existing.getCountry() == null && posting.country() != null) {
+        boolean countryFilled = existing.getCountry() == null && posting.country() != null
+                && Objects.equals(existing.getLocation(), posting.location());
+        if (countryFilled) {
             existing.setPlacement(existing.getLocation(), posting.country(), existing.getWorkMode());
         }
-        boolean changed = !Objects.equals(before, existing.getDescription())
+        boolean changed = countryFilled || !Objects.equals(before, existing.getDescription())
                 || !Objects.equals(beforeMin, existing.getSalaryMin())
                 || !Objects.equals(beforeMax, existing.getSalaryMax());
         vacancies.save(existing.toState());

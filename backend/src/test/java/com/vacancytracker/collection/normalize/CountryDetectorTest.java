@@ -25,7 +25,7 @@ class CountryDetectorTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"Remote", "Worldwide", "Europe", "Berlin", "Indianapolis, IN", "Wilmington, DE", "Atlanta, Georgia",
+    @ValueSource(strings = {"Remote", "Worldwide", "Europe", "Berlin", "Indianapolis, IN", "Wilmington, DE", "Atlanta, Georgia", "Granada", "Jersey",
             "Germany, France", "Remote, Germany or Poland"})
     void givesNothingWhenThereIsNoSingleCountry(String location) {
         assertThat(CountryDetector.detect(location)).isEmpty();
