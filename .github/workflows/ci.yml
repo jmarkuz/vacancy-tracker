@@ -88,6 +88,8 @@ jobs:
           echo "the app did not start"; cat app.log; exit 1
         env:
           APP_RATES_REFRESH_ON_STARTUP: "false"
+          # The full-cycle browser test uses the fake AI provider: nothing is sent to Claude in CI.
+          APP_AI_PROVIDER: fake
           SPRING_DATASOURCE_URL: jdbc:postgresql://127.0.0.1:5432/vacancy_tracker
           SPRING_DATASOURCE_USERNAME: vacancy
           SPRING_DATASOURCE_PASSWORD: ci-only-password
