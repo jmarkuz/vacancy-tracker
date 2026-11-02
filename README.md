@@ -19,6 +19,7 @@ Status: every planned task is done except a Jooble adapter (T-036), which is blo
 - Resume upload (PDF, DOCX, TXT, Markdown or pasted) and a fit score 0..100 for every vacancy with the reasons: matched and missing skills, title, years
 - Resume and cover letter adapted to one vacancy: a draft from Claude (off by default, explicit opt-in; the official CLI under your subscription or an API key) or your own text, edited before it is saved as a numbered version, downloadable as DOCX
 - Application package: the chosen versions as a ZIP with a checklist, the application page opened for you (you submit the form yourself), and "I submitted" moves the vacancy to Applied with the versions in its history
+- Mail tracking: answers of employers and LinkedIn notices from your mailbox (read-only), linked to the application with the reason, with a suggested status change you accept or dismiss
 - Automatic and on-demand collection ("Refresh" button with live per-source progress)
 - Inbox with keyboard triage (J/K, S, X, O) and score badges with reasons
 - Pipeline as a table or a Kanban board, with status history, follow-up dates and bulk actions with Undo

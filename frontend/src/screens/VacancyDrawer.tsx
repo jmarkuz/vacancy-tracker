@@ -8,6 +8,7 @@ import { safeLink } from "../domain/links";
 import { FitPanel } from "../components/FitPanel";
 import { DocumentsPanel } from "../components/DocumentsPanel";
 import { ApplyPanel } from "../components/ApplyPanel";
+import { VacancyMailPanel } from "../components/VacancyMailPanel";
 import { markSubmitted } from "../api/ai";
 import { StatusBadge } from "../components/StatusBadge";
 import { formatDate, formatSalary } from "./columns";
@@ -226,6 +227,8 @@ export function VacancyDrawer({ id, onClose, onChange }: Props) {
               disabled={saving}
               onSave={(text) => save(() => patchVacancy(id, { description: text }))}
             />
+
+            <VacancyMailPanel vacancyId={vacancy.id} onStatusChanged={() => save(() => getVacancy(id), true)} />
 
             <NotesEditor
               key={`notes-${vacancy.id}`}
