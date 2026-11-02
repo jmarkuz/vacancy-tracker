@@ -146,8 +146,10 @@ public class VacancyService {
         Vacancy vacancy = lockForChange(id);
         java.util.List<VacancyStatus> path = StatusPath.between(vacancy.getStatus(), target)
                 .orElseThrow(() -> new InvalidStatusTransitionException(vacancy.getStatus(), target));
-        for (VacancyStatus step : path) {
-            StatusEvent event = vacancy.changeStatus(step, clock.instant(), note);
+        // One microsecond apart (the database's resolution), so the history keeps the steps in their order.
+        java.time.Instant at = clock.instant();
+        for (int i = 0; i < path.size(); i++) {
+            StatusEvent event = vacancy.changeStatus(path.get(i), at.plusNanos(1_000L * i), note);
             repository.appendStatusEvent(event);
         }
         if (!path.isEmpty()) {
