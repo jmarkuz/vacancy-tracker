@@ -9,6 +9,8 @@ import { FitBadge } from "../components/FitBadge";
 import { actionForKey, activatesOnKey, isTypingTarget, moveSelection, selectionAfterRemoval } from "../domain/triage";
 import { Toast } from "../components/Toast";
 import { setQuery } from "../router";
+import { serializeCriteria } from "../domain/criteria";
+import { EMPTY_FILTER, filterFromParams, filterToParams, inboxCriteria, type InboxFilter, isActive } from "../domain/inboxFilter";
 import { formatDate } from "./columns";
 import { VacancyDrawer } from "./VacancyDrawer";
 
@@ -25,6 +27,8 @@ interface Props {
  * original, Enter opens details. Shortcuts are off while typing in a field or while the drawer is open.
  * The selection is a vacancy id, not a position: a key acts on the row that is highlighted when it is pressed,
  * however many rows a finished request has removed meanwhile (review 2026-11-02).
+ * The filter above the list (T-100) narrows the Inbox to New vacancies whose title or description has the given
+ * words, on the server; it is kept in the address, and "/" jumps to it.
  */
 export function Inbox({ params, dataVersion = 0 }: Props) {
   const [items, setItems] = useState<Vacancy[]>([]);
@@ -45,6 +49,21 @@ export function Inbox({ params, dataVersion = 0 }: Props) {
   openRef.current = openId;
   const selected = items.findIndex((v) => v.id === selectedId);
   const [fits, setFits] = useState<Record<string, ResumeFit>>({});
+  // What is typed; it reaches the address (and so the list) a moment after typing stops.
+  const applied = filterFromParams(params);
+  const [draft, setDraft] = useState<InboxFilter>(applied);
+  const filter = serializeCriteria(inboxCriteria(applied));
+  const searchRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const next = filterToParams(draft);
+      const now = filterToParams(filterFromParams(params));
+      if (JSON.stringify(next) !== JSON.stringify(now)) {
+        setQuery(next);
+      }
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [draft.words, draft.mode, draft.exclude]);
 
   // Fit to the resume for the rows on show (T-081); none when no resume is uploaded.
   useEffect(() => {
@@ -64,7 +83,7 @@ export function Inbox({ params, dataVersion = 0 }: Props) {
     const controller = new AbortController();
     setLoading(true);
     getJson<PageResponse<Vacancy>>(
-      `/api/vacancies?status=New&sort=lastSeenAt:desc&size=${PAGE_SIZE}`,
+      `/api/vacancies?status=New&sort=lastSeenAt:desc&size=${PAGE_SIZE}${filter ? `&filter=${encodeURIComponent(filter)}` : ""}`,
       controller.signal,
     )
       .then((page) => {
@@ -83,7 +102,7 @@ export function Inbox({ params, dataVersion = 0 }: Props) {
         }
       });
     return () => controller.abort();
-  }, [reload, dataVersion]);
+  }, [reload, dataVersion, filter]);
 
   const triage = async (vacancy: Vacancy, status: "Saved" | "Dismissed") => {
     if (triaging.current.has(vacancy.id)) {
@@ -122,6 +141,11 @@ export function Inbox({ params, dataVersion = 0 }: Props) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (openRef.current || e.repeat || isTypingTarget(e.target) || activatesOnKey(e.target, e.key)) {
+        return;
+      }
+      if (e.key === "/" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        searchRef.current?.focus();
         return;
       }
       const action = actionForKey(e.key, { ctrl: e.ctrlKey, meta: e.metaKey, alt: e.altKey }, e.code);
@@ -172,12 +196,52 @@ export function Inbox({ params, dataVersion = 0 }: Props) {
       <div class="toolbar">
         <h1 id="inbox-title">Inbox</h1>
         <span class="grow" />
-        <span class="muted small num">{total.toLocaleString()} new</span>
+        <span class="muted small num">
+          {total.toLocaleString()} new{isActive(applied) ? " matching the filter" : ""}
+        </span>
       </div>
+
+      <form class="inbox-filter" role="search" aria-label="Filter the Inbox" onSubmit={(e) => e.preventDefault()}>
+        <input
+          ref={searchRef}
+          class="input grow"
+          type="search"
+          aria-label="Words in the title or description"
+          placeholder='Words in the title or description, e.g. java remote "spring boot"'
+          value={draft.words}
+          maxLength={500}
+          onInput={(e) => setDraft({ ...draft, words: (e.target as HTMLInputElement).value })}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              (e.target as HTMLInputElement).blur();
+              listRef.current?.focus();
+            }
+          }}
+        />
+        <select class="input" aria-label="How the words must match" value={draft.mode}
+          onChange={(e) => setDraft({ ...draft, mode: (e.target as HTMLSelectElement).value === "any" ? "any" : "all" })}>
+          <option value="all">All words</option>
+          <option value="any">Any word</option>
+        </select>
+        <input
+          class="input"
+          type="search"
+          aria-label="Words to exclude"
+          placeholder="Exclude, e.g. crypto"
+          value={draft.exclude}
+          maxLength={500}
+          onInput={(e) => setDraft({ ...draft, exclude: (e.target as HTMLInputElement).value })}
+        />
+        {isActive(draft) && (
+          <button class="btn ghost" type="button" onClick={() => setDraft(EMPTY_FILTER)}>
+            Clear
+          </button>
+        )}
+      </form>
 
       <p class="shortcut-legend muted">
         <kbd>J</kbd>/<kbd>K</kbd> move · <kbd>S</kbd> save · <kbd>X</kbd> dismiss · <kbd>O</kbd> open original ·{" "}
-        <kbd>Enter</kbd> details
+        <kbd>Enter</kbd> details · <kbd>/</kbd> filter
       </p>
 
       {error && (
@@ -189,10 +253,18 @@ export function Inbox({ params, dataVersion = 0 }: Props) {
         </div>
       )}
 
-      {!error && !loading && items.length === 0 && (
+      {!error && !loading && items.length === 0 && !isActive(applied) && (
         <div class="panel empty-state">
           <h2>Inbox is empty</h2>
           <p class="muted">Refresh the sources to look for new vacancies.</p>
+        </div>
+      )}
+      {!error && !loading && items.length === 0 && isActive(applied) && (
+        <div class="panel empty-state">
+          <h2>No new vacancy matches the filter</h2>
+          <button class="btn" type="button" onClick={() => setDraft(EMPTY_FILTER)}>
+            Clear the filter
+          </button>
         </div>
       )}
 

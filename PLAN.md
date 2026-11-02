@@ -160,3 +160,9 @@ Specification: [docs/specs/M7-ai-presets.md](docs/specs/M7-ai-presets.md) (owner
 | [x] 2026-11-02 | T-097 | Resume PDF, two pages at most | M | T-094 | Every resume version and package has a PDF (A4, one column, embedded font with Cyrillic, 10 pt or more); an uploaded 1-2 page PDF is used as is; over two pages AI shortens at most twice, then the owner edits; 3+ pages are never saved |
 | [x] 2026-11-02 | T-098 | Fact check | S | T-094 | New numbers, dates, companies, titles and technologies against the base draft are shown above the editor; saving and the PDF wait until fixed or confirmed; the confirmation is kept in the version |
 | [x] 2026-11-02 | T-099 | Finish: tests and documents | M | T-093..T-098 | Fake AI answers for checklist, statuses and shortening; Playwright scenario of the whole M7 flow; PLAN, tasks.csv, CHANGELOG, README and architecture updated |
+
+## Owner requests after M7
+
+| Done | ID | Title | Est | Depends on | Acceptance criteria |
+|---|---|---|---|---|---|
+| [x] 2026-11-03 | T-100 | Inbox filter by words | S | T-048 | Inbox narrows to New vacancies whose title or description has the words (all or any), minus excluded words, filtered on the server; kept in the address; "/" focuses it; an empty result offers to clear; keyboard triage unchanged |
