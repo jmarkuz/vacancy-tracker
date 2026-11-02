@@ -16,7 +16,11 @@ import org.springframework.stereotype.Repository;
 class PackageRepository {
 
     private static final String COLUMNS = "id, vacancy_id, resume_document_id, cover_letter_document_id, apply_url, note, status,"
-            + " created_at, submitted_at";
+            + " created_at, submitted_at, resume_file_name";
+
+    /** The package's own copy of the uploaded resume. */
+    record ResumeCopy(String fileName, String contentType, byte[] bytes) {
+    }
 
     private final JdbcClient jdbc;
 
@@ -24,8 +28,10 @@ class PackageRepository {
         this.jdbc = jdbc;
     }
 
-    void insert(ApplicationPackage p) {
-        jdbc.sql("INSERT INTO application_package (" + COLUMNS + ") VALUES (:id, :v, :r, :c, :url, :note, :status, :at, NULL)")
+    /** copy is null when the package carries a tailored resume version instead. */
+    void insert(ApplicationPackage p, ResumeCopy copy) {
+        jdbc.sql("INSERT INTO application_package (" + COLUMNS + ", resume_content_type, resume_bytes)"
+                        + " VALUES (:id, :v, :r, :c, :url, :note, :status, :at, NULL, :file, :type, :bytes)")
                 .param("id", p.id())
                 .param("v", p.vacancyId())
                 .param("r", p.resumeDocumentId())
@@ -34,7 +40,19 @@ class PackageRepository {
                 .param("note", p.note())
                 .param("status", p.status())
                 .param("at", OffsetDateTime.ofInstant(p.createdAt(), ZoneOffset.UTC))
+                .param("file", copy == null ? null : copy.fileName())
+                .param("type", copy == null ? null : copy.contentType())
+                .param("bytes", copy == null ? null : copy.bytes())
                 .update();
+    }
+
+    Optional<ResumeCopy> resumeCopy(UUID id) {
+        return jdbc.sql("SELECT resume_file_name, resume_content_type, resume_bytes FROM application_package"
+                        + " WHERE id = :id AND resume_bytes IS NOT NULL")
+                .param("id", id)
+                .query((rs, n) -> new ResumeCopy(rs.getString("resume_file_name"), rs.getString("resume_content_type"),
+                        rs.getBytes("resume_bytes")))
+                .optional();
     }
 
     /** Marks it submitted once; answers false when it already was. */
@@ -60,6 +78,7 @@ class PackageRepository {
         return new ApplicationPackage(rs.getObject("id", UUID.class), rs.getObject("vacancy_id", UUID.class),
                 rs.getObject("resume_document_id", UUID.class), rs.getObject("cover_letter_document_id", UUID.class),
                 rs.getString("apply_url"), rs.getString("note"), rs.getString("status"),
-                rs.getObject("created_at", OffsetDateTime.class).toInstant(), submitted == null ? null : submitted.toInstant());
+                rs.getObject("created_at", OffsetDateTime.class).toInstant(), submitted == null ? null : submitted.toInstant(),
+                rs.getString("resume_file_name"));
     }
 }

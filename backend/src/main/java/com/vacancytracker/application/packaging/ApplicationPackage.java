@@ -13,7 +13,9 @@ public record ApplicationPackage(
         String note,
         String status,
         Instant createdAt,
-        Instant submittedAt) {
+        Instant submittedAt,
+        /** The copy of the uploaded resume this package carries when no tailored version was chosen, else null. */
+        String resumeFileName) {
 
     public static final String PREPARED = "prepared";
     public static final String SUBMITTED = "submitted";

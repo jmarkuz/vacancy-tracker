@@ -3,6 +3,7 @@ package com.vacancytracker.application.packaging;
 import com.vacancytracker.application.documents.DocumentService;
 import com.vacancytracker.application.documents.DocxWriter;
 import com.vacancytracker.application.documents.TailoredDocument;
+import com.vacancytracker.application.resume.Resume;
 import com.vacancytracker.application.resume.ResumeRepository;
 import com.vacancytracker.application.resume.ResumeService;
 import com.vacancytracker.common.CanonicalUrl;
@@ -31,6 +32,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class PackageService {
 
+    /** The name of the copy kept for a pasted resume, which has no file of its own. */
+    static final String PASTED_RESUME = "resume.txt";
+
     private final PackageRepository repository;
     private final DocumentService documents;
     private final ResumeService resumes;
@@ -55,17 +59,30 @@ public class PackageService {
         Vacancy vacancy = vacancies.get(vacancyId);
         check(resumeDocumentId, vacancyId, TailoredDocument.RESUME);
         check(coverLetterDocumentId, vacancyId, TailoredDocument.COVER_LETTER);
-        if (resumeDocumentId == null && resumes.findActive().isEmpty()) {
-            throw new IllegalArgumentException("Choose a resume version, or upload your resume first.");
-        }
+        PackageRepository.ResumeCopy copy = resumeDocumentId == null ? copyOfActiveResume() : null;
         String link = applyUrl == null || applyUrl.isBlank() ? vacancy.getUrl() : CanonicalUrl.webLink(applyUrl);
         if (applyUrl != null && !applyUrl.isBlank() && link == null) {
             throw new IllegalArgumentException("The application page must be an http:// or https:// address.");
         }
         ApplicationPackage p = new ApplicationPackage(UUID.randomUUID(), vacancyId, resumeDocumentId, coverLetterDocumentId, link,
-                note == null || note.isBlank() ? null : note.strip(), ApplicationPackage.PREPARED, clock.instant(), null);
-        repository.insert(p);
+                note == null || note.isBlank() ? null : note.strip(), ApplicationPackage.PREPARED, clock.instant(), null,
+                copy == null ? null : copy.fileName());
+        repository.insert(p, copy);
         return p;
+    }
+
+    /**
+     * Without a tailored version the package keeps its own copy of the resume as it is now, so replacing the resume
+     * later does not change what this application was sent with. A pasted resume has no file: its text is the copy.
+     */
+    private PackageRepository.ResumeCopy copyOfActiveResume() {
+        Resume active = resumes.findActive()
+                .orElseThrow(() -> new IllegalArgumentException("Choose a resume version, or upload your resume first."));
+        if (active.fileName() == null) {
+            return new PackageRepository.ResumeCopy(PASTED_RESUME, "text/plain", active.text().getBytes(StandardCharsets.UTF_8));
+        }
+        ResumeRepository.Original original = resumes.original();
+        return new PackageRepository.ResumeCopy(original.fileName(), original.contentType(), original.bytes());
     }
 
     private void check(UUID documentId, UUID vacancyId, String kind) {
@@ -132,9 +149,17 @@ public class PackageService {
                 put(zip, resumeFile, DocxWriter.write(resume.content()));
                 put(zip, resume.fileName(vacancy.getCompany(), "md"), resume.content().getBytes(StandardCharsets.UTF_8));
             } else {
-                ResumeRepository.Original original = resumes.original();
-                resumeFile = "resume-original-" + (original.fileName() == null ? "resume.txt" : original.fileName().replaceAll("[\\\\/]", "_"));
-                put(zip, resumeFile, original.bytes());
+                PackageRepository.ResumeCopy copy = repository.resumeCopy(id)
+                        .orElseThrow(() -> new NotFoundException("This package has no resume copy; prepare a new package."));
+                if (PASTED_RESUME.equals(copy.fileName())) {
+                    String text = new String(copy.bytes(), StandardCharsets.UTF_8);
+                    resumeFile = "resume.docx";
+                    put(zip, resumeFile, DocxWriter.write(text));
+                    put(zip, PASTED_RESUME, copy.bytes());
+                } else {
+                    resumeFile = "resume-original-" + copy.fileName().replaceAll("[\\\\/]", "_");
+                    put(zip, resumeFile, copy.bytes());
+                }
             }
             String letterFile = null;
             if (p.coverLetterDocumentId() != null) {

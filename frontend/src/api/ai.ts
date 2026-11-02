@@ -80,6 +80,8 @@ export interface ApplicationPackage {
   status: "prepared" | "submitted";
   createdAt: string;
   submittedAt: string | null;
+  /** The package's own copy of the uploaded resume when no tailored version was chosen. */
+  resumeFileName: string | null;
 }
 
 export const preparePackage = (

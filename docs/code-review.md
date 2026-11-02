@@ -59,6 +59,17 @@ The weak spots are (1) the build did not run on current tools, (2) the local API
 | U13 | low | The Export screen is a placeholder and "Add one by URL" has no UI behind it. | `App.tsx:34,145`, `Pipeline.tsx:161` | Fixed in the gap work (T-079) |
 | U14 | low | No component tests for Inbox triage, the drawer, the board or the palette. | tests | Open (T-092) |
 
+### Second opinion before the pull request (Codex, base master)
+
+All four findings were fixed on 2026-11-02, each with a regression test:
+
+| Priority | Finding | Fix | Test |
+|---|---|---|---|
+| P1 | `remoteok`, `workingnomads` and `telegram-forward` list only a window (or only what the owner forwards), but expiry treated them as full listings and could expire every vacancy they no longer show | Added to `ExpiryService.WINDOWED_SOURCES` | `ExpiryAndRunLockTest.theNewWindowedAndIncrementalSourcesNeverExpireAVacancy` |
+| P2 | A package without a tailored resume read the *current* resume file at download time, so replacing the resume changed what an old application seemed to have been sent with | The package keeps its own copy of the resume as it was when prepared (V18) | `PackageApiTest.replacingTheResumeLaterDoesNotChangeAPreparedPackage` |
+| P2 | With a pasted resume (no file) the package ZIP could not be downloaded | The copy of a pasted resume is its text: the ZIP holds `resume.docx` and `resume.txt` | `PackageApiTest.aPastedResumeGoesIntoThePackageAsTextAndWord` |
+| P2 | Editing a vacancy's title or description left its fit computed from the old text | Each fit stores a hash of the text it scored (V18); a changed text makes it stale for the background pass and for reads | `ResumeApiTest.editingTheVacancyTextMakesItsFitStale`, `readingAFitRescoresAPostingWhoseTextChanged` |
+
 ### Keyboard shortcuts that must be kept
 
 Inventory used as the regression list for the redesign (T-090): Ctrl/Cmd+K palette (also in text fields); Esc leaves a field first, then closes the drawer; Tab is trapped in the drawer and the palette; palette ↑/↓/Enter/Esc; Inbox J/K/S/X/O/Enter and double-click; board Alt+←/Alt+→, drag and drop and the Move list; rule builder Alt+↑/Alt+↓; Enter submits forms. The design README says plain ←/→ for the board, the code needs Alt: the code is kept and the README corrected.
