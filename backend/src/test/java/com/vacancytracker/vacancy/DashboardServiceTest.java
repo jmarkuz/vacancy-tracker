@@ -131,4 +131,20 @@ class DashboardServiceTest extends AbstractIntegrationTest {
         assertThat(weeks.stream().mapToLong(DashboardService.Week::applications).sum()).isEqualTo(3);
         assertThat(weeks.get(0).start()).isBefore(weeks.get(7).start());
     }
+
+    @Test
+    void aStageTakenBackByUndoIsNotCounted() {
+        Instant now = Instant.now();
+        UUID id = vacancy("undone", "Saved", null, now, null, null);
+        template.update("INSERT INTO status_event (id, vacancy_id, to_status, at) VALUES (?, ?, 'Applied', ?)",
+                UUID.randomUUID(), id, java.sql.Timestamp.from(now.minusSeconds(60)));
+        template.update("INSERT INTO status_event (id, vacancy_id, from_status, to_status, at, note) VALUES (?, ?, 'Applied', 'Saved', ?, ?)",
+                UUID.randomUUID(), id, java.sql.Timestamp.from(now), BulkStatusService.UNDO_NOTE);
+
+        Dashboard d = service.dashboard();
+
+        assertThat(d.funnel()).extracting(DashboardService.FunnelStage::status, DashboardService.FunnelStage::count)
+                .contains(org.assertj.core.groups.Tuple.tuple("Saved", 1L), org.assertj.core.groups.Tuple.tuple("Applied", 0L));
+        assertThat(d.applicationsPerWeek().stream().mapToLong(DashboardService.Week::applications).sum()).isZero();
+    }
 }

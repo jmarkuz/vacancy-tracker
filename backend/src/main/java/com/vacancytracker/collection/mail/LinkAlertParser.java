@@ -93,7 +93,7 @@ public abstract class LinkAlertParser implements MailParser {
         }
         List<ParsedJob> jobs = new ArrayList<>();
         for (Map.Entry<String, String> entry : titles.entrySet()) {
-            List<String> around = linesAround(first.get(entry.getKey()), entry.getValue());
+            List<String> around = linesAround(first.get(entry.getKey()), entry.getValue(), first.values());
             String company = around.isEmpty() ? null : around.get(0);
             String location = around.size() > 1 ? around.get(1) : null;
             if (company != null && location == null && company.contains(" · ")) {
@@ -108,13 +108,19 @@ public abstract class LinkAlertParser implements MailParser {
 
     /**
      * The text lines of the smallest enclosing block that has more than the title, with the title and generic
-     * button labels removed. The block is the table cell, list item or division the link sits in.
+     * button labels removed. The block is the table cell, list item or division the link sits in, and never one that
+     * also holds another posting's link.
      */
-    private List<String> linesAround(Element link, String title) {
+    private List<String> linesAround(Element link, String title, java.util.Collection<Element> allLinks) {
         Element block = link;
         List<String> lines = List.of();
         for (int depth = 0; depth < 6 && block.parent() != null; depth++) {
             block = block.parent();
+            Element enclosing = block;
+            if (allLinks.stream().anyMatch(other -> other != link && other.parents().contains(enclosing))) {
+                // The block holds another posting too: its lines would be shared, so none of them is this one's own.
+                break;
+            }
             lines = leafLines(block).stream()
                     .filter(l -> !l.equals(title) && !generic.contains(l.toLowerCase(java.util.Locale.ROOT)))
                     .toList();

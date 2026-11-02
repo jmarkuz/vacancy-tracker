@@ -25,6 +25,7 @@ import { setQuery } from "../router";
 import { formatDate } from "./columns";
 
 const POLL_MS = 700;
+const MAX_IDLE_POLLS = 5;
 
 interface Props {
   params: URLSearchParams;
@@ -76,12 +77,19 @@ export function Profiles({ params }: Props) {
   /** Polls until the job has finished, then shows the summary once. */
   const watch = () => {
     window.clearInterval(timer.current);
+    let idle = 0;
     timer.current = window.setInterval(async () => {
       try {
         const p = await getRecalculationProgress();
         if (!p) {
+          // No job to follow: stop after a few empty answers instead of asking for ever.
+          idle += 1;
+          if (idle >= MAX_IDLE_POLLS) {
+            window.clearInterval(timer.current);
+          }
           return;
         }
+        idle = 0;
         setProgress(p);
         if (p.state === "COMPLETED") {
           window.clearInterval(timer.current);

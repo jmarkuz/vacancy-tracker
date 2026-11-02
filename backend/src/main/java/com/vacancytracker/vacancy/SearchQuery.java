@@ -15,7 +15,11 @@ public final class SearchQuery {
 
     static final int MAX_TERMS = 8;
     static final int MAX_TERM_LENGTH = 40;
-    private static final Pattern WORD = Pattern.compile("[\\p{L}\\p{N}]+");
+    /**
+     * A word, or words joined by dots. PostgreSQL's parser keeps "node.js" as one token, so such a term also matches
+     * as the whole token, next to its parts.
+     */
+    private static final Pattern WORD = Pattern.compile("[\\p{L}\\p{N}]+(?:\\.[\\p{L}\\p{N}]+)*");
 
     private SearchQuery() {
     }
@@ -29,8 +33,19 @@ public final class SearchQuery {
         Matcher m = WORD.matcher(text.toLowerCase(Locale.ROOT));
         while (m.find() && terms.size() < MAX_TERMS) {
             String word = m.group();
-            terms.add(word.substring(0, Math.min(word.length(), MAX_TERM_LENGTH)) + ":*");
+            word = word.substring(0, Math.min(word.length(), MAX_TERM_LENGTH));
+            terms.add(word.contains(".") ? dotted(word) : word + ":*");
         }
         return terms.isEmpty() ? Optional.empty() : Optional.of(String.join(" & ", terms));
+    }
+
+    private static String dotted(String word) {
+        List<String> parts = new ArrayList<>();
+        for (String part : word.split("\\.")) {
+            if (!part.isEmpty()) {
+                parts.add(part + ":*");
+            }
+        }
+        return "('" + word + "':* | (" + String.join(" & ", parts) + "))";
     }
 }

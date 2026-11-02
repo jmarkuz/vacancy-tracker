@@ -17,6 +17,7 @@ import com.tngtech.archunit.lang.ArchRule;
 class ArchitectureTest {
 
     private static final String BASE = "com.vacancytracker.";
+    private static final java.util.List<String> MODULES = java.util.List.of("vacancy", "collection", "matching", "export", "notification", "web", "common");
 
     private static ArchRule onlyDependsOn(String module, String... allowed) {
         String[] own = new String[allowed.length + 1];
@@ -24,7 +25,7 @@ class ArchitectureTest {
         for (int i = 0; i < allowed.length; i++) {
             own[i + 1] = BASE + allowed[i] + "..";
         }
-        String[] others = java.util.stream.Stream.of("vacancy", "collection", "matching", "export", "notification", "web", "common")
+        String[] others = MODULES.stream()
                 .filter(m -> !m.equals(module) && !java.util.Arrays.asList(allowed).contains(m))
                 .map(m -> BASE + m + "..")
                 .toArray(String[]::new);
@@ -56,6 +57,12 @@ class ArchitectureTest {
 
     @ArchTest
     static final ArchRule notificationDependsOnCollectionToo = onlyDependsOn("notification", "vacancy", "matching", "collection", "common");
+
+    @ArchTest
+    static final ArchRule everyPackageIsAKnownModule = classes().that().resideInAPackage("com.vacancytracker..")
+            .and().resideOutsideOfPackage("com.vacancytracker")
+            .should().resideInAnyPackage(MODULES.stream().map(m -> BASE + m + "..").toArray(String[]::new))
+            .as("a new top-level package must be added to the module list above, with its rule");
 
     @ArchTest
     static final ArchRule modulesHaveNoCycles = slices().matching(BASE + "(*)..").should().beFreeOfCycles();

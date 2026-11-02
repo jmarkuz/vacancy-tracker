@@ -96,4 +96,15 @@ class LinkedInAlertParserTest {
 
         assertThat(jobs.get(0).title()).isEqualTo("<b>Title</b>");
     }
+
+    @Test
+    void lineSharedByTwoPostingsIsNotTakenAsEitherOnesCompany() {
+        String html = "<div><a href=\"https://www.linkedin.com/jobs/view/3911111111/\">Role One</a>"
+                + "<a href=\"https://www.linkedin.com/jobs/view/3922222222/\">Role Two</a><p>Some footer line</p></div>";
+
+        List<ParsedJob> jobs = parser.parse(mail("jobalerts-noreply@linkedin.com", null, html));
+
+        assertThat(jobs).extracting(ParsedJob::title).containsExactly("Role One", "Role Two");
+        assertThat(jobs).extracting(ParsedJob::company).containsOnlyNulls();
+    }
 }

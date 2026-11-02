@@ -122,8 +122,9 @@ public class HttpFetcher {
             if (isRedirect(status) && redirectsLeft > 0) {
                 closeQuietly(response);
                 URI next = redirectTarget(uri, response);
-                // Same host only: the request headers (a key, for some sources) and the pacing belong to this host.
-                return fetch(next.toString(), conditional ? next.toString() : cacheKey, headers, conditional, redirectsLeft - 1, attempts);
+                // Same host only: the request headers (a key, for some sources) and the pacing belong to this host. The cache
+                // key stays the one the caller chose, so validators are found again next time and an address is never stored.
+                return fetch(next.toString(), cacheKey, headers, conditional, redirectsLeft - 1, attempts);
             }
             if (status == 304 && known.isPresent()) {
                 closeQuietly(response);

@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * Profiles with full version history (T-049, ADR-010). Every save, including a restore, writes a new
@@ -21,11 +23,30 @@ public class SearchProfileService {
     private final SearchProfileRepository repository;
     private final ProfileValidator validator;
     private final Clock clock;
+    private final java.util.concurrent.atomic.AtomicLong generation = new java.util.concurrent.atomic.AtomicLong();
 
     public SearchProfileService(SearchProfileRepository repository, ProfileValidator validator, Clock clock) {
         this.repository = repository;
         this.validator = validator;
         this.clock = clock;
+    }
+
+    /** Grows each time a profile change has been committed, so a long run can tell that its profiles are stale. */
+    public long generation() {
+        return generation.get();
+    }
+
+    private void committed() {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    generation.incrementAndGet();
+                }
+            });
+        } else {
+            generation.incrementAndGet();
+        }
     }
 
     @Transactional
@@ -35,6 +56,7 @@ public class SearchProfileService {
         Instant now = clock.instant();
         repository.insert(id, content, 1, now);
         repository.insertVersion(id, 1, content, now);
+        committed();
         return get(id);
     }
 
@@ -46,6 +68,7 @@ public class SearchProfileService {
         Instant now = clock.instant();
         repository.update(id, content, next, now);
         repository.insertVersion(id, next, content, now);
+        committed();
         return get(id);
     }
 
@@ -86,5 +109,6 @@ public class SearchProfileService {
         if (!repository.delete(id)) {
             throw new NotFoundException("Profile not found: " + id);
         }
+        committed();
     }
 }
