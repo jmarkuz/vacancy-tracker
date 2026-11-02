@@ -734,3 +734,19 @@ Status: Accepted (T-094). Specification: [specs/M7-ai-presets.md](specs/M7-ai-pr
 - The consent notice in Settings and README Security list what is sent now: the vacancy, the preset's goal, weights and prompt, the base documents and the owner's instructions; Use as is sends nothing.
 
 **Consequences.** A draft that is never saved leaves its snapshot behind; snapshots are small and deleted with the vacancy. The old "write from the resume" prompts are gone: a cover letter without a filled base cover letter cannot be generated.
+
+## ADR-049 Employer match and Goal match
+
+Status: Accepted (T-095). Specification: [specs/M7-ai-presets.md](specs/M7-ai-presets.md).
+
+**Context.** The quick fit (ADR-040) compares keywords. The owner wants to see how well a document covers what the employer asks for, and how well the vacancy fits their own goal, with numbers that mean the same before and after a document is tailored and that the model cannot inflate.
+
+**Decision.**
+- **Checklist.** With AI on, one call per vacancy text returns the core problem of the hire and up to 15 requirements with a priority (must-have, important, nice-to-have) and the vacancy's own terms. It is stored by the MD5 of title and description (`vacancy_checklist`, V21); the server numbers the requirements r1, r2, …
+- **Employer match.** For a document text, a call proposes a status (covered, partial, missing) and a word-for-word quote per requirement. The server checks every quote: a quote that is not in the document (whitespace aside) makes the requirement missing; a quote found only in a Skills section or a "Skills:" line makes it at most partial, because covered needs proof in experience or projects. The score is computed in code: round(100 × Σ(weight × status) / Σ(weight)), weights 3/2/1, statuses 1/0.5/0. The checked statuses are cached by the checklist's hash and the text's hash (`document_match`), so an unchanged text always has the same score and a tailored text is scored on the same checklist as its base.
+- **Goal match.** One call per vacancy text and goal (main goal plus weights, by hash; `goal_match`) rates each parameter of the preset 0..100 with a reason; code averages them with the normalised weights. A deal-breaker the vacancy hits is a separate warning, not part of the score. Generating documents does not change it.
+- **Staleness.** A changed vacancy text no longer matches the stored checklist: the drawer shows that the earlier analysis no longer applies (no checklist, no Employer match) and that the Goal match comes from the earlier text, and the next run computes both again.
+- **When AI is called.** The lists keep the quick fit (no AI). The drawer reads what is known without AI; with AI on it runs the analysis once, cached on the server, showing that it is working. Without AI the drawer shows the quick fit, labelled as a quick estimate. The consent text and README Security say what the analysis sends.
+- Every prompt starts with the guardrail and keeps the vacancy, the checklist and the document in their own data blocks (ADR-048).
+
+**Consequences.** Opening a vacancy with AI on costs up to four calls the first time (checklist, goal, base resume, base cover letter) and none afterwards while the texts stay the same. A model that quotes loosely loses points rather than gaining them.

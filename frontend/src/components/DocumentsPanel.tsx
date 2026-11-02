@@ -22,6 +22,9 @@ interface Props {
   vacancyId: string;
   title: string;
   company: string;
+  /** The chosen preset, shared with the analysis; null until the default one is known. */
+  presetId: string | null;
+  onPresetChange: (id: string) => void;
   /** Called after a version is saved, so the application package sees it. */
   onSaved?: (doc: TailoredDocument) => void;
 }
@@ -59,11 +62,10 @@ const baseUsable = (preset: Preset | undefined, kind: DocumentKind) =>
  * base draft as it is or let AI adapt the base draft to this vacancy. An AI draft opens in an editor next to the
  * comparison with the base draft; nothing is stored until "Save as version N". Every saved version stays.
  */
-export function DocumentsPanel({ vacancyId, onSaved }: Props) {
+export function DocumentsPanel({ vacancyId, presetId, onPresetChange, onSaved }: Props) {
   const [docs, setDocs] = useState<TailoredDocument[]>([]);
   const [ai, setAi] = useState<AiStatus | null>(null);
   const [presets, setPresets] = useState<Preset[]>([]);
-  const [presetId, setPresetId] = useState<string | null>(null);
   const [editing, setEditing] = useState<Editing | null>(null);
   const [showDiff, setShowDiff] = useState(true);
   const [instructions, setInstructions] = useState("");
@@ -77,7 +79,10 @@ export function DocumentsPanel({ vacancyId, onSaved }: Props) {
     listPresets(controller.signal)
       .then((list) => {
         setPresets(list);
-        setPresetId((current) => current ?? list.find((p) => p.isDefault)?.id ?? list[0]?.id ?? null);
+        const chosen = presetId ?? list.find((p) => p.isDefault)?.id ?? list[0]?.id;
+        if (chosen && chosen !== presetId) {
+          onPresetChange(chosen);
+        }
       })
       .catch(() => undefined);
     return () => controller.abort();
@@ -129,7 +134,7 @@ export function DocumentsPanel({ vacancyId, onSaved }: Props) {
       <div class="drawer-row">
         <label class="small">
           Preset{" "}
-          <select class="input" aria-label="Preset for the documents" value={presetId ?? ""} onChange={(e) => setPresetId((e.target as HTMLSelectElement).value)}>
+          <select class="input" aria-label="Preset for the documents" value={presetId ?? ""} onChange={(e) => onPresetChange((e.target as HTMLSelectElement).value)}>
             {presets.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
