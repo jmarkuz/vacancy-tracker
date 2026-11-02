@@ -93,16 +93,7 @@ export function Board({ items, onMove, onOpen }: Props) {
                       <button type="button" class="row-open" onClick={() => onOpen(v.id)}>{v.title}</button>
                       <div class="muted small">{v.company}</div>
                       {allowedNext(v.status).length > 0 && (
-                        <select class="input" aria-label={`Move ${v.title} to`} value=""
-                          onChange={(e) => {
-                            const to = (e.target as HTMLSelectElement).value;
-                            if (to) {
-                              move(v, to, true);
-                            }
-                          }}>
-                          <option value="">Move to…</option>
-                          {allowedNext(v.status).map((s) => <option key={s} value={s}>{s}</option>)}
-                        </select>
+                        <CardMover key={`${v.id}-${v.status}`} vacancy={v} onMove={(to) => move(v, to, true)} />
                       )}
                     </div>
                   </li>
@@ -112,6 +103,23 @@ export function Board({ items, onMove, onOpen }: Props) {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+/** Choosing a column and moving are separate: arrow keys on a closed select would otherwise move the card at once. */
+function CardMover({ vacancy, onMove }: { vacancy: Vacancy; onMove: (to: string) => void }) {
+  const [to, setTo] = useState("");
+  return (
+    <div class="card-mover">
+      <select class="input" aria-label={`Move ${vacancy.title} to`} value={to}
+        onChange={(e) => setTo((e.target as HTMLSelectElement).value)}>
+        <option value="">Move to…</option>
+        {allowedNext(vacancy.status).map((s) => <option key={s} value={s}>{s}</option>)}
+      </select>
+      <button type="button" class="btn" disabled={!to} onClick={() => onMove(to)} aria-label={`Move ${vacancy.title}`}>
+        Move
+      </button>
     </div>
   );
 }

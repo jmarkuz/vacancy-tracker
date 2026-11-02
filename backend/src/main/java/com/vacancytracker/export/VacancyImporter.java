@@ -132,6 +132,10 @@ public class VacancyImporter {
         if (b.priority() != null && (b.priority() < 1 || b.priority() > 3)) {
             throw new ImportFieldException("priority", "priority must be between 1 and 3");
         }
+        String link = CanonicalUrl.webLink(b.url());
+        if (blankToNull(b.url()) != null && link == null) {
+            throw new ImportFieldException("url", "url must be an http or https link");
+        }
         nonNegative(b.salaryMin(), "salaryMin");
         nonNegative(b.salaryMax(), "salaryMax");
         Instant firstSeen = b.firstSeenAt() == null ? now : b.firstSeenAt();
@@ -140,8 +144,8 @@ public class VacancyImporter {
                 b.id() == null ? UUID.randomUUID() : b.id(),
                 title,
                 company,
-                blankToNull(b.url()),
-                blankToNull(b.url()) == null ? null : CanonicalUrl.of(b.url()).orElse(null),
+                link,
+                link == null ? null : CanonicalUrl.of(link).orElse(null),
                 blankToNull(b.location()),
                 blankToNull(b.country()),
                 blankToNull(b.workMode()),
@@ -160,7 +164,8 @@ public class VacancyImporter {
                 b.userEditedFields() == null ? java.util.Set.of() : new LinkedHashSet<>(b.userEditedFields()),
                 firstSeen,
                 lastSeen,
-                false);
+                false,
+                com.vacancytracker.vacancy.VisaSponsorship.detect(title, b.description()));
     }
 
     private static List<StatusEvent> toHistory(UUID vacancyId, List<BackupStatusEvent> events) {

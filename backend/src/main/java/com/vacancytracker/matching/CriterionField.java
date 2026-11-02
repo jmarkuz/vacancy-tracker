@@ -27,7 +27,8 @@ public enum CriterionField {
     FIRST_SEEN_AT("firstSeenAt", Kind.DATE, List.of("first_seen_at")),
     POSTED_AT("postedAt", Kind.DATE, List.of("posted_at")),
     LAST_SEEN_AT("lastSeenAt", Kind.DATE, List.of("last_seen_at")),
-    NEXT_ACTION_AT("nextActionAt", Kind.DATE, List.of("next_action_at"));
+    NEXT_ACTION_AT("nextActionAt", Kind.DATE, List.of("next_action_at")),
+    VISA_SPONSORSHIP("visaSponsorship", Kind.BOOLEAN, List.of("visa_sponsorship"));
 
     enum Kind {
         TEXT(Set.of("contains_any", "contains_all", "not_contains", "equals", "in", "not_in", "regex", "exists", "not_exists")),
@@ -37,7 +38,8 @@ public enum CriterionField {
         SALARY(Set.of("gte", "lte", "between", "exists", "not_exists")),
         DATE(Set.of("gte", "lte", "between", "exists", "not_exists")),
         TAGS(Set.of("contains_any", "contains_all", "not_contains", "exists", "not_exists")),
-        SOURCE(Set.of("equals", "in", "not_in"));
+        SOURCE(Set.of("equals", "in", "not_in")),
+        BOOLEAN(Set.of("equals", "exists", "not_exists"));
 
         final Set<String> operators;
 

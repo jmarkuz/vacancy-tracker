@@ -140,6 +140,24 @@ class ExpiryAndRunLockTest extends AbstractIntegrationTest {
         assertThat(statusOf("Windowed Engineer")).isEqualTo("New");
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"remoteok", "workingnomads", "telegram-forward"})
+    void theNewWindowedAndIncrementalSourcesNeverExpireAVacancy(String adapterId) {
+        AtomicBoolean seen = new AtomicBoolean(true);
+        RawPosting posting = new RawPosting(adapterId, "p-1", "https://ex.com/" + adapterId, "Engineer " + adapterId, "Acme", null,
+                null, "Plain.", null, null, null, null, null);
+        CollectionPipeline pipeline = pipeline(List.of(adapter(adapterId, () -> FetchOutcome.of(seen.get() ? List.of(posting) : List.of()))));
+        pipeline.run("manual");
+        seen.set(false);
+
+        for (int i = 0; i < 5; i++) {
+            clock.advance(Duration.ofHours(1));
+            pipeline.run("manual");
+        }
+
+        assertThat(statusOf("Engineer " + adapterId)).isEqualTo("New");
+    }
+
     @Test
     void aVacancyFoundOnlyInAnAlertEmailNeverExpires() {
         AtomicBoolean seen = new AtomicBoolean(true);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { describe as describeCriterion, parseCriteria, serializeCriteria, toValue } from "./criteria";
+import { describe as describeCriterion, parseCriteria, serializeCriteria, toValue, needsInput, operatorKey, specFor } from "./criteria";
 
 describe("parseCriteria", () => {
   it("returns an empty list for missing or malformed input", () => {
@@ -62,5 +62,26 @@ describe("describe", () => {
 
   it("falls back to raw names for unknown fields", () => {
     expect(describeCriterion({ field: "mystery", operator: "equals", value: "x" })).toBe("mystery equals x");
+  });
+});
+
+describe("yes/no fields", () => {
+  it("carry their value in the operator and need no input", () => {
+    expect(toValue("yes", "")).toBe(true);
+    expect(toValue("no", "anything")).toBe(false);
+    expect(needsInput("yes")).toBe(false);
+    expect(needsInput("none")).toBe(false);
+    expect(needsInput("text")).toBe(true);
+  });
+
+  it("describe a visa filter in words, not as true or false", () => {
+    expect(describeCriterion({ field: "visaSponsorship", operator: "equals", value: true })).toBe("Visa sponsorship is offered");
+    expect(describeCriterion({ field: "visaSponsorship", operator: "equals", value: false })).toBe("Visa sponsorship is not offered");
+    expect(describeCriterion({ field: "visaSponsorship", operator: "not_exists" })).toBe("Visa sponsorship is not stated");
+  });
+
+  it("tell apart two choices with the same operator by key", () => {
+    const visa = specFor("visaSponsorship")!;
+    expect(new Set(visa.operators.map(operatorKey)).size).toBe(visa.operators.length);
   });
 });

@@ -24,8 +24,12 @@ public class ExpiryService {
 
     static final String NOTE = "auto-expired";
 
-    /** Sources that show only part of what is open, so missing from them proves nothing. */
-    static final List<String> WINDOWED_SOURCES = List.of("remotive", "jobicy", "arbeitnow", "himalayas", "adzuna", "rss", "html");
+    /**
+     * Sources that show only part of what is open, so missing from them proves nothing. telegram-forward returns only
+     * the posts forwarded since the last run, like an email (ADR-045).
+     */
+    static final List<String> WINDOWED_SOURCES = List.of("remotive", "jobicy", "arbeitnow", "himalayas", "adzuna", "rss", "html",
+            "remoteok", "workingnomads", "telegram-forward");
 
     private static final String CANDIDATES = """
             SELECT v.id FROM vacancy v
@@ -66,7 +70,7 @@ public class ExpiryService {
     }
 
     private void expire(UUID id) {
-        Vacancy vacancy = Vacancy.restore(vacancies.findById(id).orElseThrow());
+        Vacancy vacancy = Vacancy.restore(vacancies.findByIdForUpdate(id).orElseThrow());
         if (vacancy.getStatus() != VacancyStatus.NEW && vacancy.getStatus() != VacancyStatus.SAVED) {
             return;
         }

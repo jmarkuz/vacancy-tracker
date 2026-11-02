@@ -10,12 +10,25 @@ const KEYS: Record<string, TriageAction> = {
   Enter: "open-details",
 };
 
-/** Maps a key to an action. Modified keys (Ctrl, Cmd, Alt) are left to the browser. */
-export function actionForKey(key: string, mods: { ctrl: boolean; meta: boolean; alt: boolean }): TriageAction | null {
+/**
+ * Maps a key to an action. Modified keys (Ctrl, Cmd, Alt) are left to the browser. `code` is the physical key
+ * (KeyJ): with a Ukrainian or Russian layout `key` is "о" for J, so the letter is taken from the position instead.
+ */
+export function actionForKey(
+  key: string,
+  mods: { ctrl: boolean; meta: boolean; alt: boolean },
+  code?: string,
+): TriageAction | null {
   if (mods.ctrl || mods.meta || mods.alt) {
     return null;
   }
-  return KEYS[key.length === 1 ? key.toLowerCase() : key] ?? null;
+  const byKey = KEYS[key.length === 1 ? key.toLowerCase() : key];
+  if (byKey) {
+    return byKey;
+  }
+  const letter = /^Key([A-Z])$/.exec(code ?? "");
+  // Only for keys that are not Latin letters themselves, so a layout like Dvorak keeps its own letters.
+  return letter && !/^[a-z]$/i.test(key) ? (KEYS[letter[1].toLowerCase()] ?? null) : null;
 }
 
 /** Moves the selection and keeps it inside the list. An empty list selects nothing (-1). */

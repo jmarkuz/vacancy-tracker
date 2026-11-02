@@ -24,6 +24,8 @@ export interface Vacancy {
   firstSeenAt: string;
   lastSeenAt: string;
   isNew: boolean;
+  /** From the posting text: true offered, false not offered, null not stated (ADR-044). */
+  visaSponsorship?: boolean | null;
 }
 
 export interface PageResponse<T> {

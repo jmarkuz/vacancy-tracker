@@ -80,6 +80,14 @@ public class HttpFetcher {
         return fetch(url, url, Map.of(), true, MAX_REDIRECTS, 1);
     }
 
+    /**
+     * An unconditional GET tried once: no validators are sent or stored, so the address never becomes a cache key.
+     * For addresses that carry a secret in the path (a Telegram bot token) and for answers that are never repeated.
+     */
+    public FetchResult getUnconditionalOnce(String url) {
+        return fetch(url, url, Map.of(), false, MAX_REDIRECTS, 1);
+    }
+
     /** As {@link #getUnconditional(String)} with extra headers, for sources that need a key in a header. */
     public FetchResult getUnconditional(String url, Map<String, String> headers) {
         return fetch(url, url, headers, false, MAX_REDIRECTS, retry.maxAttempts());

@@ -61,6 +61,7 @@ Deployment units: `app` (backend with bundled static UI) and `postgres` (with a 
 | `matching` | SearchProfile, Criterion, rule engine, score, VacancyMatch, recalculation, currency rates | `vacancy` |
 | `export` | CSV, XLSX, JSON backup and import with validation | `vacancy`, `matching` |
 | `notification` | Telegram digest (disabled by default) | `vacancy`, `matching`, `collection` (run-finished events) |
+| `application` | The resume and its fit to each vacancy, AI-assisted documents behind an explicit opt-in, application packages, and the correspondence that follows an application (M6) | `vacancy`, `matching`, `collection` (run-finished events, the IMAP reader) |
 | `web` | REST controllers, SSE endpoints, static UI serving, auth filter | all of the above |
 | `common` | Time, IDs, error model, logging and masking helpers | none |
 
