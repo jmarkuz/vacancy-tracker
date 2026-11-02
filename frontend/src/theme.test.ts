@@ -8,28 +8,31 @@ afterEach(() => {
 });
 
 describe("theme", () => {
-  it("cycles system, light, dark", () => {
-    expect(nextTheme("system")).toBe("light");
-    expect(nextTheme("light")).toBe("dark");
-    expect(nextTheme("dark")).toBe("system");
-  });
-
-  it("stores and restores a manual choice", () => {
-    applyTheme("dark");
-    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+  it("is dark when nothing was chosen", () => {
     expect(readTheme()).toBe("dark");
   });
 
-  it("removes the attribute for system and keeps the stored value", () => {
+  it("cycles dark, light, system", () => {
+    expect(nextTheme("dark")).toBe("light");
+    expect(nextTheme("light")).toBe("system");
+    expect(nextTheme("system")).toBe("dark");
+  });
+
+  it("stores and restores a manual choice", () => {
     applyTheme("light");
+    expect(document.documentElement.getAttribute("data-theme")).toBe("light");
+    expect(readTheme()).toBe("light");
+  });
+
+  it("marks system explicitly so the tokens can follow the system preference", () => {
     applyTheme("system");
-    expect(document.documentElement.hasAttribute("data-theme")).toBe(false);
+    expect(document.documentElement.getAttribute("data-theme")).toBe("system");
     expect(readTheme()).toBe("system");
   });
 
   it("ignores unknown stored values", () => {
     window.localStorage.setItem("vt-theme", "neon");
-    expect(readTheme()).toBe("system");
+    expect(readTheme()).toBe("dark");
   });
 
   it("still applies the theme when storage is blocked", () => {
@@ -39,8 +42,8 @@ describe("theme", () => {
     vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
       throw new Error("blocked");
     });
-    expect(() => applyTheme("dark")).not.toThrow();
-    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
-    expect(readTheme()).toBe("system");
+    expect(() => applyTheme("light")).not.toThrow();
+    expect(document.documentElement.getAttribute("data-theme")).toBe("light");
+    expect(readTheme()).toBe("dark");
   });
 });
