@@ -86,8 +86,8 @@ T-084,Application package and the apply page,M6,M,T-083,todo
 T-085,Mark submitted and Applied in the pipeline,M6,S,T-084,todo
 T-086,Correspondence: job mail from IMAP classified,M6,M,T-076,todo
 T-087,Link mail to applications and suggest a status,M6,M,"T-086,T-085",todo
-T-088,Owner's source list terms check,M6,M,T-077,todo
-T-089,Adapters for the allowed new sources,M6,M,T-088,todo
+T-088,Owner's source list terms check,M6,M,T-077,done
+T-089,Adapters for the allowed new sources,M6,M,T-088,done
 T-090,third-party design file and dark-first UI,M6,M,T-081,todo
 T-091,Full-cycle end-to-end test,M6,M,"T-087,T-089",todo
 T-092,Backlog from the review,M6,M,T-076,todo

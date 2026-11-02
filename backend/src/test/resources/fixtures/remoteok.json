@@ -1,0 +1,10 @@
+[
+  {"last_updated": 1793635200, "legal": "API Terms of Service: Please link back to the URL on Remote OK and mention Remote OK as a source."},
+  {"slug": "remote-backend-engineer-acme-1001", "id": "1001", "epoch": 1793620000, "date": "2026-11-02T12:00:00+00:00",
+   "company": "Acme", "position": "Backend Engineer", "tags": ["java", "backend"], "description": "<p>Build <b>APIs</b>.</p>",
+   "location": "Europe", "salary_min": 70000, "salary_max": 90000, "apply_url": "https://acme.example/apply/1001",
+   "url": "https://remoteok.com/remote-jobs/remote-backend-engineer-acme-1001"},
+  {"slug": "remote-designer-beta-1002", "id": "1002", "epoch": 1793610000, "company": "Beta", "position": "Product Designer",
+   "tags": [], "description": "Design things.", "location": "", "salary_min": 0, "salary_max": 0,
+   "url": "https://remoteok.com/remote-jobs/remote-designer-beta-1002"}
+]
