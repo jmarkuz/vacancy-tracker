@@ -61,7 +61,7 @@ Deployment units: `app` (backend with bundled static UI) and `postgres` (with a 
 | `matching` | SearchProfile, Criterion, rule engine, score, VacancyMatch, recalculation, currency rates | `vacancy` |
 | `export` | CSV, XLSX, JSON backup and import with validation | `vacancy`, `matching` |
 | `notification` | Telegram digest (disabled by default) | `vacancy`, `matching`, `collection` (run-finished events) |
-| `application` | The resume and its fit to each vacancy, AI-assisted documents behind an explicit opt-in, application packages, and the correspondence that follows an application (M6) | `vacancy`, `matching`, `collection` (run-finished events, the IMAP reader) |
+| `application` | The resume and its fit to each vacancy, AI-assisted documents behind an explicit opt-in, application packages, and the correspondence that follows an application (M6); AI presets (`preset`), generation from base drafts with snapshots, the resume PDF and the fact check (`documents`), and the Employer and Goal match (`analysis`) (M7). Presets reach the JSON backup through `common.BackupSection`, so `export` does not depend on `application` | `vacancy`, `matching`, `collection` (run-finished events, the IMAP reader) |
 | `web` | REST controllers, SSE endpoints, static UI serving, auth filter | all of the above |
 | `common` | Time, IDs, error model, logging and masking helpers | none |
 
@@ -251,6 +251,74 @@ erDiagram
         numeric rate
         text source
         timestamptz fetched_at
+    }
+```
+
+Tables of M6 and M7 (the resume and documents side; each `vacancy_id` refers to `VACANCY` and is deleted with it):
+
+```mermaid
+erDiagram
+    RESUME ||--o{ AI_PRESET : "base resume of"
+    VACANCY ||--o{ TAILORED_DOCUMENT : "has versions"
+    GENERATION_SNAPSHOT ||--o{ TAILORED_DOCUMENT : "made from"
+    VACANCY ||--o| VACANCY_CHECKLIST : "requirements"
+    VACANCY ||--o{ DOCUMENT_MATCH : "scored texts"
+    VACANCY ||--o{ GOAL_MATCH : "per goal"
+    VACANCY ||--o{ APPLICATION_PACKAGE : "packages"
+    TAILORED_DOCUMENT ||--o{ APPLICATION_PACKAGE : "chosen version"
+    RESUME {
+        uuid id PK
+        text text
+        bool active "the default preset's base resume"
+    }
+    AI_PRESET {
+        uuid id PK
+        text name
+        bool is_default
+        text main_goal
+        jsonb weights
+        text resume_prompt
+        text cover_letter_prompt
+        uuid base_resume_id FK
+        text base_cover_letter
+    }
+    GENERATION_SNAPSHOT {
+        uuid id PK
+        text preset_name
+        text guardrail
+        text main_goal
+        jsonb weights
+        text prompt
+        text base_draft
+    }
+    TAILORED_DOCUMENT {
+        uuid id PK
+        text kind
+        int version
+        text origin "ai, manual, base"
+        uuid snapshot_id FK
+        bytea pdf
+        smallint pdf_pages "1 or 2"
+        jsonb fact_findings
+        bool facts_confirmed
+    }
+    VACANCY_CHECKLIST {
+        uuid vacancy_id PK
+        text text_hash
+        text checklist_hash
+        jsonb checklist
+    }
+    DOCUMENT_MATCH {
+        uuid vacancy_id PK
+        text checklist_hash PK
+        text text_hash PK
+        jsonb items "checked statuses and quotes"
+    }
+    GOAL_MATCH {
+        uuid vacancy_id PK
+        text goal_hash PK
+        text text_hash
+        jsonb result
     }
 ```
 

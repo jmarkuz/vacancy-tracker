@@ -58,18 +58,28 @@ test("the resume is uploaded and the vacancy shows its fit with the reasons", as
 
   await page.goto(`/#/pipeline?open=${vacancyId}`);
   const drawer = page.getByRole("dialog", { name: TITLE });
-  await expect(drawer.getByRole("heading", { name: /Fit to your resume/ })).toBeVisible();
+  await expect(drawer.getByRole("heading", { name: "How this vacancy fits" })).toBeVisible();
+  await expect(drawer.getByText(/a quick estimate from your resume keywords, without AI/)).toBeVisible();
   await expect(drawer.locator(".reasons")).toContainText("Matches");
   await expect(drawer.locator(".reasons")).toContainText("Not in your resume: Docker");
   await expect(drawer.getByText("Offered")).toBeVisible(); // visa sponsorship read from the text
   expect(problems).toEqual([]);
 });
 
-test("AI stays off until switched on, then drafts are edited and saved as versions", async ({ page }) => {
+test("AI stays off until switched on, then drafts are edited and saved as versions", async ({ page, request }) => {
   const problems = watchErrors(page);
+  // The default preset gets a goal and a base cover letter (M7); its base resume is the resume uploaded above.
+  const presets = (await (await request.get("/api/presets")).json()) as { id: string }[];
+  expect(
+    (await request.patch(`/api/presets/${presets[0].id}`, {
+      data: { mainGoal: "Backend roles in payments.", baseCoverLetter: "Dear Hiring Manager,\n\nI build payment systems." },
+    })).status(),
+  ).toBe(200);
   await page.goto(`/#/pipeline?open=${vacancyId}`);
   const drawer = page.getByRole("dialog", { name: TITLE });
-  await expect(drawer.getByRole("button", { name: "Generate resume with AI" })).toBeDisabled();
+  const resumeCard = drawer.getByRole("group", { name: "Resume", exact: true });
+  const letterCard = drawer.getByRole("group", { name: "Cover letter", exact: true });
+  await expect(resumeCard.getByRole("button", { name: "Generate with AI" })).toBeDisabled();
 
   await page.goto("/#/settings");
   await expect(page.getByText("Fake provider for tests")).toBeVisible();
@@ -78,17 +88,21 @@ test("AI stays off until switched on, then drafts are edited and saved as versio
   await expect(page.locator(".state-badge")).toHaveText("On");
 
   await page.goto(`/#/pipeline?open=${vacancyId}`);
-  await drawer.getByRole("button", { name: "Generate resume with AI" }).click();
+  await resumeCard.getByRole("button", { name: "Generate with AI" }).click();
   const resumeText = drawer.getByLabel("Resume text");
-  await expect(resumeText).toHaveValue(/# Tailored resume for Backend Engineer at Acme Pay/);
+  // An adaptation of the base resume: the fake adds the two vacancy skills it lacks, and the fact check catches them.
+  await expect(resumeText).toHaveValue(/^Jane Doe[\s\S]*Built production services with Docker and AWS\./);
   await resumeText.fill(`${await resumeText.inputValue()}\nChecked by Jane.`);
+  await expect(drawer.getByText("Not in your base draft.")).toBeVisible();
+  await expect(drawer.getByRole("button", { name: "Save as version 1" })).toBeDisabled();
+  await drawer.getByLabel("These facts are true and I can back them up in an interview").check();
   await drawer.getByRole("button", { name: "Save as version 1" }).click();
-  await expect(drawer.getByText(/v1 · AI draft, edited by you/)).toBeVisible();
+  await expect(resumeCard.getByText(/v1 · AI adaptation, checked by you/)).toBeVisible();
 
-  await drawer.getByRole("button", { name: "Generate cover letter with AI" }).click();
-  await expect(drawer.getByLabel("Cover letter text")).toHaveValue(/Dear Acme Pay team/);
+  await letterCard.getByRole("button", { name: "Generate with AI" }).click();
+  await expect(drawer.getByLabel("Cover letter text")).toHaveValue(/I am applying for the Backend Engineer role at Acme Pay\./);
   await drawer.getByRole("button", { name: "Save as version 1" }).click();
-  await expect(drawer.getByText(/v1 · AI draft, edited by you/)).toHaveCount(2);
+  await expect(letterCard.getByText(/v1 · AI adaptation, checked by you/)).toBeVisible();
   expect(problems).toEqual([]);
 });
 
