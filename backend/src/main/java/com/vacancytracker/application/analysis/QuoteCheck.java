@@ -1,5 +1,7 @@
 package com.vacancytracker.application.analysis;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Pattern;
 
 /**
@@ -34,8 +36,10 @@ final class QuoteCheck {
         // a blank line. A one-word line inside a Markdown Skills section is a skill, not a new heading.
         boolean markdown = document.lines().anyMatch(l -> l.strip().startsWith("#"));
         boolean inSkills = false;
-        boolean skillsHit = false;
-        boolean evidenceHit = false;
+        // The whole text, whitespace normalised, with a mark per character: is it in a Skills section or line? A quote
+        // that runs over a line break is then judged by the lines it covers, like any other.
+        StringBuilder text = new StringBuilder();
+        List<Boolean> skills = new ArrayList<>();
         for (String raw : document.split("\n")) {
             String line = raw.strip();
             if (markdown) {
@@ -47,21 +51,29 @@ final class QuoteCheck {
             } else if (PLAIN_HEADING.matcher(line).matches()) {
                 inSkills = SKILLS_HEADING.matcher(line).find();
             }
-            if (normalise(raw).contains(q)) {
-                if (inSkills || SKILLS_LINE.matcher(line).lookingAt()) {
-                    skillsHit = true;
-                } else {
-                    evidenceHit = true;
+            String normalised = normalise(raw);
+            if (normalised.isEmpty()) {
+                continue;
+            }
+            boolean skillsLine = inSkills || SKILLS_LINE.matcher(line).lookingAt();
+            if (!text.isEmpty()) {
+                text.append(' ');
+                skills.add(skillsLine);
+            }
+            text.append(normalised);
+            for (int i = 0; i < normalised.length(); i++) {
+                skills.add(skillsLine);
+            }
+        }
+        boolean found = false;
+        for (int at = text.indexOf(q); at >= 0; at = text.indexOf(q, at + 1)) {
+            found = true;
+            for (int i = at; i < at + q.length(); i++) {
+                if (!skills.get(i)) {
+                    return Place.EVIDENCE;
                 }
             }
         }
-        if (evidenceHit) {
-            return Place.EVIDENCE;
-        }
-        if (skillsHit) {
-            return Place.SKILLS_ONLY;
-        }
-        // A quote that runs over a line break.
-        return normalise(document).contains(q) ? Place.EVIDENCE : Place.NOT_FOUND;
+        return found ? Place.SKILLS_ONLY : Place.NOT_FOUND;
     }
 }

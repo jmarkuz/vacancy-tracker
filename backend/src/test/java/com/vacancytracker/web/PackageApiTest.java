@@ -32,6 +32,9 @@ class PackageApiTest extends AbstractIntegrationTest {
     @Autowired
     private MockMvc mvc;
 
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbc;
+
     private String vacancy;
 
     @BeforeEach
@@ -142,6 +145,12 @@ class PackageApiTest extends AbstractIntegrationTest {
 
         assertThat(files).containsEntry("resume.txt", "Jane Doe, Java and Kafka").containsKey("resume.docx").containsKey("resume.pdf");
         assertThat(files.get("checklist.md")).contains("Upload the resume: resume.pdf");
+
+        // A package prepared before resume PDFs were kept (no PDF stored) still downloads, with a PDF made now.
+        jdbc.update("UPDATE application_package SET resume_pdf = NULL WHERE id = CAST(? AS UUID)", pkg);
+        Map<String, String> legacy = unzip(mvc.perform(get("/api/packages/" + pkg + "/download"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray());
+        assertThat(legacy).containsKey("resume.pdf").containsEntry("resume.txt", "Jane Doe, Java and Kafka");
     }
 
     @Test

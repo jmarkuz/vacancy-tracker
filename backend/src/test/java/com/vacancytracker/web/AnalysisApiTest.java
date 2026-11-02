@@ -33,6 +33,9 @@ class AnalysisApiTest extends AbstractIntegrationTest {
     private MockMvc mvc;
 
     @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbc;
+
+    @Autowired
     private FakeAiClient fake;
 
     private String preset;
@@ -152,6 +155,18 @@ class AnalysisApiTest extends AbstractIntegrationTest {
         assertThat(JsonPath.<Integer>read(after, "$.resume.match.score")).isEqualTo(86);
         assertThat(JsonPath.<Integer>read(after, "$.baseResume.match.score")).isEqualTo(68);
         assertThat(JsonPath.<Integer>read(match(edited), "$.score")).isEqualTo(86);
+    }
+
+    @Test
+    void aChangedLocationOrCompanyMakesTheGoalMatchStaleToo() throws Exception {
+        mvc.perform(post("/api/ai/consent"));
+        analysis();
+
+        jdbc.update("UPDATE vacancy SET location = 'Berlin, on-site' WHERE id = CAST(? AS UUID)", vacancy);
+
+        mvc.perform(get("/api/vacancies/" + vacancy + "/analysis"))
+                .andExpect(jsonPath("$.goalState").value("stale"))
+                .andExpect(jsonPath("$.checklistState").value("stale"));
     }
 
     @Test

@@ -98,6 +98,26 @@ public class ResumePdfTest {
     }
 
     @Test
+    void aLongLinkAfterOrdinaryTextIsBrokenInsideTheColumn() throws IOException {
+        String link = "https://github.com/jane-doe/" + "a-very-long-repository-name-without-any-spaces".repeat(3);
+        ResumePdf.Rendered pdf = ResumePdf.render("# Jane Doe\n- Portfolio and code samples: " + link);
+        try (PDDocument doc = Loader.loadPDF(pdf.bytes())) {
+            float right = PDRectangle.A4.getWidth();
+            List<Float> ends = new ArrayList<>();
+            PDFTextStripper stripper = new PDFTextStripper() {
+                @Override
+                protected void writeString(String text, List<TextPosition> positions) throws IOException {
+                    positions.forEach(p -> ends.add(p.getXDirAdj() + p.getWidthDirAdj()));
+                    super.writeString(text, positions);
+                }
+            };
+            String text = stripper.getText(doc).replaceAll("\\s+", "");
+            assertThat(text).contains(link.replaceAll("\\s+", ""));
+            assertThat(ends).allSatisfy(x -> assertThat(x).isLessThan(right - 40));
+        }
+    }
+
+    @Test
     void charactersWithoutAGlyphDoNotBreakTheRender() throws IOException {
         ResumePdf.Rendered pdf = ResumePdf.render("# Jane 🚀 Doe\n- Shipped 😀 things");
         try (PDDocument doc = Loader.loadPDF(pdf.bytes())) {

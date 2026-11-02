@@ -50,6 +50,8 @@ interface Editing {
   facts?: FactFinding[];
   /** The findings the owner confirmed as true; a confirmation counts only for exactly these findings. */
   confirmedFacts?: string | null;
+  /** The text the facts were checked for; saving waits while the text has changed since. */
+  checkedText?: string;
 }
 
 const factsKey = (facts: FactFinding[] | undefined) => JSON.stringify((facts ?? []).map((f) => `${f.category}:${f.value}`));
@@ -191,6 +193,7 @@ export function DocumentsPanel({ vacancyId, presetId, onPresetChange, onSaved }:
         tooLong: d.pageProblem !== null && d.pageProblem !== undefined,
         facts: d.facts,
         confirmedFacts: null,
+        checkedText: d.content,
       });
       setShowDiff(true);
       void score(kind, d.baseDraft, d.content, "Tailored");
@@ -229,7 +232,7 @@ export function DocumentsPanel({ vacancyId, presetId, onPresetChange, onSaved }:
     let live = true;
     const timer = window.setTimeout(() => {
       checkFacts(vacancyId, editedSnapshot, editedText)
-        .then((facts) => live && setEditing((current) => (current && current.content === editedText ? { ...current, facts } : current)))
+        .then((facts) => live && setEditing((current) => (current && current.content === editedText ? { ...current, facts, checkedText: editedText } : current)))
         .catch(() => undefined);
     }, 500);
     return () => {
@@ -238,7 +241,9 @@ export function DocumentsPanel({ vacancyId, presetId, onPresetChange, onSaved }:
     };
   }, [vacancyId, editedText, editedSnapshot]);
 
-  const factsBlock = !!editing?.facts?.length && editing.confirmedFacts !== factsKey(editing.facts);
+  // Saving waits until the facts match the text in the editor and any finding is confirmed for exactly this check.
+  const factsPending = !!editing?.snapshotId && editing.checkedText !== editing.content;
+  const factsBlock = factsPending || (!!editing?.facts?.length && editing.confirmedFacts !== factsKey(editing.facts));
   const nextVersion = editing ? (latest[editing.kind]?.version ?? 0) + 1 : 1;
   const diff = editing?.baseDraft !== undefined ? diffLines(editing.baseDraft, editing.content) : null;
   const counts = diff ? diffCounts(diff) : null;
@@ -389,7 +394,7 @@ export function DocumentsPanel({ vacancyId, presetId, onPresetChange, onSaved }:
           )}
           {editing.pageNote && <p class={`small ${editing.tooLong ? "warn-text" : "muted"}`} role="status">{editing.pageNote}</p>}
           <textarea class="input textarea" rows={14} aria-label={`${KIND_LABEL[editing.kind]} text`} value={editing.content}
-            onInput={(e) => setEditing({ ...editing, content: (e.target as HTMLTextAreaElement).value })} />
+            onInput={(e) => setEditing({ ...editing, content: (e.target as HTMLTextAreaElement).value, confirmedFacts: null })} />
           <div class="drawer-row end">
             {editing.kind === "resume" && editing.tooLong && ai?.enabled && (
               <button class="btn" type="button" disabled={busy !== null} onClick={shorten}>
@@ -406,7 +411,7 @@ export function DocumentsPanel({ vacancyId, presetId, onPresetChange, onSaved }:
               Discard
             </button>
             <button class="btn primary" type="button" disabled={busy !== null || !editing.content.trim() || factsBlock}
-              title={factsBlock ? "Fix the facts or confirm them first" : undefined} onClick={save}>
+              title={factsPending ? "Checking the facts of your edit…" : factsBlock ? "Fix the facts or confirm them first" : undefined} onClick={save}>
               {busy === "save" ? "Saving…" : `Save as version ${nextVersion}`}
             </button>
           </div>
