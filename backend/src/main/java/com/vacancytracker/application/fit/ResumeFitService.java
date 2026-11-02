@@ -117,16 +117,20 @@ public class ResumeFitService {
         Resume resume = active.get();
         Map<UUID, ResumeFit> stored = new HashMap<>();
         repository.findAll(vacancyIds).forEach(f -> stored.put(f.vacancyId(), f));
+        Map<UUID, ResumeFitRepository.VacancyText> texts = new HashMap<>();
+        repository.vacancies(vacancyIds).forEach(v -> texts.put(v.id(), v));
         OptionalInt years = resumes.years(resume);
         List<ResumeFit> result = new ArrayList<>();
         for (UUID id : vacancyIds) {
+            ResumeFitRepository.VacancyText vacancy = texts.get(id);
+            if (vacancy == null) {
+                continue;
+            }
             ResumeFit fit = stored.get(id);
-            if (fit == null || !fit.resumeId().equals(resume.id()) || fit.resumeRevision() != resume.revision()) {
-                Optional<ResumeFitRepository.VacancyText> vacancy = repository.vacancy(id);
-                if (vacancy.isEmpty()) {
-                    continue;
-                }
-                fit = compute(resume, years, vacancy.get());
+            // Stale when the resume changed, or when the posting's own text changed since it was scored.
+            if (fit == null || !fit.resumeId().equals(resume.id()) || fit.resumeRevision() != resume.revision()
+                    || !vacancy.hash().equals(fit.textHash())) {
+                fit = compute(resume, years, vacancy);
                 repository.upsert(fit);
             }
             result.add(fit);
@@ -136,6 +140,7 @@ public class ResumeFitService {
 
     private ResumeFit compute(Resume resume, OptionalInt years, ResumeFitRepository.VacancyText v) {
         ResumeFitScorer.Result r = ResumeFitScorer.score(resume.keywords(), years, resume.text(), v.title(), v.description());
-        return new ResumeFit(v.id(), resume.id(), resume.revision(), r.score(), r.matched(), r.missing(), r.reasons(), clock.instant());
+        return new ResumeFit(v.id(), resume.id(), resume.revision(), r.score(), r.matched(), r.missing(), r.reasons(), clock.instant(),
+                v.hash());
     }
 }

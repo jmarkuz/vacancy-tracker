@@ -22,8 +22,22 @@ class ResumeFitRepository {
     private static final TypeReference<List<ResumeFitScorer.Reason>> REASONS = new TypeReference<>() {
     };
 
+    /** The SQL twin of {@link VacancyText#hash()}: PostgreSQL's md5 of the same UTF-8 text. */
+    private static final String TEXT_HASH_SQL = "md5(coalesce(v.title, '') || chr(10) || coalesce(v.description, ''))";
+
     /** The vacancy text the score reads. */
     record VacancyText(UUID id, String title, String description) {
+
+        /** MD5 (hex) of title, newline, description: what a fit was computed from. */
+        String hash() {
+            String text = (title == null ? "" : title) + "\n" + (description == null ? "" : description);
+            try {
+                return java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("MD5")
+                        .digest(text.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+            } catch (java.security.NoSuchAlgorithmException e) {
+                throw new IllegalStateException("MD5 is part of every Java runtime", e);
+            }
+        }
     }
 
     private final JdbcClient jdbc;
@@ -35,11 +49,11 @@ class ResumeFitRepository {
     }
 
     void upsert(ResumeFit f) {
-        jdbc.sql("INSERT INTO resume_fit (vacancy_id, resume_id, resume_revision, score, matched, missing, reasons, computed_at)"
-                        + " VALUES (:v, :r, :rev, :score, CAST(:matched AS TEXT[]), CAST(:missing AS TEXT[]), CAST(:reasons AS JSONB), :at)"
+        jdbc.sql("INSERT INTO resume_fit (vacancy_id, resume_id, resume_revision, score, matched, missing, reasons, computed_at, text_hash)"
+                        + " VALUES (:v, :r, :rev, :score, CAST(:matched AS TEXT[]), CAST(:missing AS TEXT[]), CAST(:reasons AS JSONB), :at, :hash)"
                         + " ON CONFLICT (vacancy_id) DO UPDATE SET resume_id = EXCLUDED.resume_id, resume_revision = EXCLUDED.resume_revision,"
                         + " score = EXCLUDED.score, matched = EXCLUDED.matched, missing = EXCLUDED.missing, reasons = EXCLUDED.reasons,"
-                        + " computed_at = EXCLUDED.computed_at")
+                        + " computed_at = EXCLUDED.computed_at, text_hash = EXCLUDED.text_hash")
                 .param("v", f.vacancyId())
                 .param("r", f.resumeId())
                 .param("rev", f.resumeRevision())
@@ -48,6 +62,7 @@ class ResumeFitRepository {
                 .param("missing", f.missing().toArray(String[]::new))
                 .param("reasons", json(f.reasons()))
                 .param("at", OffsetDateTime.ofInstant(f.computedAt(), ZoneOffset.UTC))
+                .param("hash", f.textHash())
                 .update();
     }
 
@@ -60,26 +75,31 @@ class ResumeFitRepository {
             return List.of();
         }
         return jdbc.sql("SELECT vacancy_id, resume_id, resume_revision, score, matched, missing, CAST(reasons AS TEXT) AS reasons,"
-                        + " computed_at FROM resume_fit WHERE vacancy_id = ANY (CAST(:ids AS UUID[]))")
+                        + " computed_at, text_hash FROM resume_fit WHERE vacancy_id = ANY (CAST(:ids AS UUID[]))")
                 .param("ids", vacancyIds.stream().map(UUID::toString).toArray(String[]::new))
                 .query((rs, n) -> new ResumeFit(rs.getObject("vacancy_id", UUID.class), rs.getObject("resume_id", UUID.class),
                         rs.getInt("resume_revision"), rs.getInt("score"), strings(rs.getArray("matched")),
                         strings(rs.getArray("missing")), read(rs.getString("reasons")),
-                        rs.getObject("computed_at", OffsetDateTime.class).toInstant()))
+                        rs.getObject("computed_at", OffsetDateTime.class).toInstant(), rs.getString("text_hash")))
                 .list();
     }
 
-    Optional<VacancyText> vacancy(UUID id) {
-        return jdbc.sql("SELECT id, title, description FROM vacancy WHERE id = :id")
-                .param("id", id)
+    /** The text of the given vacancies (those that exist), in one query. */
+    List<VacancyText> vacancies(Collection<UUID> ids) {
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        return jdbc.sql("SELECT id, title, description FROM vacancy WHERE id = ANY (CAST(:ids AS UUID[]))")
+                .param("ids", ids.stream().map(UUID::toString).toArray(String[]::new))
                 .query((rs, n) -> new VacancyText(rs.getObject("id", UUID.class), rs.getString("title"), rs.getString("description")))
-                .optional();
+                .list();
     }
 
-    /** Vacancies with no fit for this resume revision, oldest sighting first. */
+    /** Vacancies with no fit for this resume revision, or whose text changed since it was scored; oldest sighting first. */
     List<VacancyText> stale(UUID resumeId, int revision, int limit) {
         return jdbc.sql("SELECT v.id, v.title, v.description FROM vacancy v LEFT JOIN resume_fit f ON f.vacancy_id = v.id"
                         + " WHERE f.vacancy_id IS NULL OR f.resume_id <> :r OR f.resume_revision < :rev"
+                        + " OR f.text_hash IS DISTINCT FROM " + TEXT_HASH_SQL
                         + " ORDER BY v.first_seen_at, v.id LIMIT :limit")
                 .param("r", resumeId)
                 .param("rev", revision)

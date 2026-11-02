@@ -3,6 +3,7 @@ package com.vacancytracker.web;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -107,6 +108,38 @@ class ResumeApiTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.resumeRevision").value(2))
                 .andExpect(jsonPath("$.score").value(100));
         mvc.perform(get("/api/resume/original")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void editingTheVacancyTextMakesItsFitStale() throws Exception {
+        String id = vacancy("Backend Engineer", "Stack: Python, Django, Flask.");
+        mvc.perform(post("/api/resume/text").contentType(JSON).content("{\"text\":\"Skills: Java, Kafka, PostgreSQL\"}"));
+        mvc.perform(get("/api/vacancies/" + id + "/fit")).andExpect(jsonPath("$.score").value(0));
+        assertThat(fits.recalculateStale()).isZero();
+
+        mvc.perform(patch("/api/vacancies/" + id).contentType(JSON).content("{\"description\":\"Stack: Java, Kafka, PostgreSQL.\"}"))
+                .andExpect(status().isOk());
+
+        // The background pass (not a read, which rescores by itself) has to pick the changed posting up.
+        fits.recalculateStale();
+        assertThat(jdbc.queryForObject("SELECT cardinality(matched) FROM resume_fit WHERE vacancy_id = CAST(? AS UUID)", Integer.class, id))
+                .isEqualTo(3);
+        assertThat(jdbc.queryForObject("SELECT score FROM resume_fit WHERE vacancy_id = CAST(? AS UUID)", Integer.class, id))
+                .isGreaterThan(50);
+        assertThat(fits.recalculateStale()).isZero();
+    }
+
+    @Test
+    void readingAFitRescoresAPostingWhoseTextChanged() throws Exception {
+        String id = vacancy("Backend Engineer", "Stack: Python, Django, Flask.");
+        mvc.perform(post("/api/resume/text").contentType(JSON).content("{\"text\":\"Skills: Java, Kafka, PostgreSQL\"}"));
+        mvc.perform(get("/api/vacancies/" + id + "/fit")).andExpect(jsonPath("$.score").value(0));
+
+        mvc.perform(patch("/api/vacancies/" + id).contentType(JSON).content("{\"description\":\"Stack: Java, Kafka, PostgreSQL.\"}"));
+
+        mvc.perform(get("/api/vacancies/" + id + "/fit"))
+                .andExpect(jsonPath("$.score").value(org.hamcrest.Matchers.greaterThan(50)))
+                .andExpect(jsonPath("$.matched.length()").value(3));
     }
 
     @Test

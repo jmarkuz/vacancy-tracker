@@ -109,6 +109,37 @@ class PackageApiTest extends AbstractIntegrationTest {
                 .andReturn().getResponse().getContentAsByteArray());
 
         assertThat(files).containsEntry("resume-original-jane.txt", "Jane Doe, Java");
+        assertThat(files.get("checklist.md")).contains("Upload the resume: resume-original-jane.txt");
+    }
+
+    @Test
+    void replacingTheResumeLaterDoesNotChangeAPreparedPackage() throws Exception {
+        mvc.perform(post("/api/resume/file").param("fileName", "jane-2025.txt").contentType("text/plain")
+                .content("Jane 2025".getBytes(StandardCharsets.UTF_8))).andExpect(status().isOk());
+        String pkg = id(mvc.perform(post("/api/vacancies/" + vacancy + "/packages").contentType(JSON).content("{}"))
+                .andExpect(jsonPath("$.resumeFileName").value("jane-2025.txt"))
+                .andReturn().getResponse().getContentAsString());
+
+        mvc.perform(post("/api/resume/file").param("fileName", "jane-2026.txt").contentType("text/plain")
+                .content("Jane 2026".getBytes(StandardCharsets.UTF_8))).andExpect(status().isOk());
+
+        Map<String, String> files = unzip(mvc.perform(get("/api/packages/" + pkg + "/download"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray());
+        assertThat(files).containsEntry("resume-original-jane-2025.txt", "Jane 2025").doesNotContainKey("resume-original-jane-2026.txt");
+    }
+
+    @Test
+    void aPastedResumeGoesIntoThePackageAsTextAndWord() throws Exception {
+        mvc.perform(post("/api/resume/text").contentType(JSON).content("{\"text\":\"Jane Doe, Java and Kafka\"}"))
+                .andExpect(status().isOk());
+        String pkg = id(mvc.perform(post("/api/vacancies/" + vacancy + "/packages").contentType(JSON).content("{}"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+
+        Map<String, String> files = unzip(mvc.perform(get("/api/packages/" + pkg + "/download"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray());
+
+        assertThat(files).containsEntry("resume.txt", "Jane Doe, Java and Kafka").containsKey("resume.docx");
+        assertThat(files.get("checklist.md")).contains("Upload the resume: resume.docx");
     }
 
     @Test
