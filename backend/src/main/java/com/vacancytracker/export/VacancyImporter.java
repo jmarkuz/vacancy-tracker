@@ -90,7 +90,7 @@ public class VacancyImporter {
         for (int i = 1; i < rows.size(); i++) {
             int row = i;
             try {
-                store(row, fromCsvRow(header, rows.get(i)), report, java.util.Set.copyOf(header));
+                store(row, fromCsvRow(header, rows.get(i)), report, columnsOf(header, rows.get(i)));
             } catch (IllegalArgumentException e) {
                 report.fail(row, "record", e.getMessage());
             }
@@ -212,11 +212,28 @@ public class VacancyImporter {
                 List.of());
     }
 
+    /**
+     * The columns this row speaks for: those it has a cell for (a short row says nothing about the rest), and of those
+     * a blank status or date means "not given", while a blank text or number clears the stored value.
+     */
+    private static java.util.Set<String> columnsOf(List<String> header, List<String> cells) {
+        java.util.Set<String> columns = new java.util.HashSet<>();
+        for (int i = 0; i < Math.min(header.size(), cells.size()); i++) {
+            String name = header.get(i);
+            boolean notClearable = "status".equals(name) || "first_seen_at".equals(name) || "last_seen_at".equals(name);
+            if (!(notClearable && cells.get(i).isBlank())) {
+                columns.add(name);
+            }
+        }
+        return columns;
+    }
+
     /** Undoes the apostrophe the exporter puts before a cell that would otherwise be read as a formula. */
+    /** A run of apostrophes followed by a formula character: what the exporter put one more apostrophe in front of. */
+    static final java.util.regex.Pattern GUARDED = java.util.regex.Pattern.compile("'+[=+\\-@\\t\\r].*", java.util.regex.Pattern.DOTALL);
+
     private static String unneutralize(String cell) {
-        int at = cell.startsWith("''") ? 2 : 1;
-        boolean neutralized = cell.length() > at && cell.charAt(0) == '\'' && "=+-@\t\r".indexOf(cell.charAt(at)) >= 0;
-        return neutralized ? cell.substring(1) : cell;
+        return GUARDED.matcher(cell).matches() ? cell.substring(1) : cell;
     }
 
     private static UUID csvUuid(String value) {

@@ -69,8 +69,7 @@ public class VacancyExporter {
         // The importer removes exactly one apostrophe in front of such a cell, so a cell that already begins with an
         // apostrophe and a formula character gets a second one and comes back as it was written.
         boolean formulaStart = !value.isEmpty() && "=+-@\t\r".indexOf(value.charAt(0)) >= 0;
-        boolean apostropheStart = value.length() > 1 && value.charAt(0) == '\'' && "=+-@\t\r".indexOf(value.charAt(1)) >= 0;
-        if (formulaStart || apostropheStart) {
+        if (formulaStart || VacancyImporter.GUARDED.matcher(value).matches()) {
             value = "'" + value;
         }
         boolean quote = value.indexOf(',') >= 0 || value.indexOf('"') >= 0

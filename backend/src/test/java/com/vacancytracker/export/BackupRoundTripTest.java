@@ -102,21 +102,38 @@ class BackupRoundTripTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void blankStatusAndDatesAndShortRowsDoNotOverwriteWhatIsStored() throws Exception {
+        String id = JsonPath.read(mvc.perform(post("/api/vacancies").contentType(JSON)
+                .content("{\"title\":\"Role\",\"company\":\"Northwind\"}")).andReturn().getResponse().getContentAsString(), "$.id");
+        mvc.perform(post("/api/vacancies/" + id + "/status").contentType(JSON).content("{\"status\":\"Saved\"}"));
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch("/api/vacancies/" + id)
+                .contentType(JSON).content("{\"notes\":\"keep\"}"));
+        String firstSeen = JsonPath.read(mvc.perform(get("/api/vacancies/" + id)).andReturn().getResponse().getContentAsString(), "$.firstSeenAt");
+
+        importCsvText("id,title,company,status,first_seen_at,notes\r\n" + id + ",Role,Northwind,,\r\n");
+
+        mvc.perform(get("/api/vacancies/" + id))
+                .andExpect(jsonPath("$.status").value("Saved"))
+                .andExpect(jsonPath("$.firstSeenAt").value(firstSeen))
+                .andExpect(jsonPath("$.notes").value("keep"));
+    }
+
+    @Test
     void textThatLooksLikeAFormulaIsNeutralizedInCsvAndComesBackUnchanged() throws Exception {
         String id = JsonPath.read(mvc.perform(post("/api/vacancies").contentType(JSON)
-                .content("{\"title\":\"=HYPERLINK(\\\"http://x\\\")\",\"company\":\"'-Acme\"}"))
+                .content("{\"title\":\"=HYPERLINK(\\\"http://x\\\")\",\"company\":\"''=Acme\"}"))
                 .andReturn().getResponse().getContentAsString(), "$.id");
 
         MvcResult started = mvc.perform(get("/api/export/vacancies.csv").param("columns", "id,title,company"))
                 .andExpect(request().asyncStarted()).andReturn();
         String csv = mvc.perform(asyncDispatch(started)).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
 
-        assertThat(csv).contains("'=HYPERLINK").contains("''-Acme");
+        assertThat(csv).contains("'=HYPERLINK").contains("'''=Acme");
         jdbc.execute("TRUNCATE vacancy CASCADE");
         assertThat(importCsvText(csv).imported()).isEqualTo(1);
         mvc.perform(get("/api/vacancies/" + id))
                 .andExpect(jsonPath("$.title").value("=HYPERLINK(\"http://x\")"))
-                .andExpect(jsonPath("$.company").value("'-Acme"));
+                .andExpect(jsonPath("$.company").value("''=Acme"));
     }
 
     @Test
