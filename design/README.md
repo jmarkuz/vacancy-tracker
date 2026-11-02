@@ -1,21 +1,23 @@
 # Design
 
-Status: Phase 0 (M0). Files: `tokens.css` (design tokens), `dashboard.html` (static clickable mockup with fake data). Open `dashboard.html` directly in a browser; it needs no build step. The only external dependency is Google Fonts (Inter, JetBrains Mono).
+Status: M6 (dark-first redesign after design file, T-090). Files: `tokens.css` (design tokens, the same file as `frontend/src/styles/tokens.css`), `dashboard.html` (static clickable mockup with fake data from Phase 0; it now picks up the new tokens but keeps its old layout). Open `dashboard.html` directly in a browser; it needs no build step. The only external dependency is Google Fonts (Inter, JetBrains Mono).
 
 ## 1. Rationale
 
-**Style: modern minimalism.** References: Linear, Vercel, Notion. The tool is used for hours at a time for triage, so the interface must stay out of the way.
+**Style: dark first (T-090, ADR-046).** The visual language comes from [design file](../design file) (an MIT-licensed analysis of third-party's site, copied unchanged with its source). third-party is a keyboard-first mail client; this tool is used the same way, for hours of triage, so its calm editorial look fits. design file describes marketing pages; the app takes its palette, type and shapes, not its page layouts (no portraits, no closing teal band):
 
-- Neutral gray scale for surfaces and text; one accent color (indigo `#4F46E5`) for focus, primary actions and the active navigation item. Accent is never used for status.
-- Thin 1px borders instead of shadows. Shadows add visual noise in dense tables and are not needed to separate layers.
-- 4px spacing grid. Radii: 8px for controls, 12px for panels and cards, pill for chips and badges.
+- Deep indigo-navy surfaces (`#0e0c1f` to `#1f1c40`), warm off-grey text, hairline borders (`#3f3a52` on dark, `#e8e4dd` on light).
+- One accent: pale violet `#c9b4fa` on dark (focus, primary actions, the current screen, pending decisions); indigo navy `#1b1938` on light. Accent is never used for status. The deep teal of design file is the success colour (Interview, Offer, AI switched on).
+- Inter (variable) at the in-between weights design file asks for: 460 for text, 540 for headings and buttons, with slightly negative tracking on headings.
+- Shapes: 4px tags, 6px inputs, 8px rounded-rectangle buttons (never pills), 12px cards, 16px dialogs and the drawer. Flat surfaces; only floating panels (drawer, palette, toast) lift.
+- 4px spacing grid. Generous whitespace in the dashboard, tighter density in tables where users scan many rows.
 - Generous whitespace in the dashboard, tighter density in tables (Pipeline, Sources) where users scan many rows.
 
 **Typography.** Inter for text. Numbers (scores, counts, dates, salaries, run IDs) use JetBrains Mono or tabular numerals (`font-variant-numeric: tabular-nums`) so that columns align and values can be compared at a glance.
 
 **Color is never the only signal.** Every status is a badge with a colored dot and a text label (`Screening`, `Offer`). Source health is `ok`, `warn` or `error` in text. Scores show the number and the profile name. This also keeps the UI readable for color-blind users and in grayscale print.
 
-**Themes.** Light by default; dark follows the system preference (`prefers-color-scheme`) and can be set manually with the theme toggle (system, light, dark). Both themes are defined in `tokens.css` as token overrides; components reference tokens only, never raw hex values. Contrast targets WCAG AA for text and interactive elements in both themes.
+**Themes.** Dark by default (the `<html>` starts with `data-theme="dark"`, so there is no light flash). The toggle cycles dark, light and system; "system" follows `prefers-color-scheme`. Both themes are defined in `tokens.css` as token overrides; components reference tokens only, never raw hex values. Contrast targets WCAG AA for text and interactive elements in both themes.
 
 **Motion.** 120 to 180 ms ease-out transitions for hover, drawer open and progress bars. All transitions are removed under `prefers-reduced-motion: reduce` (handled in `tokens.css` and in the mockup CSS).
 
@@ -79,17 +81,21 @@ Kanban:
 
 | Keys | Action |
 |---|---|
-| Left / Right arrow on a focused card | Move the card to the previous / next column |
+| Alt+Left / Alt+Right on a focused card | Move the card to the previous / next column (the code has always needed Alt; this table said plain arrows) |
 | Drag and drop | Move a card between columns |
+| "Move to" list + Move button | Move by choosing a column, then pressing Move (choosing alone changes nothing) |
 
 Rule builder:
 
 | Keys | Action |
 |---|---|
 | Tab / Shift+Tab | Move between fields in a row |
+| Alt+Up / Alt+Down from any control in a rule | Move the rule; focus stays on the same control |
 | Up / down buttons (focusable) | Reorder a rule |
 
-Shortcuts are not active while focus is in a text field, so typing never triggers an action.
+Vacancy drawer: the status and priority lists only choose; **Move** and **Set priority** apply. Esc leaves a text field first, then closes the drawer.
+
+Shortcuts are not active while focus is in a text field, so typing never triggers an action. Letter shortcuts also work with a Ukrainian or Russian layout: the physical key counts when the typed letter is not Latin (J is J even when it types "о").
 
 ## 6. Tokens reference
 

@@ -30,7 +30,7 @@ Status: every planned task is done except a Jooble adapter (T-036), which is blo
 - Full-text search and Ctrl/Cmd+K command palette
 - Export to CSV (UTF-8 with BOM), XLSX and full JSON backup; import with per-row error reports (a CSV import merges into existing vacancies and keeps the fields you edited by hand)
 - Optional Telegram digest after a run (disabled by default)
-- Light and dark theme, keyboard-first screens
+- Dark-first design inspired by third-party (see design file), with light and system themes; keyboard-first screens
 
 ## Sources
 

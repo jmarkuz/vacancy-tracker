@@ -689,3 +689,16 @@ Status: Accepted (T-086, T-087). Gap G6 of [gap-analysis.md](gap-analysis.md).
 - **Suggestions**: a rejection suggests Rejected (from Applied on); an offer, a test task or an interview suggests that status when it is ahead of the current one (an interview after a test task counts); a confirmation suggests Applied from New or Saved. Nothing changes until the owner accepts; accepting moves through the allowed transitions (`StatusPath`) with the subject in the history note; dismissing keeps the status.
 
 **Consequences.** Wording outside the phrase lists falls back to "job mail" without a suggestion. Linking can miss a mail from an agency or an ATS address that names neither the company nor the title; the owner links it by hand. Reading INBOX means the app sees all mail in it: only job mail is kept, and the reader never changes the mailbox.
+
+## ADR-046 design, dark first
+
+Status: Accepted (T-090).
+
+**Context.** The owner asked for the third-party theme from a public design collection, copied into the project as design file, with the UI updated and dark as the main theme, keeping every keyboard scenario.
+
+**Decision.**
+- `design file` at the repository root is the unchanged file from `design-md/` (MIT, a public design collection), with a source and licence section added at the end. It analyses a marketing site, so the app takes its palette, type and shapes, not its page layouts: deep indigo-navy surfaces, a pale violet accent, the deep teal as the success colour, warm off-grey ink, hairline borders, Inter variable at 460/540, 8px buttons, 6px inputs, 12px cards, 16px dialogs. No logo, portrait or third-party name appears in the app.
+- **Dark is the default**: the tokens' `:root` holds the dark values, `data-theme="light"` and `data-theme="system"` (light only when the system prefers it) override them, the page starts with `data-theme="dark"` (no flash), and a stored choice wins. The toggle cycles dark, light, system.
+- The keyboard inventory in [code-review.md](code-review.md) is the regression list; none was removed. The design README now states the real board and rule-builder keys (Alt+arrows), the Move buttons and the layout-independent letters. The selected Inbox row and palette option keep an outline in Windows High Contrast (`forced-colors`).
+
+**Consequences.** Light-theme users see a change of accent (navy instead of indigo). The Phase 0 mockup keeps its layout with the new tokens.
