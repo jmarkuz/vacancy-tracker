@@ -25,7 +25,7 @@ T-023,Manual add by URL JSON-LD,M1,M,"T-017,T-015",done
 T-024,CSV export,M1,S,T-020,done
 T-025,XLSX export,M1,S,T-024,done
 T-026,JSON backup and import,M1,M,T-015,done
-T-027,Re-verify source terms,M2,S,T-010,todo
+T-027,Re-verify source terms,M2,S,T-010,done
 T-028,HTTP client rate limit ETag,M2,M,T-011,done
 T-029,Retries circuit breaker SourceState,M2,M,T-028,done
 T-030,Adapter SPI and WireMock harness,M2,S,T-028,done

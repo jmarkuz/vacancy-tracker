@@ -58,7 +58,7 @@ Phase 0 ended with an approval request to the owner. Approved 2026-11-01.
 
 | Done | ID | Title | Est | Depends on | Acceptance criteria |
 |---|---|---|---|---|---|
-| [ ] | T-027 | Re-verify source terms against official pages | S | T-010 | Every row in `docs/sources.md` is `ok` or `blocked`, with verification date and official link |
+| [x] 2026-11-02 | T-027 | Re-verify source terms against official pages | S | T-010 | Every row in `docs/sources.md` is `ok` or `blocked`, with verification date and official link |
 | [x] 2026-11-01 | T-028 | HTTP client: User-Agent, timeouts, per-domain rate limit, ETag, If-Modified-Since | M | T-011 | WireMock tests: headers sent; 304 handled; per-domain limit enforced |
 | [x] 2026-11-01 | T-029 | Retries with backoff, Retry-After, circuit breaker, SourceState | M | T-028 | 429 and 5xx retried with backoff; breaker opens after 5 failures and recovers half-open |
 | [x] 2026-11-01 | T-030 | Adapter SPI, capability declaration, WireMock fixture harness | S | T-028 | Contract test every adapter must pass |
