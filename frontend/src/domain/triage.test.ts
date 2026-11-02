@@ -46,11 +46,18 @@ describe("selectionAfterRemoval", () => {
 });
 
 describe("isTypingTarget", () => {
-  it("is true for form fields only", () => {
+  it("is true for form fields, buttons, links and dialogs only", () => {
     expect(isTypingTarget(document.createElement("input"))).toBe(true);
     expect(isTypingTarget(document.createElement("textarea"))).toBe(true);
     expect(isTypingTarget(document.createElement("select"))).toBe(true);
     expect(isTypingTarget(document.createElement("div"))).toBe(false);
+    expect(isTypingTarget(document.createElement("button"))).toBe(true);
+    expect(isTypingTarget(document.createElement("a"))).toBe(true);
+    const dialog = document.createElement("div");
+    dialog.setAttribute("role", "dialog");
+    const inside = document.createElement("span");
+    dialog.appendChild(inside);
+    expect(isTypingTarget(inside)).toBe(true);
     expect(isTypingTarget(null)).toBe(false);
   });
 });

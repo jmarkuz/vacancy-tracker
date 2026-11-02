@@ -27,6 +27,7 @@ export function Inbox({ params }: Props) {
   const [toast, setToast] = useState<{ message: string; tone: "info" | "error" } | null>(null);
   const [reload, setReload] = useState(0);
   const listRef = useRef<HTMLUListElement>(null);
+  const triaging = useRef(new Set<string>());
   const openId = params.get("open");
 
   useEffect(() => {
@@ -53,14 +54,20 @@ export function Inbox({ params }: Props) {
   }, [reload]);
 
   const triage = async (vacancy: Vacancy, status: "Saved" | "Dismissed", index: number) => {
+    if (triaging.current.has(vacancy.id)) {
+      return;
+    }
+    triaging.current.add(vacancy.id);
     try {
       await changeStatus(vacancy.id, status);
     } catch (e: unknown) {
+      triaging.current.delete(vacancy.id);
       setToast({ message: e instanceof Error ? e.message : `Could not mark it ${status}.`, tone: "error" });
       return;
     }
+    triaging.current.delete(vacancy.id);
     const remaining = items.filter((v) => v.id !== vacancy.id);
-    setItems(remaining);
+    setItems((current) => current.filter((v) => v.id !== vacancy.id));
     setTotal((t) => Math.max(0, t - 1));
     setSelected(selectionAfterRemoval(index, remaining.length));
     setToast({ message: `${status}: ${vacancy.title}`, tone: "info" });
@@ -71,7 +78,7 @@ export function Inbox({ params }: Props) {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (openId || isTypingTarget(e.target)) {
+      if (openId || e.repeat || isTypingTarget(e.target)) {
         return;
       }
       const action = actionForKey(e.key, { ctrl: e.ctrlKey, meta: e.metaKey, alt: e.altKey });

@@ -119,6 +119,29 @@ public class VacancyService {
         history.forEach(repository::appendStatusEvent);
     }
 
+    /**
+     * Stores a vacancy read from a CSV row. CSV carries no description, edit marks or history, so for a vacancy that
+     * already exists those are kept as they are and a changed status is appended to its history, not replacing it.
+     */
+    @Transactional
+    public void importCsvState(VacancyState row) {
+        var existing = repository.findById(row.id());
+        if (existing.isEmpty()) {
+            importState(row, List.of());
+            return;
+        }
+        VacancyState old = existing.get();
+        VacancyState merged = new VacancyState(row.id(), row.title(), row.company(), row.url(), row.canonicalUrl(),
+                row.location(), row.country(), row.workMode(), old.description(), row.salaryMin(), row.salaryMax(),
+                row.currency(), row.salaryPeriod(), row.status(), row.priority(), row.notes(), row.contact(),
+                row.nextActionNote(), row.nextActionAt(), row.tags(), old.userEditedFields(), old.firstSeenAt(),
+                old.lastSeenAt(), old.isNew());
+        repository.save(merged);
+        if (old.status() != row.status()) {
+            repository.appendStatusEvent(new StatusEvent(row.id(), old.status(), row.status(), clock.instant(), "imported from CSV"));
+        }
+    }
+
     @Transactional(readOnly = true)
     public List<StatusEvent> history(UUID id) {
         get(id);

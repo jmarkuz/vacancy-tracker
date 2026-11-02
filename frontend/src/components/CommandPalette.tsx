@@ -69,6 +69,7 @@ export function CommandPalette({ onClose }: Props) {
   const onKey = (e: KeyboardEvent) => {
     if (e.key === "Escape") {
       e.preventDefault();
+      e.stopPropagation(); // a drawer open behind the palette must stay open
       onClose();
     } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();

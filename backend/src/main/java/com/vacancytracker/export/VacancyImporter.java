@@ -60,7 +60,7 @@ public class VacancyImporter {
             row++;
             try {
                 BackupVacancy vacancy = mapper.treeToValue(item, BackupVacancy.class);
-                store(row, vacancy, report);
+                store(row, vacancy, report, false);
             } catch (JsonProcessingException e) {
                 report.fail(row, "record", "Not a valid vacancy object");
             } catch (IllegalArgumentException e) {
@@ -90,7 +90,7 @@ public class VacancyImporter {
         for (int i = 1; i < rows.size(); i++) {
             int row = i;
             try {
-                store(row, fromCsvRow(header, rows.get(i)), report);
+                store(row, fromCsvRow(header, rows.get(i)), report, true);
             } catch (IllegalArgumentException e) {
                 report.fail(row, "record", e.getMessage());
             }
@@ -98,7 +98,7 @@ public class VacancyImporter {
         return report.build();
     }
 
-    private void store(int row, BackupVacancy b, Report report) {
+    private void store(int row, BackupVacancy b, Report report, boolean csv) {
         VacancyState state;
         List<StatusEvent> history;
         try {
@@ -109,7 +109,11 @@ public class VacancyImporter {
             return;
         }
         try {
-            service.importState(state, history);
+            if (csv) {
+                service.importCsvState(state);
+            } else {
+                service.importState(state, history);
+            }
             report.ok();
         } catch (DataIntegrityViolationException e) {
             report.fail(row, "url", "Canonical URL already belongs to another vacancy");
@@ -178,7 +182,7 @@ public class VacancyImporter {
         }
         java.util.Map<String, String> v = new java.util.HashMap<>();
         for (int i = 0; i < cells.size(); i++) {
-            v.put(header.get(i), cells.get(i));
+            v.put(header.get(i), unneutralize(cells.get(i)));
         }
         return new BackupVacancy(
                 csvUuid(v.get("id")),
@@ -205,6 +209,11 @@ public class VacancyImporter {
                 csvInstant(v.get("first_seen_at"), "first_seen_at"),
                 csvInstant(v.get("last_seen_at"), "last_seen_at"),
                 List.of());
+    }
+
+    /** Undoes the apostrophe the exporter puts before a cell that would otherwise be read as a formula. */
+    private static String unneutralize(String cell) {
+        return cell.length() > 1 && cell.charAt(0) == '\'' && "=+-@\t\r".indexOf(cell.charAt(1)) >= 0 ? cell.substring(1) : cell;
     }
 
     private static UUID csvUuid(String value) {

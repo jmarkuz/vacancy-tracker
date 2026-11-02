@@ -69,6 +69,12 @@ class CriterionCompilerTest {
     }
 
     @Test
+    void anEmptyValueListIsRejectedInsteadOfProducingBrokenSql() {
+        assertThatThrownBy(() -> compiler.compile(List.of(c("{\"field\":\"title\",\"operator\":\"contains_any\",\"value\":[]}"))))
+                .isInstanceOf(CriterionException.class).hasMessageContaining("at least one value");
+    }
+
+    @Test
     void sourceFilterUsesExistsOnSourceTable() throws Exception {
         SqlFragment f = compiler.compile(List.of(c("{\"field\":\"source\",\"operator\":\"in\",\"value\":[\"arbeitnow\"]}")));
         assertThat(f.sql()).contains("EXISTS (SELECT 1 FROM vacancy_source s WHERE s.vacancy_id = vacancy.id");

@@ -60,6 +60,13 @@ class AuthApiTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void pathTricksDoNotSkipTheTokenCheck() throws Exception {
+        mvc.perform(get("/api;a=b/vacancies").with(from("10.1.0.9"))).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api;/vacancies").with(from("10.1.0.9"))).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/vacancies;x=1").with(from("10.1.0.9"))).andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void aBearerTokenOpensTheApi() throws Exception {
         mvc.perform(get("/api/vacancies").header("Authorization", "Bearer " + TOKEN).with(from("10.1.0.2")))
                 .andExpect(status().isOk());
