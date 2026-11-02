@@ -57,7 +57,7 @@ public class ArbeitnowAdapter implements SourceAdapter {
         List<RawPosting> all = new ArrayList<>();
         boolean allUnchanged = true;
         for (int page = 1; page <= maxPages; page++) {
-            FetchResult result = fetcher.get(baseUrl + "/api/job-board-api?page=" + page);
+            FetchResult result = fetcher.getUnconditional(baseUrl + "/api/job-board-api?page=" + page);
             if (result.notModified()) {
                 continue;
             }

@@ -23,11 +23,12 @@ public class HttpFetcher {
     /** The name robots.txt rules are matched against (the product part of the User-Agent). */
     public static final String PRODUCT_TOKEN = "VacancyTracker";
     static final String USER_AGENT = PRODUCT_TOKEN + "/0.1 (personal job search; no crawling)";
-    static final int MAX_BODY_CHARS = 5 * 1024 * 1024;
+    static final int MAX_BODY_BYTES = 5 * 1024 * 1024;
+    static final int MAX_REDIRECTS = 3;
 
     private final HttpClient client = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(5))
-            .followRedirects(HttpClient.Redirect.NORMAL)
+            .followRedirects(HttpClient.Redirect.NEVER)
             .build();
     private final DomainRateLimiter limiter;
     private final ConditionalCache cache;
@@ -60,7 +61,7 @@ public class HttpFetcher {
      * key without them, so keys are never stored in the database.
      */
     public FetchResult get(String url, String cacheKey, Map<String, String> headers) {
-        return fetch(url, cacheKey, headers, true);
+        return fetch(url, cacheKey, headers, true, MAX_REDIRECTS);
     }
 
     /**
@@ -68,10 +69,23 @@ public class HttpFetcher {
      * pages are parsed by the adapter itself and where "not modified" would hide which items still exist.
      */
     public FetchResult getUnconditional(String url) {
-        return fetch(url, url, Map.of(), false);
+        return fetch(url, url, Map.of(), false, MAX_REDIRECTS);
     }
 
-    private FetchResult fetch(String url, String cacheKey, Map<String, String> headers, boolean conditional) {
+    /** As {@link #getUnconditional(String)} with extra headers, for sources that need a key in a header. */
+    public FetchResult getUnconditional(String url, Map<String, String> headers) {
+        return fetch(url, url, headers, false, MAX_REDIRECTS);
+    }
+
+    /**
+     * An unconditional GET that follows no redirect: a 3xx comes back as the answer. For pages whose permission was
+     * checked for exactly this address (robots.txt), where a redirect would land on an unchecked one.
+     */
+    public FetchResult getUnconditionalWithoutRedirects(String url) {
+        return fetch(url, url, Map.of(), false, 0);
+    }
+
+    private FetchResult fetch(String url, String cacheKey, Map<String, String> headers, boolean conditional, int redirectsLeft) {
         URI uri;
         try {
             uri = URI.create(url);
@@ -83,9 +97,9 @@ public class HttpFetcher {
         Optional<ConditionalCache.Validators> known = conditional ? cache.find(cacheKey) : Optional.empty();
         for (int attempt = 1; ; attempt++) {
             limiter.acquire(uri.getHost());
-            HttpResponse<String> response;
+            HttpResponse<java.io.InputStream> response;
             try {
-                response = client.send(request(uri, known, headers), HttpResponse.BodyHandlers.ofString());
+                response = client.send(request(uri, known, headers), HttpResponse.BodyHandlers.ofInputStream());
             } catch (IOException e) {
                 if (attempt >= retry.maxAttempts()) {
                     throw new UpstreamException("Network error after " + attempt + " attempts: " + e.getMessage());
@@ -97,10 +111,17 @@ public class HttpFetcher {
                 throw new UpstreamException("Interrupted");
             }
             int status = response.statusCode();
+            if (isRedirect(status) && redirectsLeft > 0) {
+                closeQuietly(response);
+                URI next = redirectTarget(uri, response);
+                // Same host only: the request headers (a key, for some sources) and the pacing belong to this host.
+                return fetch(next.toString(), conditional ? next.toString() : cacheKey, headers, conditional, redirectsLeft - 1);
+            }
             if (status == 304 && known.isPresent()) {
                 return FetchResult.unchanged();
             }
             if (status == 429 || status / 100 == 5) {
+                closeQuietly(response);
                 if (attempt >= retry.maxAttempts()) {
                     throw new UpstreamException("HTTP " + status + " after " + attempt + " attempts");
                 }
@@ -112,11 +133,51 @@ public class HttpFetcher {
         }
     }
 
-    private FetchResult finish(String cacheKey, HttpResponse<String> response, int status) {
-        String body = response.body();
-        if (body.length() > MAX_BODY_CHARS) {
-            body = body.substring(0, MAX_BODY_CHARS);
+    private static boolean isRedirect(int status) {
+        return status == 301 || status == 302 || status == 303 || status == 307 || status == 308;
+    }
+
+    private static URI redirectTarget(URI from, HttpResponse<?> response) {
+        String location = response.headers().firstValue("Location").orElse(null);
+        if (location == null || location.isBlank()) {
+            throw new UpstreamException("HTTP " + response.statusCode() + " without a Location");
         }
+        URI next;
+        try {
+            next = from.resolve(location.trim());
+        } catch (IllegalArgumentException e) {
+            throw new UpstreamException("The source redirected to an address that is not valid");
+        }
+        requireHttp(next);
+        if (next.getHost() == null || !next.getHost().equalsIgnoreCase(from.getHost())) {
+            throw new UpstreamException("The source redirected to another host, which is not followed");
+        }
+        return next;
+    }
+
+    private static void closeQuietly(HttpResponse<java.io.InputStream> response) {
+        try {
+            response.body().close();
+        } catch (IOException e) {
+            // nothing to do: the connection is dropped either way
+        }
+    }
+
+    /** Reads at most MAX_BODY_BYTES; a larger answer is refused, not cut, so a half document is never parsed. */
+    private static String readBounded(HttpResponse<java.io.InputStream> response) {
+        try (java.io.InputStream in = response.body()) {
+            byte[] bytes = in.readNBytes(MAX_BODY_BYTES + 1);
+            if (bytes.length > MAX_BODY_BYTES) {
+                throw new UpstreamException("The answer is larger than " + MAX_BODY_BYTES / (1024 * 1024) + " MB");
+            }
+            return new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new UpstreamException("Network error while reading the answer");
+        }
+    }
+
+    private FetchResult finish(String cacheKey, HttpResponse<java.io.InputStream> response, int status) {
+        String body = readBounded(response);
         String etag = response.headers().firstValue("ETag").orElse(null);
         String lastModified = response.headers().firstValue("Last-Modified").orElse(null);
         if (cacheKey != null && status / 100 == 2 && (etag != null || lastModified != null)) {

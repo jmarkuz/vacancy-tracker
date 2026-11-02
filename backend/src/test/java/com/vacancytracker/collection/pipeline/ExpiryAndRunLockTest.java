@@ -123,6 +123,24 @@ class ExpiryAndRunLockTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void aVacancyFromASourceThatListsOnlyAWindowNeverExpires() {
+        AtomicBoolean seen = new AtomicBoolean(true);
+        RawPosting windowed = new RawPosting("remotive", "9", "https://ex.com/w9", "Windowed Engineer", "Acme", "Berlin",
+                null, "Plain.", null, null, null, null, null);
+        SourceAdapter source = adapter("remotive", () -> FetchOutcome.of(seen.get() ? List.of(windowed) : List.of()));
+        CollectionPipeline pipeline = pipeline(List.of(source));
+        pipeline.run("manual");
+        seen.set(false);
+
+        for (int i = 0; i < 5; i++) {
+            clock.advance(Duration.ofHours(1));
+            pipeline.run("manual");
+        }
+
+        assertThat(statusOf("Windowed Engineer")).isEqualTo("New");
+    }
+
+    @Test
     void aVacancyFoundOnlyInAnAlertEmailNeverExpires() {
         AtomicBoolean seen = new AtomicBoolean(true);
         RawPosting fromMail = new RawPosting("email-example", "1", "https://ex.com/mail1", "Mail Engineer", "Acme", "Berlin",
@@ -149,10 +167,10 @@ class ExpiryAndRunLockTest extends AbstractIntegrationTest {
 
         pipeline(List.of(good, bad)).run("manual");
 
-        assertThat(output.getAll()).contains("Source log-good finished: fetched 2, new 1, updated 0, duplicates 1, errors 0")
+        assertThat(output.getAll()).contains("Source log-good finished: fetched 2, new 2, updated 0, duplicates 0, errors 0")
                 .contains("Source log-bad failed: fetched 0, new 0, updated 0, duplicates 0, errors 1")
                 .contains("(HTTP 503 after 3 attempts)")
-                .containsPattern("Run [0-9a-f-]{36} completed_with_errors: 2 sources, fetched 2, new 1, updated 0, failed sources 1, \\d+ ms");
+                .containsPattern("Run [0-9a-f-]{36} completed_with_errors: 2 sources, fetched 2, new 2, updated 0, failed sources 1, \\d+ ms");
     }
 
     @Test

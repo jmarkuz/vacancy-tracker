@@ -93,7 +93,8 @@ public class HtmlSiteAdapter implements SourceAdapter {
         if (read == 0 && failed > 0) {
             throw new UpstreamException("No HTML site could be read. " + firstError);
         }
-        return FetchOutcome.of(postings);
+        FetchOutcome outcome = FetchOutcome.of(postings);
+        return failed > 0 ? outcome.withWarning(failed + " of " + (read + failed) + " sites could not be read. " + firstError) : outcome;
     }
 
     private List<RawPosting> readSite(HtmlSite site) {
@@ -104,13 +105,13 @@ public class HtmlSiteAdapter implements SourceAdapter {
         for (int page = 1; page <= site.pages(); page++) {
             URI url = URI.create(site.listUrl().replace("{page}", String.valueOf(page)));
             if (!robots.isAllowed(pathAndQuery(url))) {
-                LOG.warn("HTML site '{}': robots.txt does not allow reading {}; the site is skipped", site.id(), url.getPath());
-                return List.of();
+                // Not read, so its vacancies are not known to be gone: reported as a failure of this site.
+                throw new UpstreamException("HTML site " + site.id() + ": robots.txt does not allow reading " + url.getPath());
             }
             if (page > 1 && robots.crawlDelaySeconds() > 0) {
                 sleeper.sleep(Math.min(robots.crawlDelaySeconds(), MAX_CRAWL_DELAY_SECONDS) * 1000L);
             }
-            FetchResult result = fetcher.getUnconditional(url.toString());
+            FetchResult result = fetcher.getUnconditionalWithoutRedirects(url.toString());
             if (!result.ok()) {
                 throw new UpstreamException("HTML site " + site.id() + " responded HTTP " + result.status());
             }
@@ -148,6 +149,13 @@ public class HtmlSiteAdapter implements SourceAdapter {
         List<Element> cards;
         try {
             cards = doc.select(site.item());
+            // The other selectors are checked once, so a bad one is reported as such and not as a crash per card.
+            new Element("div").select(site.title());
+            for (String selector : new String[] {site.link(), site.company(), site.location()}) {
+                if (!selector.isBlank()) {
+                    new Element("div").select(selector);
+                }
+            }
         } catch (Selector.SelectorParseException e) {
             throw new UpstreamException("HTML site " + site.id() + " has an invalid selector in its settings");
         }

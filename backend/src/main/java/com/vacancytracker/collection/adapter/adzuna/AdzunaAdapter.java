@@ -113,14 +113,12 @@ public class AdzunaAdapter implements SourceAdapter {
             for (int page = 1; page <= maxPages; page++) {
                 String path = "/v1/api/jobs/" + country + "/search/" + page;
                 String query = "results_per_page=50" + (what.isEmpty() ? "" : "&what=" + enc(what));
-                String cacheKey = baseUrl + path + "?" + query;
-                String url = cacheKey + "&app_id=" + enc(appId) + "&app_key=" + enc(appKey);
-                FetchResult result = fetcher.get(url, cacheKey, Map.of());
+                // No validators: a 304 for one country would leave its vacancies untouched while the others are
+                // processed, and the key in the address must never become a cache key.
+                String url = baseUrl + path + "?" + query + "&app_id=" + enc(appId) + "&app_key=" + enc(appKey);
+                FetchResult result = fetcher.getUnconditional(url);
                 if (!result.ok()) {
                     throw new UpstreamException("Adzuna " + country + " responded HTTP " + result.status());
-                }
-                if (result.notModified()) {
-                    continue;
                 }
                 JsonNode root = parse(result.body(), country);
                 root.path("results").forEach(job -> all.add(toPosting(country, job)));

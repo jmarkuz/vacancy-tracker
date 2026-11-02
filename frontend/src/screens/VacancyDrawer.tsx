@@ -55,14 +55,24 @@ export function VacancyDrawer({ id, onClose, onChange }: Props) {
   }, [onClose]);
 
   /** Runs a save, replaces the shown vacancy with the server copy, and reloads history if needed. */
+  const currentId = useRef(id);
+  currentId.current = id;
+
   const save = async (action: () => Promise<Vacancy>, reloadHistory = false) => {
+    const savedFor = id;
     setSaving(true);
     setSaveError(null);
     try {
       const updated = await action();
-      setVacancy(updated);
-      if (reloadHistory) {
-        setHistory(await getHistory(id));
+      // The drawer may have moved to another vacancy while this was in flight: its data must not land there.
+      if (currentId.current === savedFor) {
+        setVacancy(updated);
+        if (reloadHistory) {
+          const history = await getHistory(savedFor);
+          if (currentId.current === savedFor) {
+            setHistory(history);
+          }
+        }
       }
       onChange();
     } catch (e: unknown) {

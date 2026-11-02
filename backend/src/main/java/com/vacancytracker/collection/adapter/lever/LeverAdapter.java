@@ -56,7 +56,7 @@ public class LeverAdapter implements SourceAdapter {
         List<RawPosting> all = new ArrayList<>();
         boolean allUnchanged = !sites.isEmpty();
         for (String site : sites) {
-            FetchResult result = fetcher.get(baseUrl + "/v0/postings/" + site + "?mode=json");
+            FetchResult result = fetcher.getUnconditional(baseUrl + "/v0/postings/" + site + "?mode=json");
             if (result.notModified()) {
                 continue;
             }

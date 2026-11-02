@@ -112,7 +112,7 @@ export function App() {
           Theme: {theme}
         </button>
         {tokenRequired && (
-          <button class="btn ghost" type="button" onClick={() => { logout().then(() => setSession("login")); }}>Sign out</button>
+          <button class="btn ghost" type="button" onClick={() => { logout().then(() => setSession("login"), () => setSession("login")); }}>Sign out</button>
         )}
       </aside>
 

@@ -198,6 +198,8 @@ When a duplicate is found, the vacancy gets a new `VacancySource` row instead of
 
 **Implementation note (T-042).** Fuzzy matching uses `JaroWinklerSimilarity` from Apache commons-text on the key `title | location` (lower-cased), among vacancies with the same company. Candidates are capped at 200 per lookup.
 
+**Revision (review, 2026-11-02).** Jaro-Winkler on the whole key scored "Software Engineer | Berlin" against "... | London" at 0.94 and "Engineer I" against "Engineer II" at 0.97, so distinct openings merged and the second one never appeared. The fuzzy rule now needs (a) compatible places: either is unknown, they are equal, or one contains the other, and (b) titles equal after dropping punctuation and "(m/f/d)", or equal except for one word that differs by a typo (at most two edits, six letters or more, no digits). Levels and variants in other words are different vacancies.
+
 **Consequences.** Fuzzy matching can merge two different jobs with the same title at the same company and location; the threshold is conservative and a manual "split" action is added in M2.
 
 ---
@@ -543,3 +545,19 @@ Status: Accepted (T-073)
 - **Views (T-020).** `score` and `postedAt` join the filterable fields.
 
 **Consequences.** Locations such as "Praha" or "Berlin" alone give no country; the user can still filter by `location`. The Adzuna list must be updated by hand if Adzuna adds a country.
+
+## ADR-037 Review follow-ups: what changed in collection and import
+
+**Context.** A review of the whole code base (2026-11-02) found problems in the collection pipeline that cost data silently. This record lists the decisions; the code is in the commit.
+
+**Decision.**
+- **No validators for multi-request sources.** Greenhouse, Lever, Ashby, Arbeitnow, Himalayas, Adzuna and RSS ask for the full answer every run. With ETags, one board answering "not modified" while another changed left the first board's vacancies unrefreshed and, after three runs, expired; and the validators were saved before the pipeline had stored anything, so a failure later in the run lost the data until the source changed. Remotive and Jobicy (one request, rate-limited) keep conditional requests. The cost is bandwidth only.
+- **Mail is marked processed after it is stored.** `FetchOutcome.afterStored` runs once every posting of the run was written without a storage error; until then the alert mail is offered again (the pipeline de-duplicates).
+- **A partly read source is not a clean read.** `FetchOutcome.withWarning` keeps the postings that were read, records the problem as the source's error message, and so the run does not count for expiry (ADR-014). The HTML adapter now treats a `robots.txt` refusal as a failed site, not a silent success, and the HTML and RSS adapters report partial failures this way.
+- **A misconfigured source cannot stop the run.** `IllegalArgumentException` and `IllegalStateException` from an adapter are recorded as that source's failure.
+- **Redirects.** The HTTP client no longer follows redirects itself. The fetcher follows up to three, only on the same host, so a request header (a key) and the pacing stay with the host they were meant for. The HTML adapter follows none: its `robots.txt` check covers the configured address only. The size cap now refuses an answer over 5 MB instead of cutting it (a cut JSON document fails later as "invalid").
+- **Windowed sources do not expire vacancies.** Remotive, Jobicy, Arbeitnow, Himalayas, Adzuna, RSS and HTML show part of what is open, so a posting that left the window is not known to be gone. Like email vacancies they are closed by hand. Greenhouse, Lever and Ashby list whole boards and still expire.
+- **Import by URL cannot reach the server's own network.** Loopback, private, link-local, carrier-grade NAT and unique-local addresses are refused for the address and each redirect. `app.import.allow-private-hosts=true` disables the check. A name that changes its answer between the check and the request is not covered.
+- **Preview uses the edited profile's own company lists** when the editor passes its id.
+
+**Consequences.** More bytes are downloaded per run for the multi-request sources (a few hundred kilobytes). A vacancy from a windowed source stays New until the user closes it.

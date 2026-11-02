@@ -92,7 +92,7 @@ class AdzunaContractTest extends AdapterContractTest {
         Integer stored = template.queryForObject("SELECT count(*) FROM http_cache", Integer.class);
         Integer withKeys = template.queryForObject(
                 "SELECT count(*) FROM http_cache WHERE url LIKE '%app_key%' OR url LIKE '%key1%'", Integer.class);
-        assertThat(stored).isEqualTo(1);
+        assertThat(stored).as("no validators are stored at all").isZero();
         assertThat(withKeys).isZero();
     }
 

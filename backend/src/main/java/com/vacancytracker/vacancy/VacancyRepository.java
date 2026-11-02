@@ -150,6 +150,17 @@ public class VacancyRepository {
     public void upsertSource(UUID vacancyId, String adapter, String externalId, String url, Instant seenAt) {
         OffsetDateTime at = OffsetDateTime.ofInstant(seenAt, java.time.ZoneOffset.UTC);
         if (externalId == null) {
+            // No id to conflict on: refresh the row of this address instead of adding one per sighting.
+            int refreshed = jdbc.sql("UPDATE vacancy_source SET last_seen_at = :at WHERE vacancy_id = :vacancyId"
+                            + " AND adapter = :adapter AND external_id IS NULL AND url IS NOT DISTINCT FROM :url")
+                    .param("vacancyId", vacancyId)
+                    .param("adapter", adapter)
+                    .param("url", url)
+                    .param("at", at)
+                    .update();
+            if (refreshed > 0) {
+                return;
+            }
             jdbc.sql("INSERT INTO vacancy_source (id, vacancy_id, adapter, external_id, url, first_seen_at, last_seen_at)"
                             + " VALUES (:id, :vacancyId, :adapter, NULL, :url, :at, :at)")
                     .param("id", UUID.randomUUID())

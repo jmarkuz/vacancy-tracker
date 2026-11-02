@@ -39,13 +39,13 @@ public class ImapMailReader {
     private static final int TIMEOUT_MS = 20_000;
 
     /** error is a short text without secrets, or null. */
-    public record ReadResult(boolean enabled, int seen, int handled, int retried, int skipped, String error) {
+    public record ReadResult(boolean enabled, int seen, int handled, int retried, int skipped, String error, List<String> handledKeys) {
         static ReadResult disabled() {
-            return new ReadResult(false, 0, 0, 0, 0, null);
+            return new ReadResult(false, 0, 0, 0, 0, null, List.of());
         }
 
         static ReadResult failed(String error) {
-            return new ReadResult(true, 0, 0, 0, 0, error);
+            return new ReadResult(true, 0, 0, 0, 0, error, List.of());
         }
     }
 
@@ -88,6 +88,22 @@ public class ImapMailReader {
 
     /** Offers each unprocessed message of the folder, oldest first, to the handler, up to the per-run limit. */
     public ReadResult readNew(MailHandler handler) {
+        return readNew(handler, false);
+    }
+
+    /**
+     * Like {@link #readNew(MailHandler)}, but the handled messages are not marked processed: their keys come back in
+     * the result and the caller marks them with {@link #markProcessed(List)} once what they hold is safely stored.
+     */
+    public ReadResult readNewDeferred(MailHandler handler) {
+        return readNew(handler, true);
+    }
+
+    public void markProcessed(List<String> keys) {
+        keys.forEach(processed::markProcessed);
+    }
+
+    private ReadResult readNew(MailHandler handler, boolean defer) {
         if (!isConfigured()) {
             return ReadResult.disabled();
         }
@@ -95,7 +111,7 @@ public class ImapMailReader {
         try (Store store = session.getStore(ssl ? "imaps" : "imap")) {
             store.connect(host, port, username, password);
             try (FolderHandle handle = new FolderHandle(store.getFolder(folderName), markProcessed)) {
-                return process(handle.folder, handler);
+                return process(handle.folder, handler, defer);
             }
         } catch (MessagingException e) {
             // The message can mention the host and folder but never the password, which is not part of it.
@@ -104,7 +120,7 @@ public class ImapMailReader {
         }
     }
 
-    private ReadResult process(Folder folder, MailHandler handler) throws MessagingException {
+    private ReadResult process(Folder folder, MailHandler handler, boolean defer) throws MessagingException {
         Message[] all = folder.getMessages();
         FetchProfile profile = new FetchProfile();
         profile.add(FetchProfile.Item.ENVELOPE);
@@ -121,6 +137,7 @@ public class ImapMailReader {
         int handled = 0;
         int retried = 0;
         int skipped = 0;
+        List<String> handledKeys = new java.util.ArrayList<>();
         for (Map.Entry<String, Message> entry : pending.subList(0, Math.min(pending.size(), maxPerRun))) {
             MailMessage mail;
             try {
@@ -131,14 +148,18 @@ public class ImapMailReader {
                 continue;
             }
             if (handler.handle(mail) == MailHandler.Outcome.PROCESSED) {
-                processed.markProcessed(entry.getKey());
+                if (defer) {
+                    handledKeys.add(entry.getKey());
+                } else {
+                    processed.markProcessed(entry.getKey());
+                }
                 flag(folder, entry.getValue());
                 handled++;
             } else {
                 retried++;
             }
         }
-        return new ReadResult(true, all.length, handled, retried, skipped, null);
+        return new ReadResult(true, all.length, handled, retried, skipped, null, List.copyOf(handledKeys));
     }
 
     private void flag(Folder folder, Message message) {
@@ -203,6 +224,10 @@ public class ImapMailReader {
         return s.length() > MAX_BODY_CHARS ? s.substring(0, MAX_BODY_CHARS) : s;
     }
 
+    private static boolean isLoopback(String host) {
+        return "localhost".equalsIgnoreCase(host) || host.startsWith("127.") || "::1".equals(host);
+    }
+
     private Properties properties() {
         Properties props = new Properties();
         String protocol = ssl ? "imaps" : "imap";
@@ -211,6 +236,10 @@ public class ImapMailReader {
         props.put("mail." + protocol + ".peek", "true");
         if (ssl) {
             props.put("mail.imaps.ssl.checkserveridentity", "true");
+        } else if (!isLoopback(host)) {
+            // Plain IMAP to another machine would send the password in clear text: upgrade or refuse to log in.
+            props.put("mail.imap.starttls.enable", "true");
+            props.put("mail.imap.starttls.required", "true");
         }
         return props;
     }

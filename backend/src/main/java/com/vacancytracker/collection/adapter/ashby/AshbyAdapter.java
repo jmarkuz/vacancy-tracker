@@ -56,7 +56,7 @@ public class AshbyAdapter implements SourceAdapter {
         List<RawPosting> all = new ArrayList<>();
         boolean allUnchanged = !boards.isEmpty();
         for (String board : boards) {
-            FetchResult result = fetcher.get(baseUrl + "/posting-api/job-board/" + board + "?includeCompensation=true");
+            FetchResult result = fetcher.getUnconditional(baseUrl + "/posting-api/job-board/" + board + "?includeCompensation=true");
             if (result.notModified()) {
                 continue;
             }

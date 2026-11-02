@@ -90,6 +90,25 @@ class DeduplicatorTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void sameTitleInAnotherCityOrAnotherLevelOrVariantIsAnotherVacancy() {
+        ingest.ingest(p("a", null, null, "Software Engineer", "Acme", "Berlin"), NOW);
+        ingest.ingest(p("a", null, null, "Software Engineer I", "Acme", "Berlin"), NOW);
+        ingest.ingest(p("a", null, null, "Backend Engineer (Java)", "Acme", "Berlin"), NOW);
+
+        assertThat(deduplicator.match(p("b", null, null, "Software Engineer", "Acme", "London"))).isEmpty();
+        assertThat(deduplicator.match(p("b", null, null, "Software Engineer II", "Acme", "Berlin"))).isEmpty();
+        assertThat(deduplicator.match(p("b", null, null, "Backend Engineer (Go)", "Acme", "Berlin"))).isEmpty();
+    }
+
+    @Test
+    void punctuationGenderSuffixAndPlaceDetailDoNotMakeADifferentVacancy() {
+        ingest.ingest(p("a", null, null, "Data Engineer (m/f/d)", "Acme", "Berlin"), NOW);
+
+        assertThat(deduplicator.match(p("b", null, null, "Data  Engineer", "Acme", "Berlin, Germany"))).isPresent();
+        assertThat(deduplicator.match(p("b", null, null, "Data Engineer", "Acme", null))).isPresent();
+    }
+
+    @Test
     void ingestRecordsOneVacancyAndOneSourceRowPerAdapter() {
         ingest.ingest(p("a", "1", "https://ex.com/job/1", "Java Developer", "Acme", "Berlin"), NOW);
         ingest.ingest(p("b", "9", "https://ex.com/job/1", "Java Developer", "Acme", "Berlin"), NOW);

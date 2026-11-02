@@ -46,11 +46,12 @@ public abstract class EmailAlertAdapter implements SourceAdapter {
             return FetchOutcome.of(List.of());
         }
         List<RawPosting> postings = new ArrayList<>();
-        ImapMailReader.ReadResult result = reader.readNew(mail -> handle(mail, postings));
+        ImapMailReader.ReadResult result = reader.readNewDeferred(mail -> handle(mail, postings));
         if (result.error() != null) {
             throw new UpstreamException(result.error());
         }
-        return FetchOutcome.of(postings);
+        // The mails are marked processed only after the pipeline has stored their vacancies.
+        return FetchOutcome.of(postings).afterStored(() -> reader.markProcessed(result.handledKeys()));
     }
 
     private MailHandler.Outcome handle(MailMessage mail, List<RawPosting> postings) {

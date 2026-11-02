@@ -103,11 +103,14 @@ class GreenhouseAdapterTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void secondRunWithUnchangedBoardReportsUnchanged() {
+    void everyRunReturnsTheWholeBoardBecauseNoValidatorsAreSent() {
         SourceAdapter adapter = adapter(List.of("acme"));
         adapter.fetch();
 
-        assertThat(adapter.fetch().unchanged()).isTrue();
+        FetchOutcome second = adapter.fetch();
+
+        assertThat(second.unchanged()).isFalse();
+        assertThat(second.postings()).isNotEmpty();
     }
 
     @Test

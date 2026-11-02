@@ -15,12 +15,17 @@ import org.springframework.transaction.support.TransactionTemplate;
 /**
  * Expiry (T-045, ADR-014). A New or Saved vacancy becomes Expired after it was missed by N consecutive
  * successful runs of its sources. A source that failed in a run does not count for that run. Email sources never
- * count: an alert email arrives once, so not seeing its vacancy again says nothing about the posting (ADR-030).
+ * count: an alert email arrives once, so not seeing its vacancy again says nothing about the posting (ADR-030). Nor do
+ * the sources that list only a window of their postings (the newest N, a few pages, a configured selection): a posting
+ * that has slid out of the window is not gone (ADR-036).
  */
 @Service
 public class ExpiryService {
 
     static final String NOTE = "auto-expired";
+
+    /** Sources that show only part of what is open, so missing from them proves nothing. */
+    static final List<String> WINDOWED_SOURCES = List.of("remotive", "jobicy", "arbeitnow", "himalayas", "adzuna", "rss", "html");
 
     private static final String CANDIDATES = """
             SELECT v.id FROM vacancy v
@@ -31,7 +36,7 @@ public class ExpiryService {
                      AND r.status IN ('completed', 'completed_with_errors')
                      AND s.error_message IS NULL
                      AND s.adapter IN (SELECT vs.adapter FROM vacancy_source vs WHERE vs.vacancy_id = v.id
-                                        AND vs.adapter NOT LIKE 'email-%')
+                                        AND vs.adapter NOT LIKE 'email-%' AND vs.adapter NOT IN (:windowed))
                   ) >= :runs
             """;
 
@@ -53,7 +58,7 @@ public class ExpiryService {
 
     /** Returns how many vacancies were expired. Each one is its own transaction. */
     public int expireUnseen() {
-        List<UUID> candidates = jdbc.sql(CANDIDATES).param("runs", runsWithoutSighting).query(UUID.class).list();
+        List<UUID> candidates = jdbc.sql(CANDIDATES).param("runs", runsWithoutSighting).param("windowed", WINDOWED_SOURCES).query(UUID.class).list();
         for (UUID id : candidates) {
             tx.executeWithoutResult(status -> expire(id));
         }
