@@ -35,11 +35,22 @@ export function selectionAfterRemoval(index: number, newLength: number): number 
   return Math.min(index, newLength - 1);
 }
 
-/** True when typing should not trigger shortcuts: form fields, or an open dialog. */
+/**
+ * True when a shortcut should leave the key alone: form fields, controls that act on Enter or Space (buttons,
+ * links), and anything inside a dialog.
+ */
 export function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) {
     return false;
   }
   const tag = target.tagName;
-  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable === true;
+  return (
+    tag === "INPUT" ||
+    tag === "TEXTAREA" ||
+    tag === "SELECT" ||
+    tag === "BUTTON" ||
+    tag === "A" ||
+    target.isContentEditable === true ||
+    target.closest("[role='dialog']") !== null
+  );
 }

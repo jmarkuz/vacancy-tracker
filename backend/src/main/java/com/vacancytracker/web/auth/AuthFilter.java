@@ -27,9 +27,13 @@ public class AuthFilter extends OncePerRequestFilter {
         this.limiter = limiter;
     }
 
+    private static final org.springframework.web.util.UrlPathHelper PATHS = new org.springframework.web.util.UrlPathHelper();
+
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        String path = request.getRequestURI();
+        // The path Spring routes on: decoded, dot segments resolved, ";params" removed. The raw URI is not safe to test
+        // ("/api;x=1/vacancies" routes to /api/vacancies but does not start with "/api/").
+        String path = PATHS.getPathWithinApplication(request);
         return !path.startsWith("/api/") || path.equals("/api/auth/status") || path.equals("/api/auth/logout")
                 || path.equals("/api/auth/login");
     }

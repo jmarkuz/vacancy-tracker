@@ -80,6 +80,15 @@ class VacancyTest {
     }
 
     @Test
+    void aPostingWithoutSalaryDoesNotEraseAKnownSalary() {
+        vacancy.applyAutomated(new AutomatedFields(null, BigDecimal.ONE, BigDecimal.TEN, "EUR", "year", T1));
+        vacancy.applyAutomated(new AutomatedFields(null, null, null, null, null, T1));
+
+        assertThat(vacancy.getSalaryMax()).isEqualByComparingTo("10");
+        assertThat(vacancy.getCurrency()).isEqualTo("EUR");
+    }
+
+    @Test
     void automationDoesNotMoveLastSeenBackwards() {
         vacancy.applyAutomated(new AutomatedFields(null, null, null, null, null, Instant.parse("2026-01-01T00:00:00Z")));
         assertThat(vacancy.getLastSeenAt()).isEqualTo(T0);

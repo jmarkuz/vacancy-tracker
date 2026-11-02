@@ -284,6 +284,9 @@ public class CriterionCompiler {
         for (JsonNode n : nodes(value, op)) {
             out.add(text(n, op));
         }
+        if (out.isEmpty()) {
+            throw new CriterionException(op + " needs at least one value");
+        }
         return out;
     }
 

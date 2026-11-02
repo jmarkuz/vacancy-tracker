@@ -87,18 +87,22 @@ public class RecalculationService {
     }
 
     private void run(Job job) {
-        MatchService.MatchSession session = matching.session();
-        List<UUID> ids = vacancies.findAllIds();
-        job.total = ids.size();
-        for (UUID id : ids) {
-            try {
-                session.match(id);
-            } catch (DataAccessException | IllegalArgumentException | NotFoundException e) {
-                job.failed.incrementAndGet();
+        try {
+            MatchService.MatchSession session = matching.session();
+            List<UUID> ids = vacancies.findAllIds();
+            job.total = ids.size();
+            for (UUID id : ids) {
+                try {
+                    session.match(id);
+                } catch (DataAccessException | IllegalArgumentException | NotFoundException e) {
+                    job.failed.incrementAndGet();
+                }
+                job.processed.incrementAndGet();
             }
-            job.processed.incrementAndGet();
+        } finally {
+            // An unexpected error must still end the job, or every later request would only queue a rerun.
+            finish(job);
         }
-        finish(job);
     }
 
     private synchronized void finish(Job job) {

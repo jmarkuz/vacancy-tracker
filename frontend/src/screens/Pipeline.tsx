@@ -75,6 +75,14 @@ export function Pipeline({ params }: Props) {
     setTarget("");
   }, [page, filterRaw, board, sort]);
 
+  // A row that left the list (edited in the drawer, filtered out) must not stay selected for a bulk change.
+  useEffect(() => {
+    if (data) {
+      const visibleIds = new Set(data.items.map((v) => v.id));
+      setSelected((current) => (current.every((id) => visibleIds.has(id)) ? current : current.filter((id) => visibleIds.has(id))));
+    }
+  }, [data]);
+
   const selectedRows = (data?.items ?? []).filter((v) => selected.includes(v.id));
   const options = targetOptions(selectedRows);
 

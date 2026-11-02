@@ -5,6 +5,8 @@ All notable changes are recorded here. Format: date, task ID, short description.
 ## [Unreleased]
 
 ### 2026-11-01 — M1 core tracker
+- Review fixes: A failing recalculation can no longer leave the job stuck as running; empty value lists in view filters are rejected; a posting without salary no longer erases a known salary; Inbox shortcuts leave buttons, links and dialogs alone and ignore key repeat; Pipeline drops selected rows that left the list; Escape in the command palette no longer closes the drawer behind it.
+- Review fixes (security): The access-token filter now tests the normalized path: /api;x=1/vacancies no longer skips the token check. CSV cells starting with = + - @ are neutralized on export and restored on import. Re-importing a CSV no longer wipes description, edit marks and history of existing vacancies.
 - Review fixes: Adzuna skips an invalid country code instead of failing the other countries; the country is filled on a known vacancy only when the location matches; Atom 'updated' is used as the date; one broken feed cannot stop the rest.
 - T-027: Every source row in docs/sources.md is now ok or blocked. We Work Remotely and Jooble are blocked until the owner reads their terms in a browser; no protection was bypassed.
 - T-041: The country is detected from the location when it names one; seniority is deliberately not detected (ADR-036).

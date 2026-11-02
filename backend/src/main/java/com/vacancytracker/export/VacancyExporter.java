@@ -65,6 +65,10 @@ public class VacancyExporter {
         if (value == null) {
             return "";
         }
+        // A spreadsheet runs a cell that starts with these as a formula; vacancy text comes from third parties.
+        if (!value.isEmpty() && "=+-@\t\r".indexOf(value.charAt(0)) >= 0) {
+            value = "'" + value;
+        }
         boolean quote = value.indexOf(',') >= 0 || value.indexOf('"') >= 0
                 || value.indexOf('\n') >= 0 || value.indexOf('\r') >= 0;
         return quote ? "\"" + value.replace("\"", "\"\"") + "\"" : value;

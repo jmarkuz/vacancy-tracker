@@ -118,7 +118,9 @@ public class Vacancy {
         if (!userEditedFields.contains(FIELD_DESCRIPTION) && fields.description() != null) {
             description = fields.description();
         }
-        if (!userEditedFields.contains(FIELD_SALARY)) {
+        // A posting that states no salary does not erase one an earlier sighting (or another source) gave.
+        boolean salaryGiven = fields.salaryMin() != null || fields.salaryMax() != null;
+        if (!userEditedFields.contains(FIELD_SALARY) && salaryGiven) {
             salaryMin = fields.salaryMin();
             salaryMax = fields.salaryMax();
             currency = fields.currency();
