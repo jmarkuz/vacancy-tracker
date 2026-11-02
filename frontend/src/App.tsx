@@ -133,13 +133,13 @@ export function App() {
         </header>
         <main class="content">
           {screen === "pipeline" ? (
-            <Pipeline key={dataVersion} params={params} />
+            <Pipeline dataVersion={dataVersion} params={params} />
           ) : screen === "sources" ? (
-            <Sources key={dataVersion} />
+            <Sources dataVersion={dataVersion} />
           ) : screen === "inbox" ? (
-            <Inbox key={dataVersion} params={params} />
+            <Inbox dataVersion={dataVersion} params={params} />
           ) : screen === "dashboard" ? (
-            <Dashboard key={dataVersion} />
+            <Dashboard dataVersion={dataVersion} />
           ) : screen === "profiles" ? (
             <Profiles params={params} />
           ) : (

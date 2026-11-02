@@ -22,13 +22,21 @@ public class VacancyService {
         this.clock = clock;
     }
 
+    /** History note of a vacancy the user added. It is not automatic, so automation never hides it (ADR-026). */
+    public static final String ADDED_BY_HAND_NOTE = "added by hand";
+
     @Transactional
     public Vacancy create(String title, String company, String url, String description) {
         Instant now = clock.instant();
-        String canonical = CanonicalUrl.of(url).orElse(null);
-        Vacancy vacancy = Vacancy.discovered(UUID.randomUUID(), title, company, blankToNull(url), canonical,
-                description, now);
+        String link = CanonicalUrl.webLink(url);
+        if (blankToNull(url) != null && link == null) {
+            throw new IllegalArgumentException("The link must be an http:// or https:// address");
+        }
+        String canonical = CanonicalUrl.of(link).orElse(null);
+        Vacancy vacancy = Vacancy.discovered(UUID.randomUUID(), title, company, link, canonical, description, now);
         repository.save(vacancy.toState());
+        // A source that later lists the same posting must not make it look automatic (review 2026-11-02).
+        repository.appendStatusEvent(new StatusEvent(vacancy.getId(), null, VacancyStatus.NEW, now, ADDED_BY_HAND_NOTE));
         return vacancy;
     }
 
@@ -87,9 +95,14 @@ public class VacancyService {
                 : new SqlFragment("status = :status", Map.of("status", status.label()));
     }
 
+    /** The vacancy, locked until the transaction ends, for a read-modify-write. */
+    private Vacancy lockForChange(UUID id) {
+        return repository.findByIdForUpdate(id).map(Vacancy::restore).orElseThrow(() -> new VacancyNotFoundException(id));
+    }
+
     @Transactional
     public Vacancy update(UUID id, UpdateCommand cmd) {
-        Vacancy vacancy = get(id);
+        Vacancy vacancy = lockForChange(id);
         if (cmd.description() != null) {
             vacancy.editDescription(cmd.description());
         }
@@ -105,8 +118,10 @@ public class VacancyService {
         if (cmd.tags() != null) {
             vacancy.setTags(cmd.tags());
         }
+        // Each part is its own field: a PATCH with only the note keeps the date, and the other way round.
         if (cmd.nextActionAt() != null || cmd.nextActionNote() != null) {
-            vacancy.setNextAction(cmd.nextActionAt(), cmd.nextActionNote());
+            vacancy.setNextAction(cmd.nextActionAt() != null ? cmd.nextActionAt() : vacancy.getNextActionAt(),
+                    cmd.nextActionNote() != null ? cmd.nextActionNote() : vacancy.getNextActionNote());
         }
         repository.save(vacancy.toState());
         return vacancy;
@@ -114,7 +129,7 @@ public class VacancyService {
 
     @Transactional
     public Vacancy changeStatus(UUID id, VacancyStatus to, String note) {
-        Vacancy vacancy = get(id);
+        Vacancy vacancy = lockForChange(id);
         StatusEvent event = vacancy.changeStatus(to, clock.instant(), note);
         repository.save(vacancy.toState());
         repository.appendStatusEvent(event);
@@ -170,7 +185,22 @@ public class VacancyService {
         if (columns.contains("description") && row.description() != null && !row.description().equals(old.description())) {
             marks.add(Vacancy.FIELD_DESCRIPTION);
         }
+        // A salary corrected in the file must survive the next run, as a description does (review 2026-11-02).
+        boolean salaryColumns = columns.contains("salary_min") || columns.contains("salary_max")
+                || columns.contains("currency") || columns.contains("salary_period");
+        boolean salaryChanged = !java.util.Objects.equals(amount(row.salaryMin()), amount(old.salaryMin()))
+                || !java.util.Objects.equals(amount(row.salaryMax()), amount(old.salaryMax()))
+                || !java.util.Objects.equals(row.currency(), old.currency())
+                || !java.util.Objects.equals(row.salaryPeriod(), old.salaryPeriod());
+        if (salaryColumns && salaryChanged) {
+            marks.add(Vacancy.FIELD_SALARY);
+        }
         return marks;
+    }
+
+    /** 70000 and 70000.00 are the same amount. */
+    private static java.math.BigDecimal amount(java.math.BigDecimal value) {
+        return value == null ? null : value.stripTrailingZeros();
     }
 
     private static <T> T pick(java.util.Set<String> columns, String column, T fromFile, T stored) {

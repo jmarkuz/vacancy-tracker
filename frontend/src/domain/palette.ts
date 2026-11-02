@@ -38,8 +38,9 @@ export function splitSnippet(snippet: string): Part[] {
 }
 
 /** Whether a key press is the palette shortcut: Ctrl+K, or Cmd+K on a Mac. */
-export function isPaletteShortcut(e: { key: string; ctrlKey: boolean; metaKey: boolean; altKey: boolean; shiftKey: boolean }): boolean {
-  return e.key.toLowerCase() === "k" && (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey;
+/** `code` covers layouts where the K key types another letter (Ukrainian "л"). */
+export function isPaletteShortcut(e: { key: string; code?: string; ctrlKey: boolean; metaKey: boolean; altKey: boolean; shiftKey: boolean }): boolean {
+  return (e.key.toLowerCase() === "k" || e.code === "KeyK") && (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey;
 }
 
 /** Moves the highlighted row by delta, wrapping around. -1 for nothing highlighted yet. */

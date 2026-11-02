@@ -18,9 +18,20 @@ if [ ! -f "$root/backend/target/vacancy-tracker-0.1.0-SNAPSHOT.jar" ]; then
     echo "Build first: (cd frontend && npm ci && npm run build) && (cd backend && mvn -DskipTests package)"
     exit 2
 fi
+# A jar older than the UI sources would test yesterday's screens.
+if [ -n "$(find "$root/frontend/src" -newer "$root/backend/target/vacancy-tracker-0.1.0-SNAPSHOT.jar" -type f -not -name "*.test.*" | head -n 1)" ]; then
+    echo "The UI changed after the jar was built. Rebuild: (cd frontend && npm run build) && (cd backend && mvn -DskipTests package)"
+    exit 2
+fi
 docker rm -f "$db" > /dev/null 2>&1
-docker run -d --name "$db" -e POSTGRES_PASSWORD=pw -e POSTGRES_USER=vacancy -e POSTGRES_DB=vacancy_tracker -p 15433:5432 postgres:16 > /dev/null
-until docker exec "$db" psql -U vacancy -d vacancy_tracker -c "select 1" > /dev/null 2>&1; do sleep 1; done
+if ! docker run -d --name "$db" -e POSTGRES_PASSWORD=pw -e POSTGRES_USER=vacancy -e POSTGRES_DB=vacancy_tracker -p 15433:5432 postgres:16 > /dev/null; then
+    echo "could not start PostgreSQL in Docker (is Docker running, is port 15433 free?)"; exit 1
+fi
+i=0
+until docker exec "$db" psql -U vacancy -d vacancy_tracker -c "select 1" > /dev/null 2>&1; do
+    i=$((i + 1)); [ "$i" -gt 60 ] && { echo "PostgreSQL did not become ready"; exit 1; }
+    sleep 1
+done
 
 SERVER_PORT="$port" APP_RATES_REFRESH_ON_STARTUP=false \
 SPRING_DATASOURCE_URL=jdbc:postgresql://127.0.0.1:15433/vacancy_tracker SPRING_DATASOURCE_USERNAME=vacancy SPRING_DATASOURCE_PASSWORD=pw \

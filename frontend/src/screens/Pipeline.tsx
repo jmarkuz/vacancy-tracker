@@ -20,10 +20,12 @@ const DEFAULT_SORT = "lastSeenAt:desc";
 
 interface Props {
   params: URLSearchParams;
+  /** Grows when a refresh stored new data: the list loads again, keeping the open drawer and selection. */
+  dataVersion?: number;
 }
 
 /** Sort, page and visible columns are all in the URL, so a view can be bookmarked and shared. */
-export function Pipeline({ params }: Props) {
+export function Pipeline({ params, dataVersion = 0 }: Props) {
   const sort = params.get("sort") ?? DEFAULT_SORT;
   const page = Math.max(0, Number(params.get("page") ?? 0) || 0);
   const visible = resolveColumns(params.get("cols"));
@@ -74,7 +76,7 @@ export function Pipeline({ params }: Props) {
         setLoading(false);
       });
     return () => controller.abort();
-  }, [sort, page, filterRaw, attempt, board]);
+  }, [sort, page, filterRaw, attempt, board, dataVersion]);
 
   // A new page, filter or layout shows different rows, so an old selection would act on rows out of sight.
   useEffect(() => {

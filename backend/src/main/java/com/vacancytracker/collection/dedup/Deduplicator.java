@@ -56,6 +56,10 @@ public class Deduplicator {
             if (!sameLocation(location, words(candidate.location()))) {
                 continue;
             }
+            // Two ids on one board are two openings, whatever their titles say (review 2026-11-02).
+            if (posting.externalId() != null && vacancies.hasOtherSourceId(candidate.id(), posting.adapter(), posting.externalId())) {
+                continue;
+            }
             double score = titleScore(title, words(candidate.title()));
             if (score > bestScore) {
                 bestScore = score;

@@ -48,7 +48,7 @@ public class IngestService {
         }
 
         UUID id = match.get().vacancyId();
-        Vacancy existing = Vacancy.restore(vacancies.findById(id).orElseThrow());
+        Vacancy existing = Vacancy.restore(vacancies.findByIdForUpdate(id).orElseThrow());
         String before = existing.getDescription();
         BigDecimal beforeMin = existing.getSalaryMin();
         BigDecimal beforeMax = existing.getSalaryMax();

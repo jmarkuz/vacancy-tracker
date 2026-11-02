@@ -29,6 +29,15 @@ Index:
 - ADR-024 Frontend test tooling and accepted dev-only advisories
 - ADR-025 missingValuePolicy penalize means a weight penalty
 - ADR-026 Automatic inbox hiding and its limits
+- ADR-027 to ADR-038: see the records below (profile import, company lists, mail, Telegram, backup, token, logs, HTML and feed adapters, review follow-ups)
+- ADR-039 Review 2026-11-02: host check, row locks, manual vacancies, web links, keyboard commits
+- ADR-040 Resume and the fit score
+- ADR-041 Claude adapter and the AI opt-in
+- ADR-042 Tailored documents, versions and application packages
+- ADR-043 Correspondence: job mail, links to applications, status suggestions
+- ADR-044 Visa sponsorship from the posting text
+- ADR-045 New sources from the owner's list
+- ADR-046 design, dark first
 
 ---
 
@@ -576,3 +585,22 @@ Status: Accepted (T-073)
 - **Later in the same day, the items first left open were closed:** Jobicy is spaced one hour from the last call (`CallBudget.tryAcquireSpaced`), not per clock hour; a match session reloads the profiles when one is saved meanwhile (`SearchProfileService.generation`); the funnel and the weekly count ignore a stage that a bulk undo took back; a search for `node.js` also matches the whole token; the alert parser takes company and place only from a block that holds one posting's link; a redirect target is fetched without validators and none are stored.
 - **After the next review:** spaced calls take turns under an advisory lock; the funnel orders an undo entry after the change it took back when both have the same time; the alert parser, in a block shared by several postings, takes only the text between a posting's link and the next one; the recalculation poller waits about 20 seconds for a job before saying none is running.
 - **Still not changed:** a search for `c#` matches by the prefix `c`; a vacancy already scored by a run that read the old profile just before a save is corrected by the recalculation that the save starts.
+
+## ADR-039 Review 2026-11-02: host check, row locks, manual vacancies, web links, keyboard commits
+
+Status: Accepted (T-076). Findings and their state: [code-review.md](code-review.md).
+
+**Context.** An independent review of the whole code base and a clean build on current tools (Docker Engine 29, Node 26) found a way for any web page to read the local API, data lost to races between background jobs and the user, and keyboard paths that changed statuses by accident.
+
+**Decision.**
+- **Host check.** `HostFilter` answers `/api/` only for loopback host names (`localhost`, `127.0.0.1`, `[::1]`) and the names in `app.allowed-hosts` (`APP_ALLOWED_HOSTS`; `docker-compose.vps.yml` sets it to `DOMAIN`). DNS rebinding makes a hostile page same-origin with the app, so the Origin check alone (ADR-038) cannot stop it; the Host header still carries the hostile name. A request without a Host header (HTTP/1.0, tests) is judged by the server name.
+- **Row locks.** Every read-modify-write of a vacancy reads it with `SELECT … FOR UPDATE`: user edits and status changes, bulk changes, ingest, the inbox rule and expiry. They serialise per row, so a background job can no longer write back a status or note the user changed after the job read the row. Column-scoped updates were the alternative; the lock keeps the aggregate model of ADR-003 and costs only waiting on the same row.
+- **Manual vacancies.** Creating or importing a vacancy by hand writes a first history entry, from nothing to New, noted "added by hand". It is not automatic, so the inbox rule (ADR-026) never hides the vacancy, also after a source starts listing it. The "no source row" test of ADR-038 stays as a second guard.
+- **Web links only.** A posting link is stored only when it is an http or https address with a host (`CanonicalUrl.webLink`). Sources drop other links, manual creation answers 422, an import row is rejected with the field `url`. The UI also opens only http(s) links (`safeLink`), for rows stored before this change.
+- **Salary edits in CSV.** A CSV row that changes the salary marks `salary` as edited, like a description (ADR-012).
+- **Same-board openings.** Fuzzy de-duplication (ADR-013) skips a candidate the same adapter already lists under another id: one board's ids are distinct openings.
+- **Next action.** A PATCH sets the next-action date and note independently.
+- **Keyboard commits.** Selects that change data (status in the drawer and on the board, priority) only choose; a button applies. Screens reload their data after a Refresh instead of being re-mounted, so drafts and selections survive. The Inbox selection is a vacancy id read through refs. Shortcuts fall back to the physical key (`e.code`) when the layout types non-Latin letters.
+- **Build.** Testcontainers 1.21.4 (Docker 29 needs it), the SPA-serving auth test no longer needs a UI build, and Vitest workers on Node 22+ run with `--no-experimental-webstorage`.
+
+**Consequences.** A background job may wait a few milliseconds on a row the user is saving. Rows stored earlier with a non-web link keep it in the database but the UI does not open it. Open findings are in T-092.
