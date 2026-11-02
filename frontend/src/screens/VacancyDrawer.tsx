@@ -6,6 +6,7 @@ import type { Vacancy } from "../api/types";
 import { allowedNext } from "../domain/statuses";
 import { safeLink } from "../domain/links";
 import { FitPanel } from "../components/FitPanel";
+import { DocumentsPanel } from "../components/DocumentsPanel";
 import { StatusBadge } from "../components/StatusBadge";
 import { formatDate, formatSalary } from "./columns";
 
@@ -195,6 +196,8 @@ export function VacancyDrawer({ id, onClose, onChange }: Props) {
             </section>
 
             <FitPanel vacancyId={vacancy.id} />
+
+            <DocumentsPanel vacancyId={vacancy.id} title={vacancy.title} company={vacancy.company} />
 
             <DescriptionEditor
               key={vacancy.id + vacancy.userEditedFields.includes("description")}
