@@ -1,0 +1,20 @@
+{
+  "jobs": [
+    {
+      "id": 4001,
+      "title": "Backend Engineer (Java)",
+      "absolute_url": "https://boards.greenhouse.io/acme/jobs/4001",
+      "location": { "name": "Berlin" },
+      "content": "&lt;p&gt;Build &lt;b&gt;APIs&lt;/b&gt; for our platform.&lt;/p&gt;",
+      "updated_at": "2026-10-30T09:00:00Z"
+    },
+    {
+      "id": 4002,
+      "title": "Data Analyst",
+      "absolute_url": "https://boards.greenhouse.io/acme/jobs/4002",
+      "location": { "name": "Remote" },
+      "content": "",
+      "updated_at": "2026-10-29T09:00:00Z"
+    }
+  ]
+}

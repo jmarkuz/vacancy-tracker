@@ -1,0 +1,76 @@
+id,title,milestone,estimate,depends_on,status
+T-001,Research: comparable solutions,M0,S,,done
+T-002,Sources: verified terms limits capabilities,M0,M,T-001,done
+T-003,Architecture: C4 pipeline ERD,M0,M,T-001,done
+T-004,ADRs,M0,M,T-001,done
+T-005,Search profile schema and example,M0,M,T-004,done
+T-006,PLAN.md tasks.csv CHANGELOG,M0,S,T-001,done
+T-007,Design tokens,M0,S,T-004,done
+T-008,Dashboard mockup,M0,M,T-007,done
+T-009,Design README,M0,S,T-008,done
+T-010,Project README,M0,S,T-003,done
+T-011,Maven bootstrap Java 21 Spring Boot 3,M1,S,T-010,done
+T-012,docker compose PostgreSQL 16 and env example,M1,S,T-011,done
+T-013,Flyway baseline schema,M1,M,T-011,done
+T-014,Vacancy domain and status machine,M1,M,T-011,done
+T-015,Vacancy REST API with paging,M1,M,"T-013,T-014",done
+T-016,Upsert rules and userEditedFields,M1,M,T-014,done
+T-017,Canonical URL utility,M1,S,T-011,done
+T-018,Frontend bootstrap Vite TypeScript Preact,M1,M,"T-011,T-007",done
+T-019,Pipeline table sorting paging,M1,M,"T-015,T-018",done
+T-020,Criterion model and filter evaluation,M1,M,T-015,done
+T-021,Filter chips and saved views,M1,M,"T-019,T-020",done
+T-022,Vacancy drawer,M1,M,"T-015,T-018",done
+T-023,Manual add by URL JSON-LD,M1,M,"T-017,T-015",done
+T-024,CSV export,M1,S,T-020,done
+T-025,XLSX export,M1,S,T-024,done
+T-026,JSON backup and import,M1,M,T-015,done
+T-027,Re-verify source terms,M2,S,T-010,done
+T-028,HTTP client rate limit ETag,M2,M,T-011,done
+T-029,Retries circuit breaker SourceState,M2,M,T-028,done
+T-030,Adapter SPI and WireMock harness,M2,S,T-028,done
+T-031,Adapter ats-greenhouse,M2,M,"T-027,T-030",done
+T-032,Adapter ats-lever,M2,S,"T-027,T-030",done
+T-033,Adapter ats-ashby,M2,S,"T-027,T-030",done
+T-034,Adapter arbeitnow,M2,M,"T-027,T-030",done
+T-035,Adapter adzuna,M2,M,"T-027,T-030",done
+T-036,Adapter jooble,M2,M,"T-027,T-030",todo
+T-037,Adapter remotive,M2,S,"T-027,T-030",done
+T-038,Adapter himalayas,M2,S,"T-027,T-030",done
+T-039,Adapter jobicy,M2,S,"T-027,T-030",done
+T-040,Generic RSS Atom adapter,M2,M,T-030,done
+T-041,Normalization,M2,M,T-017,done
+T-042,Dedup,M2,M,"T-016,T-041",done
+T-043,Collection pipeline orchestration,M2,M,"T-029,T-041,T-042",done
+T-044,Run lock cron scheduler graceful shutdown,M2,M,T-043,done
+T-045,Expiry detection,M2,S,T-043,done
+T-046,SSE progress and Refresh button,M2,M,"T-044,T-018",done
+T-047,Sources and Runs screen,M2,M,"T-044,T-018",done
+T-048,Inbox keyboard triage,M2,M,"T-043,T-018",done
+T-049,SearchProfile model and versioning,M3,M,T-013,done
+T-050,Rule engine operators modes policies,M3,M,"T-020,T-049",done
+T-051,Salary normalization and ECB rate cache,M3,M,T-041,done
+T-052,Score formula matchReasons VacancyMatch,M3,M,"T-050,T-051",done
+T-053,Profile recalculation job,M3,S,T-052,done
+T-054,Profile API with criterion validation,M3,M,"T-049,T-050",done
+T-055,Profile list and rule builder,M3,M,"T-054,T-018",done
+T-056,Live preview,M3,M,"T-052,T-055",done
+T-057,Profile YAML JSON import and export,M3,S,T-054,done
+T-058,Onboarding wizard,M3,S,T-055,done
+T-059,Allowlist and blocklist,M3,S,T-052,done
+T-060,Dashboard screen,M3,M,"T-052,T-046",done
+T-061,Kanban with drag and drop,M3,M,"T-019,T-016",done
+T-062,Full-text search and command palette,M3,M,"T-013,T-018",done
+T-063,Bulk actions with Undo,M3,S,T-019,done
+T-064,IMAP reader,M4,M,T-043,done
+T-065,Email parser framework and LinkedIn parser,M4,M,T-064,done
+T-066,Parsers Jobs.cz StartupJobs.cz Indeed,M4,M,T-065,done
+T-067,Telegram digest,M4,S,T-052,done
+T-068,Testcontainers suite and coverage gate,M5,M,"T-043,T-052",done
+T-069,ArchUnit boundary test,M5,S,T-011,done
+T-070,Daily pg_dump backup,M5,S,T-012,done
+T-071,VPS access token and login rate limit,M5,M,T-012,done
+T-072,Structured logs with key masking,M5,S,T-043,done
+T-073,Tier 3 generic HTML adapter,M5,M,"T-030,T-027",done
+T-074,Playwright smoke test,M5,S,"T-055,T-048",done
+T-075,Deployment docs and run instructions,M5,S,"T-012,T-070",done

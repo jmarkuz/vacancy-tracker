@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Example Atom Jobs</title>
+  <id>urn:example:feed</id>
+  <updated>2026-10-26T09:00:00Z</updated>
+  <entry>
+    <title>Atom Role</title>
+    <id>urn:example:entry:7</id>
+    <link href="https://feeds.example.test/jobs/7"/>
+    <updated>2026-10-26T09:00:00Z</updated>
+    <published>2026-10-25T09:00:00Z</published>
+    <author><name>Contoso</name></author>
+    <content type="html">&lt;p&gt;Atom &lt;i&gt;body&lt;/i&gt;&lt;/p&gt;</content>
+  </entry>
+</feed>

@@ -1,0 +1,15 @@
+SYNTHETIC fixture, not a real email.
+
+5 new jobs for "example role"
+
+Example Role Alpha
+Northwind Labs
+Prague, Czechia
+https://www.linkedin.com/comm/jobs/view/3912345678/?trackingId=abc&trk=eml
+
+Senior Example Role
+Vantage Lane
+Remote
+https://www.linkedin.com/comm/jobs/view/3987654321/?trk=eml
+
+See all jobs: https://www.linkedin.com/comm/jobs/search?keywords=example
