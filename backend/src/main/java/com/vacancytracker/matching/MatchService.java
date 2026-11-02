@@ -114,6 +114,10 @@ public class MatchService {
         if (status != VacancyStatus.NEW && status != VacancyStatus.HIDDEN) {
             return;
         }
+        // A vacancy the user added or imported by hand has no source: automation never hides what the user put there.
+        if (vacancies.findSourceAdaptersFor(List.of(vacancy.getId())).getOrDefault(vacancy.getId(), List.of()).isEmpty()) {
+            return;
+        }
         List<StatusEvent> history = vacancies.findHistory(vacancy.getId());
         if (!history.stream().allMatch(e -> e.note() != null && e.note().startsWith(AUTO_PREFIX))) {
             return;

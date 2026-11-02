@@ -38,12 +38,13 @@ public class EcbRateRefresher {
         this.url = url;
     }
 
-    /** Returns true when new rates were stored, false when the feed was unchanged. Throws if it cannot be read. */
+    /**
+     * Returns true when rates were stored. Throws if the feed cannot be read. The feed is small and published once a
+     * day, so it is fetched whole: validators saved before the body is parsed and stored would make a failed attempt
+     * look like "unchanged" until the next fixing.
+     */
     public boolean refresh() {
-        FetchResult result = fetcher.get(url);
-        if (result.notModified()) {
-            return false;
-        }
+        FetchResult result = fetcher.getUnconditional(url);
         if (!result.ok()) {
             throw new UpstreamException("ECB rates responded HTTP " + result.status());
         }
@@ -65,6 +66,8 @@ public class EcbRateRefresher {
             LOG.info("Exchange rates {}", updated ? "updated" : "unchanged");
         } catch (UpstreamException e) {
             LOG.warn("Exchange rates not updated, keeping the last known rates: {}", e.getMessage());
+        } catch (IllegalArgumentException | org.springframework.dao.DataAccessException e) {
+            LOG.warn("Exchange rates not updated, keeping the last known rates: {}", e.getClass().getSimpleName());
         }
     }
 }

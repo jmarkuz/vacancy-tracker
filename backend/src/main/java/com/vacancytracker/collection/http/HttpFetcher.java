@@ -61,7 +61,7 @@ public class HttpFetcher {
      * key without them, so keys are never stored in the database.
      */
     public FetchResult get(String url, String cacheKey, Map<String, String> headers) {
-        return fetch(url, cacheKey, headers, true, MAX_REDIRECTS);
+        return fetch(url, cacheKey, headers, true, MAX_REDIRECTS, retry.maxAttempts());
     }
 
     /**
@@ -69,12 +69,20 @@ public class HttpFetcher {
      * pages are parsed by the adapter itself and where "not modified" would hide which items still exist.
      */
     public FetchResult getUnconditional(String url) {
-        return fetch(url, url, Map.of(), false, MAX_REDIRECTS);
+        return fetch(url, url, Map.of(), false, MAX_REDIRECTS, retry.maxAttempts());
+    }
+
+    /**
+     * A conditional GET that is tried once. For sources with a hard call quota: a retry would be another call that
+     * the quota does not know about. The next scheduled run is the retry.
+     */
+    public FetchResult getOnce(String url) {
+        return fetch(url, url, Map.of(), true, MAX_REDIRECTS, 1);
     }
 
     /** As {@link #getUnconditional(String)} with extra headers, for sources that need a key in a header. */
     public FetchResult getUnconditional(String url, Map<String, String> headers) {
-        return fetch(url, url, headers, false, MAX_REDIRECTS);
+        return fetch(url, url, headers, false, MAX_REDIRECTS, retry.maxAttempts());
     }
 
     /**
@@ -82,10 +90,10 @@ public class HttpFetcher {
      * checked for exactly this address (robots.txt), where a redirect would land on an unchecked one.
      */
     public FetchResult getUnconditionalWithoutRedirects(String url) {
-        return fetch(url, url, Map.of(), false, 0);
+        return fetch(url, url, Map.of(), false, 0, retry.maxAttempts());
     }
 
-    private FetchResult fetch(String url, String cacheKey, Map<String, String> headers, boolean conditional, int redirectsLeft) {
+    private FetchResult fetch(String url, String cacheKey, Map<String, String> headers, boolean conditional, int redirectsLeft, int attempts) {
         URI uri;
         try {
             uri = URI.create(url);
@@ -101,7 +109,7 @@ public class HttpFetcher {
             try {
                 response = client.send(request(uri, known, headers), HttpResponse.BodyHandlers.ofInputStream());
             } catch (IOException e) {
-                if (attempt >= retry.maxAttempts()) {
+                if (attempt >= attempts) {
                     throw new UpstreamException("Network error after " + attempt + " attempts: " + e.getMessage());
                 }
                 sleeper.sleep(retry.delayMillis(attempt, null));
@@ -115,7 +123,7 @@ public class HttpFetcher {
                 closeQuietly(response);
                 URI next = redirectTarget(uri, response);
                 // Same host only: the request headers (a key, for some sources) and the pacing belong to this host.
-                return fetch(next.toString(), conditional ? next.toString() : cacheKey, headers, conditional, redirectsLeft - 1);
+                return fetch(next.toString(), conditional ? next.toString() : cacheKey, headers, conditional, redirectsLeft - 1, attempts);
             }
             if (status == 304 && known.isPresent()) {
                 closeQuietly(response);
@@ -123,7 +131,7 @@ public class HttpFetcher {
             }
             if (status == 429 || status / 100 == 5) {
                 closeQuietly(response);
-                if (attempt >= retry.maxAttempts()) {
+                if (attempt >= attempts) {
                     throw new UpstreamException("HTTP " + status + " after " + attempt + " attempts");
                 }
                 Duration retryAfter = response.headers().firstValue("Retry-After").map(HttpFetcher::seconds).orElse(null);

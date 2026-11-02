@@ -28,7 +28,7 @@ public class VacancyImporter {
 
     private static final List<String> CSV_HEADERS = List.of("id", "title", "company", "url", "location", "country", "work_mode",
             "status", "priority", "salary_min", "salary_max", "currency", "salary_period", "tags", "notes", "contact",
-            "next_action_at", "next_action_note", "first_seen_at", "last_seen_at");
+            "next_action_at", "next_action_note", "first_seen_at", "last_seen_at", "description", "canonical_url");
 
     private final VacancyService service;
     private final ObjectMapper mapper;
@@ -116,8 +116,10 @@ public class VacancyImporter {
                 service.importState(state, history);
             }
             report.ok();
-        } catch (DataIntegrityViolationException e) {
+        } catch (org.springframework.dao.DuplicateKeyException e) {
             report.fail(row, "url", "Canonical URL already belongs to another vacancy");
+        } catch (DataIntegrityViolationException e) {
+            report.fail(row, "record", "A value is too long or not allowed (for example a currency is 3 letters)");
         }
     }
 
@@ -193,7 +195,7 @@ public class VacancyImporter {
                 v.get("location"),
                 v.get("country"),
                 v.get("work_mode"),
-                null,
+                v.get("description"),
                 v.get("status"),
                 csvInt(v.get("priority"), "priority"),
                 csvDecimal(v.get("salary_min"), "salary_min"),

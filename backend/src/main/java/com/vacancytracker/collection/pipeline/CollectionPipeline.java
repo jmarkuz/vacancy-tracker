@@ -81,6 +81,23 @@ public class CollectionPipeline {
         long runStarted = System.nanoTime();
         MatchService.MatchSession session = matching.session();
         events.publish(runId, "started", Map.of("runId", runId.toString()));
+        try {
+            return executeAdapters(runId, scope, results, runStarted, session);
+        } finally {
+            // Reached normally, this changes nothing (only a running run can be finished). After an unexpected error
+            // it keeps the run from staying "running" for ever and tells the Refresh stream that it is over.
+            try {
+                if (runs.finish(runId, "interrupted", clock.instant()) > 0) {
+                    publishDone(runId, "interrupted", results);
+                }
+            } catch (DataAccessException e) {
+                LOG.warn("The run could not be closed: {}", e.getClass().getSimpleName());
+            }
+        }
+    }
+
+    private RunSummary executeAdapters(UUID runId, String scope, List<AdapterResult> results, long runStarted,
+                                       MatchService.MatchSession session) {
         for (SourceAdapter adapter : adapters) {
             if (scope != null && !scope.equals(adapter.id())) {
                 continue;
@@ -102,7 +119,11 @@ public class CollectionPipeline {
         boolean anyFailed = results.stream().anyMatch(r -> r.error() != null);
         String status = anyFailed ? "completed_with_errors" : "completed";
         runs.finish(runId, status, clock.instant());
-        expiry.expireUnseen();
+        try {
+            expiry.expireUnseen();
+        } catch (DataAccessException e) {
+            LOG.warn("Expiry could not run: {}", e.getClass().getSimpleName());
+        }
         publishDone(runId, status, results);
         logRun(runId, status, results, runStarted);
         return new RunSummary(runId, status, results);
@@ -185,6 +206,8 @@ public class CollectionPipeline {
             return new AdapterResult(id, stats, outcome.warning());
         } catch (UpstreamException e) {
             return failed(id, stats, e.getMessage());
+        } catch (DataAccessException e) {
+            return failed(id, stats, "The source could not be recorded: " + e.getClass().getSimpleName());
         } catch (IllegalArgumentException | IllegalStateException e) {
             // A misconfigured source (a bad header value, an unusable setting) must not stop the other sources.
             return failed(id, stats, "The source could not be read: " + e.getClass().getSimpleName());

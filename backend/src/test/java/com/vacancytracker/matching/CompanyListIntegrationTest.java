@@ -50,6 +50,8 @@ class CompanyListIntegrationTest extends AbstractIntegrationTest {
     private UUID vacancy(String title, String company) {
         Vacancy v = Vacancy.discovered(UUID.randomUUID(), title, company, "https://ex.com/" + UUID.randomUUID(), null, "Plain", NOW);
         vacancies.save(v.toState());
+        // A vacancy found by a source: only those are filtered by automation (one the user added by hand is not).
+        vacancies.upsertSource(v.getId(), "arbeitnow", UUID.randomUUID().toString(), "https://ex.com/x", NOW);
         return v.getId();
     }
 

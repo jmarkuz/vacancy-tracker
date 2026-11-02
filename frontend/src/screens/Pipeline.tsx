@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "preact/hooks";
+import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import { getJson, ApiError } from "../api/client";
 import { changeStatus } from "../api/vacancies";
 import { Board } from "../components/Board";
@@ -40,6 +40,7 @@ export function Pipeline({ params }: Props) {
   const [loading, setLoading] = useState(true);
   const [attempt, setAttempt] = useState(0);
   const [selected, setSelected] = useState<string[]>([]);
+  const applying = useRef(false);
   const [target, setTarget] = useState("");
   const [toast, setToast] = useState<{ message: string; tone: "info" | "error"; undo?: () => void } | null>(null);
 
@@ -56,6 +57,12 @@ export function Pipeline({ params }: Props) {
     }
     getJson<PageResponse<Vacancy>>(`/api/vacancies?${query}`, controller.signal)
       .then((result) => {
+        // A page past the end (rows moved away, an old link) goes to the last page instead of showing nothing.
+        const lastPage = Math.max(0, Math.ceil(result.total / PAGE_SIZE) - 1);
+        if (result.total > 0 && page > lastPage) {
+          setQuery({ page: lastPage === 0 ? null : String(lastPage) });
+          return;
+        }
         setData(result);
         setLoading(false);
       })
@@ -87,9 +94,10 @@ export function Pipeline({ params }: Props) {
   const options = targetOptions(selectedRows);
 
   const applyBulk = async () => {
-    if (!target || selected.length === 0) {
+    if (!target || selected.length === 0 || applying.current) {
       return;
     }
+    applying.current = true;
     try {
       const result = await bulkStatus(selected, target);
       setSelected([]);
@@ -111,6 +119,8 @@ export function Pipeline({ params }: Props) {
       });
     } catch (e: unknown) {
       setToast({ message: e instanceof Error ? e.message : "The change failed. Nothing was changed.", tone: "error" });
+    } finally {
+      applying.current = false;
     }
   };
 

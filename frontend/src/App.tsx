@@ -2,7 +2,7 @@ import { useEffect, useState } from "preact/hooks";
 import { Placeholder } from "./screens/Placeholder";
 import { CommandPalette } from "./components/CommandPalette";
 import { isPaletteShortcut } from "./domain/palette";
-import { RefreshControl } from "./components/RefreshControl";
+import { DATA_CHANGED_EVENT, RefreshControl } from "./components/RefreshControl";
 import { type Screen, useRoute } from "./router";
 import { Dashboard } from "./screens/Dashboard";
 import { Pipeline } from "./screens/Pipeline";
@@ -38,6 +38,13 @@ export function App() {
   const { screen, params } = useRoute();
   const [theme, setTheme] = useState<Theme>(readTheme);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  // Bumped when a refresh has stored new data, so the screen on show loads again.
+  const [dataVersion, setDataVersion] = useState(0);
+  useEffect(() => {
+    const onChanged = () => setDataVersion((v) => v + 1);
+    window.addEventListener(DATA_CHANGED_EVENT, onChanged);
+    return () => window.removeEventListener(DATA_CHANGED_EVENT, onChanged);
+  }, []);
   // "checking" until the server says whether a token is needed; "login" shows the sign-in page.
   const [session, setSession] = useState<"checking" | "login" | "open">("checking");
   const [tokenRequired, setTokenRequired] = useState(false);
@@ -126,13 +133,13 @@ export function App() {
         </header>
         <main class="content">
           {screen === "pipeline" ? (
-            <Pipeline params={params} />
+            <Pipeline key={dataVersion} params={params} />
           ) : screen === "sources" ? (
-            <Sources />
+            <Sources key={dataVersion} />
           ) : screen === "inbox" ? (
-            <Inbox params={params} />
+            <Inbox key={dataVersion} params={params} />
           ) : screen === "dashboard" ? (
-            <Dashboard />
+            <Dashboard key={dataVersion} />
           ) : screen === "profiles" ? (
             <Profiles params={params} />
           ) : (

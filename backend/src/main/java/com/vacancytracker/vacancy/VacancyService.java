@@ -53,6 +53,15 @@ public class VacancyService {
         return search(statusFilter(status), VacancySort.DEFAULT, page, size);
     }
 
+    /**
+     * The same list in an order that a running collection cannot change (by first sighting, not last), for exports
+     * that read it in several pages.
+     */
+    @Transactional(readOnly = true)
+    public List<Vacancy> listStable(VacancyStatus status, int page, int size) {
+        return search(statusFilter(status), new VacancySort("first_seen_at", false), page, size);
+    }
+
     @Transactional(readOnly = true)
     public long count(VacancyStatus status) {
         return countMatching(statusFilter(status));
@@ -61,7 +70,11 @@ public class VacancyService {
     /** Vacancies matching a compiled filter, in the given order. Page is zero-based. */
     @Transactional(readOnly = true)
     public List<Vacancy> search(SqlFragment where, VacancySort sort, int page, int size) {
-        return repository.findPage(where, sort, size, page * size).stream().map(Vacancy::restore).toList();
+        long offset = (long) page * size;
+        if (page < 0 || size < 1 || offset > 10_000_000L) {
+            throw new IllegalArgumentException("The page is out of range");
+        }
+        return repository.findPage(where, sort, size, (int) offset).stream().map(Vacancy::restore).toList();
     }
 
     @Transactional(readOnly = true)
@@ -137,18 +150,27 @@ public class VacancyService {
         VacancyState merged = new VacancyState(row.id(), row.title(), row.company(),
                 url ? row.url() : old.url(), url ? row.canonicalUrl() : old.canonicalUrl(),
                 pick(columns, "location", row.location(), old.location()), pick(columns, "country", row.country(), old.country()),
-                pick(columns, "work_mode", row.workMode(), old.workMode()), old.description(),
+                pick(columns, "work_mode", row.workMode(), old.workMode()), pick(columns, "description", row.description(), old.description()),
                 pick(columns, "salary_min", row.salaryMin(), old.salaryMin()), pick(columns, "salary_max", row.salaryMax(), old.salaryMax()),
                 pick(columns, "currency", row.currency(), old.currency()), pick(columns, "salary_period", row.salaryPeriod(), old.salaryPeriod()),
                 status, pick(columns, "priority", row.priority(), old.priority()), pick(columns, "notes", row.notes(), old.notes()),
                 pick(columns, "contact", row.contact(), old.contact()), pick(columns, "next_action_note", row.nextActionNote(), old.nextActionNote()),
                 pick(columns, "next_action_at", row.nextActionAt(), old.nextActionAt()), pick(columns, "tags", row.tags(), old.tags()),
-                old.userEditedFields(), pick(columns, "first_seen_at", row.firstSeenAt(), old.firstSeenAt()),
+                editedFields(columns, row, old), pick(columns, "first_seen_at", row.firstSeenAt(), old.firstSeenAt()),
                 pick(columns, "last_seen_at", row.lastSeenAt(), old.lastSeenAt()), old.isNew());
         repository.save(merged);
         if (old.status() != status) {
             repository.appendStatusEvent(new StatusEvent(row.id(), old.status(), status, clock.instant(), "imported from CSV"));
         }
+    }
+
+    /** A description given by the file and different from the stored one is the user's: automation must keep it. */
+    private static java.util.Set<String> editedFields(java.util.Set<String> columns, VacancyState row, VacancyState old) {
+        java.util.Set<String> marks = new java.util.LinkedHashSet<>(old.userEditedFields());
+        if (columns.contains("description") && row.description() != null && !row.description().equals(old.description())) {
+            marks.add(Vacancy.FIELD_DESCRIPTION);
+        }
+        return marks;
     }
 
     private static <T> T pick(java.util.Set<String> columns, String column, T fromFile, T stored) {

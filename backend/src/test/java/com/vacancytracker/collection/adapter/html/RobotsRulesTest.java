@@ -11,6 +11,13 @@ class RobotsRulesTest {
     }
 
     @Test
+    void aByteOrderMarkDoesNotHideTheFirstGroup() {
+        RobotsRules rules = RobotsRules.parse("\uFEFFUser-agent: *\nDisallow: /\n", "VacancyTracker");
+
+        assertThat(rules.isAllowed("/jobs")).isFalse();
+    }
+
+    @Test
     void anEmptyFileAndAnEmptyDisallowAllowEverything() {
         assertThat(rules("").isAllowed("/jobs")).isTrue();
         assertThat(rules("User-agent: *\nDisallow:\n").isAllowed("/anything")).isTrue();

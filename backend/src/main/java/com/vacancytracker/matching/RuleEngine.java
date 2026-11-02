@@ -146,7 +146,7 @@ public final class RuleEngine {
             case "equals" -> lower.equals(value.asText().toLowerCase(Locale.ROOT));
             case "in" -> needles(value).contains(lower);
             case "not_in" -> !needles(value).contains(lower);
-            case "regex" -> Pattern.compile(value.asText(), Pattern.CASE_INSENSITIVE).matcher(fact).find();
+            case "regex" -> Pattern.compile(value.asText(), Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE).matcher(fact).find();
             default -> throw new IllegalArgumentException("Operator " + op + " does not apply to text");
         };
     }

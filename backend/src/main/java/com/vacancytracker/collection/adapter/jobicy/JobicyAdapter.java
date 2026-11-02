@@ -68,7 +68,7 @@ public class JobicyAdapter implements SourceAdapter {
         }
         String url = baseUrl + "/api/jobs?count=100"
                 + (tag.isEmpty() ? "" : "&tag=" + URLEncoder.encode(tag, StandardCharsets.UTF_8));
-        FetchResult result = fetcher.get(url);
+        FetchResult result = fetcher.getOnce(url);
         if (result.notModified()) {
             return FetchOutcome.noChange();
         }

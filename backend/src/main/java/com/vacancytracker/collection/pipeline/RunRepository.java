@@ -104,11 +104,18 @@ public class RunRepository {
     }
 
     /** Only a running run can be finished, so a late finish cannot overwrite an interrupted run. */
-    public void finish(UUID runId, String status, Instant at) {
-        jdbc.sql("UPDATE run SET status = :status, finished_at = :at WHERE id = :id AND status = 'running'")
+    public int finish(UUID runId, String status, Instant at) {
+        return jdbc.sql("UPDATE run SET status = :status, finished_at = :at WHERE id = :id AND status = 'running'")
                 .param("status", status)
                 .param("at", utc(at))
                 .param("id", runId)
+                .update();
+    }
+
+    /** Marks every run still "running" as interrupted: used at start-up, when no run can be alive. */
+    public int interruptStale(Instant at) {
+        return jdbc.sql("UPDATE run SET status = 'interrupted', finished_at = :at WHERE status = 'running'")
+                .param("at", utc(at))
                 .update();
     }
 

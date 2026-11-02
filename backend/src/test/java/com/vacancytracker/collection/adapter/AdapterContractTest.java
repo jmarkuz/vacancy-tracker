@@ -28,12 +28,15 @@ public abstract class AdapterContractTest extends AbstractIntegrationTest {
     @Test
     void declaresServerSideFieldsAsKnownCriterionNames() {
         Set<String> fields = healthyAdapter().serverSideFields();
-        assertThat(fields).isNotNull();
+        Set<String> known = com.vacancytracker.matching.ProfileValidator.catalog().fields().stream()
+                .map(com.vacancytracker.matching.ProfileValidator.FieldInfo::name).collect(java.util.stream.Collectors.toSet());
+        assertThat(fields).isNotNull().isSubsetOf(known);
     }
 
     @Test
     void healthyFetchReturnsPostingsWithAdapterIdAndExternalId() {
         FetchOutcome outcome = healthyAdapter().fetch();
+        assertThat(outcome.postings()).as("the healthy fixture must yield postings").isNotEmpty();
         for (RawPosting posting : outcome.postings()) {
             assertThat(posting.adapter()).isEqualTo(healthyAdapter().id());
             assertThat(posting.externalId()).isNotBlank();

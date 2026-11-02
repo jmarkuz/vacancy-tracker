@@ -66,7 +66,9 @@ public abstract class LinkAlertParser implements MailParser {
         } catch (IllegalArgumentException e) {
             // An odd link: the parser's default host is used.
         }
-        return canonical.apply(id, host);
+        // The host comes from the email, which anyone can forge: only a host of the sender's own site is used.
+        boolean own = host != null && (host.equalsIgnoreCase(domain) || host.toLowerCase(java.util.Locale.ROOT).endsWith("." + domain));
+        return canonical.apply(id, own ? host : null);
     }
 
     private List<ParsedJob> parseHtml(String html) {

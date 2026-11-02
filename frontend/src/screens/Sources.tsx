@@ -1,4 +1,4 @@
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { ApiError } from "../api/client";
 import { listSources, refreshSource, type SourceStatus } from "../api/sources";
 import { openRunStream, type RunStream } from "../api/runs";
@@ -20,6 +20,9 @@ export function Sources() {
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [stream, setStream] = useState<RunStream | null>(null);
+  // The latest stream, for the cleanup on leaving the screen (the effect below runs once and would see the first, null, one).
+  const streamRef = useRef<RunStream | null>(null);
+  streamRef.current = stream;
 
   const load = () =>
     listSources()
@@ -31,7 +34,7 @@ export function Sources() {
 
   useEffect(() => {
     load();
-    return () => stream?.close();
+    return () => streamRef.current?.close();
   }, []);
 
   const refresh = async (id: string) => {

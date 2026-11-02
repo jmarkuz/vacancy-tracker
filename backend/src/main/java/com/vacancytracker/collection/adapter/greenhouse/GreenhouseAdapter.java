@@ -103,6 +103,6 @@ public class GreenhouseAdapter implements SourceAdapter {
                 null,
                 null,
                 null,
-                AdapterDates.instantOrNull(job.path("updated_at").asText(null)));
+                AdapterDates.instantOrNull(job.hasNonNull("first_published") ? job.path("first_published").asText(null) : job.path("updated_at").asText(null)));
     }
 }

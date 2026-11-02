@@ -20,6 +20,12 @@ test.beforeAll(async ({ request }) => {
   for (const [title, company] of [["Smoke test engineer", "Acme"], ["Unrelated clerk", "Other Inc"]]) {
     const created = await request.post("/api/vacancies", { data: { title, company } });
     expect(created.status()).toBe(201);
+    if (title === "Unrelated clerk") {
+      // A vacancy the user adds is never hidden by automation, so the one that must stay out of the Inbox is dismissed.
+      const id = ((await created.json()) as { id: string }).id;
+      const dismissed = await request.post(`/api/vacancies/${id}/status`, { data: { status: "Dismissed" } });
+      expect(dismissed.ok()).toBe(true);
+    }
   }
 });
 
@@ -58,9 +64,13 @@ test("first run leads to the wizard, which creates the first profile", async ({ 
 });
 
 test("the dashboard counts the vacancy that matches and not the one that does not", async ({ page, request }) => {
-  // Saving the profile starts a background rescore: the unrelated vacancy is hidden by its score.
-  await expect.poll(async () => status(request, "Unrelated clerk"), { timeout: 15_000 }).toBe("Hidden");
+  // Saving the profile starts a background rescore; the engineer gets a score once it has run.
+  await expect.poll(async () => {
+    const d = (await (await request.get("/api/dashboard")).json()) as { topMatches: { title: string }[] };
+    return d.topMatches.map((m) => m.title);
+  }, { timeout: 15_000 }).toContain("Smoke test engineer");
   expect(await status(request, "Smoke test engineer")).toBe("New");
+  expect(await status(request, "Unrelated clerk")).toBe("Dismissed");
 
   await page.goto("/#/dashboard");
   await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();

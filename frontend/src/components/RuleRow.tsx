@@ -68,7 +68,7 @@ export function RuleRow({ rule, index, count, meta, errors, onChange, onMove, on
 
         <input class="input weight num" type="number" aria-label="Weight" data-role="weight" min={meta.minWeight} max={meta.maxWeight}
           value={Number.isFinite(rule.weight) ? rule.weight : ""}
-          onInput={(e) => onChange({ ...rule, weight: Number((e.target as HTMLInputElement).value) })} />
+          onInput={(e) => { const text = (e.target as HTMLInputElement).value; onChange({ ...rule, weight: text.trim() === "" ? Number.NaN : Number(text) }); }} />
 
         <select class="input" aria-label="When the value is missing" data-role="policy" value={rule.missingValuePolicy}
           onChange={(e) => onChange({ ...rule, missingValuePolicy: (e.target as HTMLSelectElement).value })}>

@@ -70,7 +70,7 @@ public class RemotiveAdapter implements SourceAdapter {
         }
         String url = baseUrl + "/api/remote-jobs?limit=100"
                 + (search.isBlank() ? "" : "&search=" + URLEncoder.encode(search, StandardCharsets.UTF_8));
-        FetchResult result = fetcher.get(url);
+        FetchResult result = fetcher.getOnce(url);
         if (result.notModified()) {
             return FetchOutcome.noChange();
         }

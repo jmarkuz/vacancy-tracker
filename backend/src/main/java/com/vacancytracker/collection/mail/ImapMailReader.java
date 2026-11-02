@@ -138,7 +138,12 @@ public class ImapMailReader {
         int retried = 0;
         int skipped = 0;
         List<String> handledKeys = new java.util.ArrayList<>();
-        for (Map.Entry<String, Message> entry : pending.subList(0, Math.min(pending.size(), maxPerRun))) {
+        // The limit counts messages taken, not messages looked at: mail that another sender's adapter will take, or
+        // that cannot be read, must not use up the allowance and starve the rest.
+        for (Map.Entry<String, Message> entry : pending) {
+            if (handled >= maxPerRun) {
+                break;
+            }
             MailMessage mail;
             try {
                 mail = read(entry.getKey(), (MimeMessage) entry.getValue());

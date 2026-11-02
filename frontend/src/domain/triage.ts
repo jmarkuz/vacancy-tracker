@@ -35,19 +35,18 @@ export function selectionAfterRemoval(index: number, newLength: number): number 
   return Math.min(index, newLength - 1);
 }
 
-/** True when typing should not trigger shortcuts: form fields, or anything inside a dialog. */
-export function isTypingTarget(target: EventTarget | null): boolean {
+/** True for a form field: a place where keys are text, or where Escape closes an open list. */
+export function isFieldTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) {
     return false;
   }
   const tag = target.tagName;
-  return (
-    tag === "INPUT" ||
-    tag === "TEXTAREA" ||
-    tag === "SELECT" ||
-    target.isContentEditable === true ||
-    target.closest("[role='dialog']") !== null
-  );
+  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable === true;
+}
+
+/** True when typing should not trigger shortcuts: form fields, or anything inside a dialog. */
+export function isTypingTarget(target: EventTarget | null): boolean {
+  return isFieldTarget(target) || (target instanceof HTMLElement && target.closest("[role='dialog']") !== null);
 }
 
 /** A focused button or link uses Enter and Space itself; a shortcut must not take those keys from it. */
