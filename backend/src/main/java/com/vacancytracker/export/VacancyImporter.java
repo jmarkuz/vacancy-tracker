@@ -164,7 +164,8 @@ public class VacancyImporter {
                 b.userEditedFields() == null ? java.util.Set.of() : new LinkedHashSet<>(b.userEditedFields()),
                 firstSeen,
                 lastSeen,
-                false);
+                false,
+                com.vacancytracker.vacancy.VisaSponsorship.detect(title, b.description()));
     }
 
     private static List<StatusEvent> toHistory(UUID vacancyId, List<BackupStatusEvent> events) {

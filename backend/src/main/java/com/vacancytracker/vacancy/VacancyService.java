@@ -172,7 +172,8 @@ public class VacancyService {
                 pick(columns, "contact", row.contact(), old.contact()), pick(columns, "next_action_note", row.nextActionNote(), old.nextActionNote()),
                 pick(columns, "next_action_at", row.nextActionAt(), old.nextActionAt()), pick(columns, "tags", row.tags(), old.tags()),
                 editedFields(columns, row, old), pick(columns, "first_seen_at", row.firstSeenAt(), old.firstSeenAt()),
-                pick(columns, "last_seen_at", row.lastSeenAt(), old.lastSeenAt()), old.isNew());
+                pick(columns, "last_seen_at", row.lastSeenAt(), old.lastSeenAt()), old.isNew(),
+                VisaSponsorship.detect(row.title(), pick(columns, "description", row.description(), old.description())));
         repository.save(merged);
         if (old.status() != status) {
             repository.appendStatusEvent(new StatusEvent(row.id(), old.status(), status, clock.instant(), "imported from CSV"));

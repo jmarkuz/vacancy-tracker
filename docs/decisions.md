@@ -604,3 +604,17 @@ Status: Accepted (T-076). Findings and their state: [code-review.md](code-review
 - **Build.** Testcontainers 1.21.4 (Docker 29 needs it), the SPA-serving auth test no longer needs a UI build, and Vitest workers on Node 22+ run with `--no-experimental-webstorage`.
 
 **Consequences.** A background job may wait a few milliseconds on a row the user is saving. Rows stored earlier with a non-web link keep it in the database but the UI does not open it. Open findings are in T-092.
+
+## ADR-044 Visa sponsorship from the posting text
+
+Status: Accepted (T-078). Gap G7 of [gap-analysis.md](gap-analysis.md).
+
+**Context.** `vacancy.visa_sponsorship` existed since V1 and profiles could already name the field, but nothing ever filled it, so every rule on it fell to its missing-value policy. JobMetasearch makes sponsorship a headline filter.
+
+**Decision.**
+- `VisaSponsorship.detect(title, description)` reads the posting's own words: **false** for a refusal ("unable to sponsor", "no visa sponsorship", "must already have the right to work", German, Ukrainian and Russian equivalents), **true** for an offer ("visa sponsorship available", "we sponsor work visas", "visa support", "relocation and visa", German, Polish, Ukrainian and Russian equivalents), **null** otherwise. A refusal wins over an offer in the same text ("sponsorship is not available, but visa support for family members").
+- It is a derived fact like the description: set when a vacancy is discovered, when automation refreshes the description, and when the user edits it. A Java migration (V12) fills it once for the vacancies stored before.
+- Profiles read it as the `visaSponsorship` fact; views filter it as a yes/no field (`equals true|false`, `exists`, `not_exists`). Unknown is never true or false.
+- The phrase lists are language data, not a list of jobs, countries or technologies, so the rule "no domain data in the code" (README) holds, as for country names (ADR-036).
+
+**Consequences.** Postings in other languages or with unusual wording stay unknown; a profile decides how to treat unknown. A wrong "false" is possible when a posting mentions the right to work for another reason; the drawer shows the value so the user can see it.

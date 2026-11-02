@@ -39,6 +39,26 @@ class VacancyFilterApiTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void visaSponsorshipIsFilterableAsOfferedRefusedOrUnstated() throws Exception {
+        mvc.perform(post("/api/vacancies").contentType(JSON).content(
+                "{\"title\":\"Go Engineer\",\"company\":\"Gamma\",\"description\":\"Visa sponsorship available.\"}"));
+        mvc.perform(post("/api/vacancies").contentType(JSON).content(
+                "{\"title\":\"Go Lead\",\"company\":\"Delta\",\"description\":\"We cannot sponsor visas.\"}"));
+
+        mvc.perform(get("/api/vacancies").param("filter", filter("{\"field\":\"visaSponsorship\",\"operator\":\"equals\",\"value\":true}")))
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.items[0].company").value("Gamma"))
+                .andExpect(jsonPath("$.items[0].visaSponsorship").value(true));
+        mvc.perform(get("/api/vacancies").param("filter", filter("{\"field\":\"visaSponsorship\",\"operator\":\"equals\",\"value\":false}")))
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.items[0].company").value("Delta"));
+        mvc.perform(get("/api/vacancies").param("filter", filter("{\"field\":\"visaSponsorship\",\"operator\":\"not_exists\"}")))
+                .andExpect(jsonPath("$.total").value(3));
+        mvc.perform(get("/api/vacancies").param("filter", filter("{\"field\":\"visaSponsorship\",\"operator\":\"equals\",\"value\":\"yes\"}")))
+                .andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
     void excludeModeRemovesMatches() throws Exception {
         mvc.perform(get("/api/vacancies").param("filter",
                         filter("{\"field\":\"company\",\"operator\":\"equals\",\"value\":\"Acme\",\"mode\":\"exclude\"}")))

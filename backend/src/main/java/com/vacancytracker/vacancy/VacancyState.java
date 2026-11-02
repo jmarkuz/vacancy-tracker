@@ -31,5 +31,7 @@ public record VacancyState(
         Set<String> userEditedFields,
         Instant firstSeenAt,
         Instant lastSeenAt,
-        boolean isNew) {
+        boolean isNew,
+        /** Read from the posting text (ADR-044): true, false, or null when the text says nothing. */
+        Boolean visaSponsorship) {
 }

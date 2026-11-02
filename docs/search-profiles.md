@@ -56,7 +56,7 @@ Criterion {
 | `seniority` | enum (user-defined list) | Detected from title and description |
 | `salary` | object `{ amount, currency, period, basis }` | `period` = month / year; `basis` = gross / net |
 | `workLanguage` | text (language code) | |
-| `visaSponsorship` | boolean | |
+| `visaSponsorship` | boolean | Read from the posting text (ADR-044): true when it offers sponsorship or visa support, false when it refuses or asks for an existing right to work, missing when it says nothing. Also a view filter. |
 | `relocationSupport` | boolean | |
 | `postedAge` | integer days | Computed from `postedAt` |
 | `source` | adapter ID | |

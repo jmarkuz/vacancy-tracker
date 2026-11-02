@@ -75,9 +75,9 @@ T-073,Tier 3 generic HTML adapter,M5,M,"T-030,T-027",done
 T-074,Playwright smoke test,M5,S,"T-055,T-048",done
 T-075,Deployment docs and run instructions,M5,S,"T-012,T-070",done
 T-076,Audit and code review and critical fixes,M6,M,,done
-T-077,Gap analysis against jobmetasearch.ai,M6,S,T-076,todo
-T-078,Visa sponsorship detection and filter,M6,M,T-077,todo
-T-079,Export and import screen and add by URL,M6,S,T-077,todo
+T-077,Gap analysis against jobmetasearch.ai,M6,S,T-076,done
+T-078,Visa sponsorship detection and filter,M6,M,T-077,done
+T-079,Export and import screen and add by URL,M6,S,T-077,done
 T-080,Resume upload and text extraction,M6,M,T-076,todo
 T-081,Resume fit score with reasons,M6,M,T-080,todo
 T-082,Claude adapter (CLI and API key) behind an explicit opt-in,M6,M,T-080,todo
