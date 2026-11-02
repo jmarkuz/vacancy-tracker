@@ -43,7 +43,8 @@ jobs:
 
   smoke:
     # The Playwright smoke test (T-074): the packaged app with its UI, on an empty PostgreSQL, driven in a browser.
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest is now 26.04, where Playwright 1.55.1 cannot install Chromium.
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:16
