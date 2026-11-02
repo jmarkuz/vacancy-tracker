@@ -11,6 +11,7 @@ import {
   listDocuments,
   saveAsIs,
   saveDocument,
+  shortenResume,
   type TailoredDocument,
 } from "../api/ai";
 import { listPresets, type MissingField, type Preset } from "../api/presets";
@@ -40,6 +41,9 @@ interface Editing {
   snapshotId?: string | null;
   /** The base draft an AI draft adapts, for the comparison. */
   baseDraft?: string;
+  /** Resume: what the PDF check said about the draft (pages, shortening, or why it does not fit). */
+  pageNote?: string | null;
+  tooLong?: boolean;
 }
 
 /** A comparison being computed, computed, or failed. */
@@ -66,6 +70,8 @@ function ScoreLine({ scored }: { scored: Scored | undefined }) {
     </div>
   );
 }
+
+const pagesLabel = (n: number) => `${n} ${n === 1 ? "page" : "pages"}`;
 
 const ORIGIN_LABEL: Record<TailoredDocument["origin"], string> = {
   ai: "AI adaptation, checked by you",
@@ -132,6 +138,9 @@ export function DocumentsPanel({ vacancyId, presetId, onPresetChange, onSaved }:
       await action();
     } catch (e: unknown) {
       setError(e instanceof ApiError ? e.message : failure);
+      if (key === "save" && e instanceof ApiError && e.status === 422 && /pages?; at most/.test(e.message)) {
+        setEditing((current) => (current ? { ...current, tooLong: true } : current));
+      }
     } finally {
       setBusy(null);
     }
@@ -154,12 +163,30 @@ export function DocumentsPanel({ vacancyId, presetId, onPresetChange, onSaved }:
   const generate = (kind: DocumentKind) =>
     act(`draft-${kind}`, async () => {
       const d = await draftDocument(vacancyId, kind, presetId, instructions);
-      setEditing({ kind, content: d.content, origin: "ai", provider: d.provider, model: d.model, snapshotId: d.snapshotId, baseDraft: d.baseDraft });
+      setEditing({
+        kind,
+        content: d.content,
+        origin: "ai",
+        provider: d.provider,
+        model: d.model,
+        snapshotId: d.snapshotId,
+        baseDraft: d.baseDraft,
+        pageNote: d.pageProblem ?? (d.pages ? `PDF: ${pagesLabel(d.pages)}${d.shortened ? `, shortened by AI ${d.shortened === 1 ? "once" : "twice"} to fit` : ""}.` : null),
+        tooLong: d.pageProblem !== null && d.pageProblem !== undefined,
+      });
       setShowDiff(true);
       void score(kind, d.baseDraft, d.content, "Tailored");
     }, "The draft could not be generated.");
 
   const asIs = (kind: DocumentKind) => act(`as-is-${kind}`, async () => added(await saveAsIs(vacancyId, kind, presetId)), "The base draft could not be saved.");
+
+  const shorten = () =>
+    editing &&
+    act("shorten", async () => {
+      const s = await shortenResume(vacancyId, editing.content);
+      setEditing({ ...editing, content: s.content, tooLong: false,
+        pageNote: `PDF: ${pagesLabel(s.pages)}${s.attempts ? `, shortened by AI ${s.attempts === 1 ? "once" : "twice"}` : ""}. Check what was removed.` });
+    }, "The resume could not be shortened. Shorten it by hand.");
 
   const save = () =>
     editing &&
@@ -170,7 +197,7 @@ export function DocumentsPanel({ vacancyId, presetId, onPresetChange, onSaved }:
       if (editing.baseDraft !== undefined) {
         void score(saved.kind, editing.baseDraft, saved.content, `Version ${saved.version}`);
       }
-    }, "Saving failed. Your text is still in the editor.");
+    }, "Saving failed. Your text is still in the editor.").then(() => undefined);
 
   const nextVersion = editing ? (latest[editing.kind]?.version ?? 0) + 1 : 1;
   const diff = editing?.baseDraft !== undefined ? diffLines(editing.baseDraft, editing.content) : null;
@@ -221,6 +248,14 @@ export function DocumentsPanel({ vacancyId, presetId, onPresetChange, onSaved }:
                     <>
                       {" "}
                       v{last.version} · {ORIGIN_LABEL[last.origin]} · {formatDate(last.createdAt)} ·{" "}
+                      {last.pdfPages && (
+                        <>
+                          <a href={downloadUrl(last.id, "pdf")} download>
+                            PDF ({pagesLabel(last.pdfPages)})
+                          </a>{" "}
+                          ·{" "}
+                        </>
+                      )}
                       <a href={downloadUrl(last.id, "docx")} download>
                         DOCX
                       </a>{" "}
@@ -292,9 +327,15 @@ export function DocumentsPanel({ vacancyId, presetId, onPresetChange, onSaved }:
               )}
             </div>
           )}
+          {editing.pageNote && <p class={`small ${editing.tooLong ? "warn-text" : "muted"}`} role="status">{editing.pageNote}</p>}
           <textarea class="input textarea" rows={14} aria-label={`${KIND_LABEL[editing.kind]} text`} value={editing.content}
             onInput={(e) => setEditing({ ...editing, content: (e.target as HTMLTextAreaElement).value })} />
           <div class="drawer-row end">
+            {editing.kind === "resume" && editing.tooLong && ai?.enabled && (
+              <button class="btn" type="button" disabled={busy !== null} onClick={shorten}>
+                {busy === "shorten" ? "Shortening…" : "Shorten with AI"}
+              </button>
+            )}
             {ai?.enabled && editing.baseDraft !== undefined && (
               <button class="btn ghost" type="button" disabled={busy !== null}
                 onClick={() => editing.baseDraft !== undefined && void score(editing.kind, editing.baseDraft, editing.content, "Edited")}>
@@ -319,6 +360,14 @@ export function DocumentsPanel({ vacancyId, presetId, onPresetChange, onSaved }:
               <li key={d.id}>
                 {KIND_LABEL[d.kind]} v{d.version} · {d.origin === "ai" ? `AI (${d.model ?? d.provider})` : ORIGIN_LABEL[d.origin]} ·{" "}
                 <span class="num">{formatDate(d.createdAt)}</span> ·{" "}
+                {d.pdfPages && (
+                  <>
+                    <a href={downloadUrl(d.id, "pdf")} download>
+                      PDF
+                    </a>{" "}
+                    ·{" "}
+                  </>
+                )}
                 <a href={downloadUrl(d.id, "docx")} download>
                   DOCX
                 </a>{" "}

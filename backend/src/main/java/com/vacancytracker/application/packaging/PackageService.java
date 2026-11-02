@@ -1,6 +1,8 @@
 package com.vacancytracker.application.packaging;
 
 import com.vacancytracker.application.documents.DocumentService;
+import com.vacancytracker.application.documents.ResumePdf;
+import com.vacancytracker.application.documents.ResumeTooLongException;
 import com.vacancytracker.application.documents.DocxWriter;
 import com.vacancytracker.application.documents.TailoredDocument;
 import com.vacancytracker.application.resume.Resume;
@@ -79,10 +81,30 @@ public class PackageService {
         Resume active = resumes.findActive()
                 .orElseThrow(() -> new IllegalArgumentException("Choose a resume version, or upload your resume first."));
         if (active.fileName() == null) {
-            return new PackageRepository.ResumeCopy(PASTED_RESUME, "text/plain", active.text().getBytes(StandardCharsets.UTF_8));
+            return new PackageRepository.ResumeCopy(PASTED_RESUME, "text/plain", active.text().getBytes(StandardCharsets.UTF_8),
+                    pdfOf(active.text()));
         }
         ResumeRepository.Original original = resumes.original();
-        return new PackageRepository.ResumeCopy(original.fileName(), original.contentType(), original.bytes());
+        if (DocumentService.isPdf(original)) {
+            // An uploaded PDF goes into the package as it is, but only when it has one or two pages (T-097).
+            int pages = ResumePdf.pages(original.bytes());
+            if (pages > ResumePdf.MAX_PAGES) {
+                throw new ResumeTooLongException(pages, "Your resume PDF has " + pages + " pages; at most " + ResumePdf.MAX_PAGES
+                        + " go into a package. Choose a tailored version, or upload a shorter resume.");
+            }
+            return new PackageRepository.ResumeCopy(original.fileName(), original.contentType(), original.bytes());
+        }
+        return new PackageRepository.ResumeCopy(original.fileName(), original.contentType(), original.bytes(), pdfOf(active.text()));
+    }
+
+    /** The PDF made from the resume text; a resume that does not fit two pages cannot go into a package. */
+    private static byte[] pdfOf(String text) {
+        ResumePdf.Rendered pdf = ResumePdf.render(text);
+        if (pdf.pages() > ResumePdf.MAX_PAGES) {
+            throw new ResumeTooLongException(pdf.pages(), "Your resume makes a PDF of " + pdf.pages() + " pages; at most "
+                    + ResumePdf.MAX_PAGES + " go into a package. Choose a tailored version, or shorten the resume.");
+        }
+        return pdf.bytes();
     }
 
     private void check(UUID documentId, UUID vacancyId, String kind) {
@@ -145,20 +167,27 @@ public class PackageService {
             String resumeFile;
             if (p.resumeDocumentId() != null) {
                 TailoredDocument resume = documents.get(p.resumeDocumentId());
-                resumeFile = resume.fileName(vacancy.getCompany(), "docx");
-                put(zip, resumeFile, DocxWriter.write(resume.content()));
+                resumeFile = resume.fileName(vacancy.getCompany(), "pdf");
+                put(zip, resumeFile, documents.pdf(resume));
+                put(zip, resume.fileName(vacancy.getCompany(), "docx"), DocxWriter.write(resume.content()));
                 put(zip, resume.fileName(vacancy.getCompany(), "md"), resume.content().getBytes(StandardCharsets.UTF_8));
             } else {
                 PackageRepository.ResumeCopy copy = repository.resumeCopy(id)
                         .orElseThrow(() -> new NotFoundException("This package has no resume copy; prepare a new package."));
                 if (PASTED_RESUME.equals(copy.fileName())) {
                     String text = new String(copy.bytes(), StandardCharsets.UTF_8);
-                    resumeFile = "resume.docx";
-                    put(zip, resumeFile, DocxWriter.write(text));
+                    resumeFile = "resume.pdf";
+                    put(zip, resumeFile, copy.pdf());
+                    put(zip, "resume.docx", DocxWriter.write(text));
                     put(zip, PASTED_RESUME, copy.bytes());
                 } else {
-                    resumeFile = "resume-original-" + copy.fileName().replaceAll("[\\\\/]", "_");
-                    put(zip, resumeFile, copy.bytes());
+                    String originalFile = "resume-original-" + copy.fileName().replaceAll("[\\\\/]", "_");
+                    put(zip, originalFile, copy.bytes());
+                    resumeFile = originalFile;
+                    if (copy.pdf() != null) {
+                        resumeFile = "resume.pdf";
+                        put(zip, resumeFile, copy.pdf());
+                    }
                 }
             }
             String letterFile = null;

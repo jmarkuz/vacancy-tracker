@@ -18,7 +18,9 @@ public record TailoredDocument(
         String provider,
         String model,
         Instant createdAt,
-        UUID snapshotId) {
+        UUID snapshotId,
+        /** Pages of the stored PDF (a resume saved since T-097 has one, of 1 or 2 pages); null otherwise. */
+        Integer pdfPages) {
 
     public static final String RESUME = "resume";
     public static final String COVER_LETTER = "cover_letter";

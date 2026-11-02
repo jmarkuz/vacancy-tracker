@@ -61,6 +61,12 @@ public class AiController {
         return documents.draft(id, request.kind(), request.presetId(), request.instructions());
     }
 
+    /** AI shortens a resume that does not fit two pages, at most twice (T-097). */
+    @PostMapping("/api/vacancies/{id}/documents/shorten")
+    public DocumentService.Shortened shorten(@PathVariable UUID id, @Valid @RequestBody TextRequest request) {
+        return documents.shorten(id, request.text());
+    }
+
     /** The preset's base draft saved as the next version, unchanged and without AI. */
     @PostMapping("/api/vacancies/{id}/documents/as-is")
     public TailoredDocument useAsIs(@PathVariable UUID id, @Valid @RequestBody AsIsRequest request) {
@@ -104,12 +110,17 @@ public class AiController {
                 type = MediaType.parseMediaType("text/plain;charset=UTF-8");
                 extension = "txt";
             }
+            case "pdf" -> {
+                body = documents.pdf(doc);
+                type = MediaType.APPLICATION_PDF;
+                extension = "pdf";
+            }
             case "docx" -> {
                 body = DocxWriter.write(doc.content());
                 type = MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
                 extension = "docx";
             }
-            default -> throw new IllegalArgumentException("format must be docx, md or txt");
+            default -> throw new IllegalArgumentException("format must be pdf, docx, md or txt");
         }
         return ResponseEntity.ok()
                 .contentType(type)
@@ -122,6 +133,9 @@ public class AiController {
     }
 
     public record AsIsRequest(@NotBlank String kind, UUID presetId) {
+    }
+
+    public record TextRequest(@NotBlank @Size(max = 100_000) String text) {
     }
 
     public record SaveRequest(@NotBlank String kind, @NotBlank @Size(max = 100_000) String content, String origin,

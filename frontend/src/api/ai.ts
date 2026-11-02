@@ -21,6 +21,10 @@ export interface Draft {
   snapshotId: string;
   baseDraft: string;
   presetName: string;
+  /** Resume only: pages of its PDF, how many times AI shortened it, and why it still does not fit two pages. */
+  pages: number | null;
+  shortened: number;
+  pageProblem: string | null;
 }
 
 export type DocumentOrigin = "ai" | "manual" | "base";
@@ -38,6 +42,8 @@ export interface TailoredDocument {
   model: string | null;
   createdAt: string;
   snapshotId: string | null;
+  /** Pages of the stored PDF (resumes saved since T-097). */
+  pdfPages: number | null;
 }
 
 export const getAiStatus = (signal?: AbortSignal) => getJson<AiStatus>("/api/ai/status", signal);
@@ -59,7 +65,11 @@ export const saveDocument = (
 export const listDocuments = (vacancyId: string, signal?: AbortSignal) =>
   getJson<TailoredDocument[]>(`/api/vacancies/${encodeURIComponent(vacancyId)}/documents`, signal);
 
-export const downloadUrl = (documentId: string, format: "docx" | "md" | "txt") =>
+/** AI shortens a resume that does not fit two pages, at most twice. */
+export const shortenResume = (vacancyId: string, text: string) =>
+  requestJson<{ content: string; pages: number; attempts: number }>("POST", `/api/vacancies/${encodeURIComponent(vacancyId)}/documents/shorten`, { text });
+
+export const downloadUrl = (documentId: string, format: "pdf" | "docx" | "md" | "txt") =>
   `/api/documents/${encodeURIComponent(documentId)}/download?format=${format}`;
 
 export const KIND_LABEL: Record<DocumentKind, string> = { resume: "Resume", cover_letter: "Cover letter" };

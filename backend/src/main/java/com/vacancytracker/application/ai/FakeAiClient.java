@@ -64,6 +64,8 @@ public class FakeAiClient implements AiClient {
             text = checklist(block(prompt.user(), "vacancy"), field(prompt.user(), "Title"));
         } else if (task.startsWith("Assess the document against the checklist")) {
             text = statuses(block(prompt.user(), "checklist"), block(prompt.user(), "document"));
+        } else if (task.startsWith("Shorten the resume")) {
+            text = shorten(block(prompt.user(), "document"));
         } else if (task.startsWith("Rate the vacancy against the goal")) {
             text = goal(block(prompt.user(), "goal"), block(prompt.user(), "vacancy"));
         } else {
@@ -165,6 +167,27 @@ public class FakeAiClient implements AiClient {
         root.set("parameters", parameters);
         root.putObject("dealBreaker").put("found", found).put("explanation", found ? "The vacancy says: " + dealBreaker : "");
         return root.toString();
+    }
+
+    /** Drops the last 30% of the bullets (of the lines, when there are no bullets): shorter, never different. */
+    static String shorten(String resume) {
+        List<String> lines = new ArrayList<>(List.of(resume.split("\n", -1)));
+        List<Integer> candidates = new ArrayList<>();
+        for (int i = 0; i < lines.size(); i++) {
+            if (lines.get(i).startsWith("- ")) {
+                candidates.add(i);
+            }
+        }
+        if (candidates.isEmpty()) {
+            for (int i = 0; i < lines.size(); i++) {
+                candidates.add(i);
+            }
+        }
+        int drop = (int) Math.ceil(candidates.size() * 0.3);
+        for (int k = 0; k < drop; k++) {
+            lines.remove((int) candidates.get(candidates.size() - 1 - k));
+        }
+        return String.join("\n", lines);
     }
 
     /** The content of the first <tag>…</tag> block, or an empty string. */
