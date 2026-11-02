@@ -13,6 +13,16 @@ describe("actionForKey", () => {
     expect(actionForKey("Enter", none)).toBe("open-details");
   });
 
+  it("reads the physical key when the layout types another alphabet", () => {
+    expect(actionForKey("о", none, "KeyJ")).toBe("next");
+    expect(actionForKey("л", none, "KeyK")).toBe("previous");
+    expect(actionForKey("і", none, "KeyS")).toBe("save");
+    expect(actionForKey("ч", none, "KeyX")).toBe("dismiss");
+    expect(actionForKey("щ", none, "KeyO")).toBe("open-original");
+    expect(actionForKey("e", none, "KeyJ")).toBeNull();
+    expect(actionForKey("ф", none, "KeyA")).toBeNull();
+  });
+
   it("ignores other keys and modified keys", () => {
     expect(actionForKey("a", none)).toBeNull();
     expect(actionForKey("s", { ...none, ctrl: true })).toBeNull();

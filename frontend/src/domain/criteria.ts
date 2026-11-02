@@ -3,7 +3,8 @@
  * this file only offers the fields and operators it accepts, and turns form input into JSON.
  * Keep FIELDS in sync with CriterionField on the backend.
  */
-export type ValueKind = "text" | "list" | "number" | "date" | "none";
+/** "yes" and "no" are fixed values: the operator carries them and the form asks for nothing. */
+export type ValueKind = "text" | "list" | "number" | "date" | "none" | "yes" | "no";
 
 export interface Criterion {
   field: string;
@@ -14,7 +15,17 @@ export interface Criterion {
 export interface FieldSpec {
   field: string;
   label: string;
-  operators: { op: string; label: string; value: ValueKind }[];
+  /** key tells apart two choices with the same operator ("is offered" and "is not offered" are both equals). */
+  operators: { op: string; label: string; value: ValueKind; key?: string }[];
+}
+
+export function operatorKey(o: { op: string; key?: string }): string {
+  return o.key ?? o.op;
+}
+
+/** Whether the form needs a typed value for this kind. */
+export function needsInput(kind: ValueKind): boolean {
+  return kind !== "none" && kind !== "yes" && kind !== "no";
 }
 
 const TEXT_OPS = [
@@ -80,6 +91,15 @@ export const FIELDS: FieldSpec[] = [
       { op: "lte", label: "due by", value: "date" },
     ],
   },
+  {
+    field: "visaSponsorship",
+    label: "Visa sponsorship",
+    operators: [
+      { op: "equals", key: "offered", label: "is offered", value: "yes" },
+      { op: "equals", key: "refused", label: "is not offered", value: "no" },
+      { op: "not_exists", label: "is not stated", value: "none" },
+    ],
+  },
 ];
 
 export function specFor(field: string): FieldSpec | undefined {
@@ -111,6 +131,9 @@ export function serializeCriteria(criteria: Criterion[]): string | null {
 
 /** Turns raw form text into the JSON value the operator expects. Returns undefined when empty. */
 export function toValue(kind: ValueKind, text: string): unknown {
+  if (kind === "yes" || kind === "no") {
+    return kind === "yes";
+  }
   const trimmed = text.trim();
   if (kind === "none" || trimmed === "") {
     return undefined;
@@ -132,10 +155,10 @@ export function toValue(kind: ValueKind, text: string): unknown {
 
 export function describe(c: Criterion): string {
   const spec = specFor(c.field);
-  const op = spec?.operators.find((o) => o.op === c.operator);
+  const op = spec?.operators.find((o) => o.op === c.operator && (typeof c.value !== "boolean" || o.value === (c.value ? "yes" : "no")));
   const label = spec?.label ?? c.field;
   const opLabel = op?.label ?? c.operator;
-  if (c.value === undefined) {
+  if (c.value === undefined || typeof c.value === "boolean") {
     return `${label} ${opLabel}`;
   }
   const shown = Array.isArray(c.value) ? c.value.join(", ") : String(c.value);

@@ -44,8 +44,8 @@ public final class Normalizer {
         return Optional.of(new NormalizedPosting(
                 raw.adapter(),
                 blankToNull(raw.externalId()),
-                blankToNull(raw.url()),
-                CanonicalUrl.of(raw.url()).orElse(null),
+                CanonicalUrl.webLink(raw.url()),
+                CanonicalUrl.of(CanonicalUrl.webLink(raw.url())).orElse(null),
                 title,
                 company,
                 location,

@@ -68,7 +68,8 @@ class BulkStatusServiceTest extends AbstractIntegrationTest {
         Result r = bulk.change(List.of(a, a, a), VacancyStatus.SAVED, null);
 
         assertThat(r.changed()).hasSize(1);
-        assertThat(vacancies.history(a)).hasSize(1);
+        // One change; the first entry records that the vacancy was added by hand.
+        assertThat(vacancies.history(a)).filteredOn(e -> e.from() != null).hasSize(1);
     }
 
     @Test

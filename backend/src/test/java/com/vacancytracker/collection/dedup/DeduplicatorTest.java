@@ -118,6 +118,14 @@ class DeduplicatorTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void twoIdsFromTheSameSourceAreTwoOpeningsEvenWithTheSameTitle() {
+        ingest.ingest(p("ats-greenhouse", "101", null, "Senior Software Engineer", "acme", "Remote"), NOW);
+
+        assertThat(deduplicator.match(p("ats-greenhouse", "202", null, "Senior Software Engineer", "acme", "Remote"))).isEmpty();
+        assertThat(deduplicator.match(p("ats-lever", "7", null, "Senior Software Engineer", "acme", "Remote"))).isPresent();
+    }
+
+    @Test
     void ingestRecordsOneVacancyAndOneSourceRowPerAdapter() {
         ingest.ingest(p("a", "1", "https://ex.com/job/1", "Java Developer", "Acme", "Berlin"), NOW);
         ingest.ingest(p("b", "9", "https://ex.com/job/1", "Java Developer", "Acme", "Berlin"), NOW);

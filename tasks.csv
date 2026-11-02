@@ -74,3 +74,20 @@ T-072,Structured logs with key masking,M5,S,T-043,done
 T-073,Tier 3 generic HTML adapter,M5,M,"T-030,T-027",done
 T-074,Playwright smoke test,M5,S,"T-055,T-048",done
 T-075,Deployment docs and run instructions,M5,S,"T-012,T-070",done
+T-076,Audit and code review and critical fixes,M6,M,,done
+T-077,Gap analysis against the compared platform,M6,S,T-076,done
+T-078,Visa sponsorship detection and filter,M6,M,T-077,done
+T-079,Export and import screen and add by URL,M6,S,T-077,done
+T-080,Resume upload and text extraction,M6,M,T-076,done
+T-081,Resume fit score with reasons,M6,M,T-080,done
+T-082,Claude adapter (CLI and API key) behind an explicit opt-in,M6,M,T-080,done
+T-083,Tailored resume and cover letter with versions,M6,M,T-082,done
+T-084,Application package and the apply page,M6,M,T-083,done
+T-085,Mark submitted and Applied in the pipeline,M6,S,T-084,done
+T-086,Correspondence: job mail from IMAP classified,M6,M,T-076,done
+T-087,Link mail to applications and suggest a status,M6,M,"T-086,T-085",done
+T-088,Owner's source list terms check,M6,M,T-077,done
+T-089,Adapters for the allowed new sources,M6,M,T-088,done
+T-090,third-party design file and dark-first UI,M6,M,T-081,done
+T-091,Full-cycle end-to-end test,M6,M,"T-087,T-089",done
+T-092,Backlog from the review,M6,M,T-076,todo

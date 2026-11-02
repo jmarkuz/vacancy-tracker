@@ -92,6 +92,22 @@ public class CriterionCompiler {
             case DATE -> date(field.columns().get(0), op, value, p);
             case TAGS -> tags(op, value, p);
             case SOURCE -> source(op, value, p);
+            case BOOLEAN -> bool(field.columns().get(0), op, value, p);
+        };
+    }
+
+    /** A yes/no fact; NULL (unknown) satisfies neither true nor false, only not_exists. */
+    private static String bool(String col, String op, JsonNode value, Params p) {
+        return switch (op) {
+            case "equals" -> {
+                if (value == null || !value.isBoolean()) {
+                    throw new CriterionException("Operator equals needs true or false");
+                }
+                yield col + " = " + p.add(value.asBoolean());
+            }
+            case "exists" -> "(" + col + " IS NOT NULL)";
+            case "not_exists" -> "(" + col + " IS NULL)";
+            default -> throw new CriterionException("Unsupported operator " + op + " for a yes/no field");
         };
     }
 

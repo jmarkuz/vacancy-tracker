@@ -1,0 +1,74 @@
+package com.vacancytracker.web;
+
+import com.vacancytracker.application.mail.Correspondence;
+import com.vacancytracker.application.mail.CorrespondenceService;
+import jakarta.servlet.http.HttpServletRequest;
+import java.io.IOException;
+import java.util.List;
+import java.util.UUID;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+
+/** Job mail: list, check now, import an .eml file, accept or dismiss a suggested status, link to a vacancy (T-086, T-087). */
+@RestController
+public class MailController {
+
+    private final CorrespondenceService mail;
+
+    public MailController(CorrespondenceService mail) {
+        this.mail = mail;
+    }
+
+    @GetMapping("/api/mail/status")
+    public CorrespondenceService.Status status() {
+        return mail.status();
+    }
+
+    @GetMapping("/api/mail")
+    public List<Correspondence> list(@RequestParam(required = false) UUID vacancyId, @RequestParam(defaultValue = "false") boolean pending) {
+        return mail.list(vacancyId, pending);
+    }
+
+    @PostMapping("/api/mail/sync")
+    public CorrespondenceService.SyncResult sync() {
+        return mail.sync();
+    }
+
+    /** The raw .eml file as the request body. */
+    @PostMapping("/api/mail/import")
+    public CorrespondenceService.Outcome importEml(HttpServletRequest request) throws IOException {
+        byte[] bytes = request.getInputStream().readNBytes(5 * 1024 * 1024 + 1);
+        if (bytes.length > 5 * 1024 * 1024) {
+            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "The file is larger than 5 MB.");
+        }
+        return mail.importEml(bytes);
+    }
+
+    @PostMapping("/api/mail/{id}/accept")
+    public AcceptResponse accept(@PathVariable UUID id) {
+        return new AcceptResponse(mail.get(id).vacancyId(), mail.accept(id).getStatus().label(), mail.get(id));
+    }
+
+    @PostMapping("/api/mail/{id}/dismiss")
+    public Correspondence dismiss(@PathVariable UUID id) {
+        return mail.dismiss(id);
+    }
+
+    @PutMapping("/api/mail/{id}/vacancy")
+    public Correspondence relink(@PathVariable UUID id, @RequestBody RelinkRequest request) {
+        return mail.relink(id, request.vacancyId());
+    }
+
+    public record RelinkRequest(UUID vacancyId) {
+    }
+
+    public record AcceptResponse(UUID vacancyId, String vacancyStatus, Correspondence mail) {
+    }
+}

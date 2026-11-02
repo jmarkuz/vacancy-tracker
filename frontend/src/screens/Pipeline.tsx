@@ -14,16 +14,22 @@ import { parseCriteria, serializeCriteria, type Criterion } from "../domain/crit
 import type { SavedView } from "../api/views";
 import { COLUMNS, DEFAULT_COLUMNS, type Column } from "./columns";
 import { VacancyDrawer } from "./VacancyDrawer";
+import { AddVacancy } from "../components/AddVacancy";
+import { getFits, type ResumeFit } from "../api/resume";
+import { fitsById } from "../domain/fit";
+import { FitBadge } from "../components/FitBadge";
 
 const PAGE_SIZE = 100;
 const DEFAULT_SORT = "lastSeenAt:desc";
 
 interface Props {
   params: URLSearchParams;
+  /** Grows when a refresh stored new data: the list loads again, keeping the open drawer and selection. */
+  dataVersion?: number;
 }
 
 /** Sort, page and visible columns are all in the URL, so a view can be bookmarked and shared. */
-export function Pipeline({ params }: Props) {
+export function Pipeline({ params, dataVersion = 0 }: Props) {
   const sort = params.get("sort") ?? DEFAULT_SORT;
   const page = Math.max(0, Number(params.get("page") ?? 0) || 0);
   const visible = resolveColumns(params.get("cols"));
@@ -43,6 +49,8 @@ export function Pipeline({ params }: Props) {
   const applying = useRef(false);
   const [target, setTarget] = useState("");
   const [toast, setToast] = useState<{ message: string; tone: "info" | "error"; undo?: () => void } | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [fits, setFits] = useState<Record<string, ResumeFit>>({});
 
   useEffect(() => {
     const controller = new AbortController();
@@ -74,7 +82,7 @@ export function Pipeline({ params }: Props) {
         setLoading(false);
       });
     return () => controller.abort();
-  }, [sort, page, filterRaw, attempt, board]);
+  }, [sort, page, filterRaw, attempt, board, dataVersion]);
 
   // A new page, filter or layout shows different rows, so an old selection would act on rows out of sight.
   useEffect(() => {
@@ -88,6 +96,15 @@ export function Pipeline({ params }: Props) {
       const visibleIds = new Set(data.items.map((v) => v.id));
       setSelected((current) => (current.every((id) => visibleIds.has(id)) ? current : current.filter((id) => visibleIds.has(id))));
     }
+  }, [data]);
+
+  // Fit to the resume for the rows on show (T-081); none when no resume is uploaded.
+  useEffect(() => {
+    const controller = new AbortController();
+    getFits((data?.items ?? []).map((v) => v.id), controller.signal)
+      .then((list) => setFits(fitsById(list)))
+      .catch(() => undefined);
+    return () => controller.abort();
   }, [data]);
 
   const selectedRows = (data?.items ?? []).filter((v) => selected.includes(v.id));
@@ -136,7 +153,21 @@ export function Pipeline({ params }: Props) {
           <button type="button" class="chip" aria-pressed={board} onClick={() => setQuery({ layout: "board" })}>Board</button>
         </div>
         {!board && <ColumnPicker selected={visible} />}
+        <button type="button" class="btn primary" aria-expanded={adding} onClick={() => setAdding((a) => !a)}>
+          Add vacancy
+        </button>
       </div>
+
+      {adding && (
+        <AddVacancy
+          onClose={() => setAdding(false)}
+          onAdded={(id) => {
+            setAdding(false);
+            setAttempt((n) => n + 1);
+            setQuery({ open: id });
+          }}
+        />
+      )}
 
       <FilterBar criteria={criteria} onChange={(next) => setFilter(next)} />
       <ViewBar
@@ -159,7 +190,7 @@ export function Pipeline({ params }: Props) {
       {!error && data && data.total === 0 && !loading && (
         <div class="panel empty-state">
           <h2>No vacancies yet</h2>
-          <p class="muted">Add one by URL or refresh the sources once they are configured.</p>
+          <p class="muted">Add one with "Add vacancy", or refresh the sources once they are configured.</p>
         </div>
       )}
 
@@ -213,9 +244,12 @@ export function Pipeline({ params }: Props) {
                     {visible.map((col) => (
                       <td key={col.id} class={col.numeric ? "numeric" : undefined}>
                         {col.id === "title" ? (
-                          <button type="button" class="row-open" onClick={() => setQuery({ open: v.id })}>
-                            {col.render(v)}
-                          </button>
+                          <>
+                            <button type="button" class="row-open" onClick={() => setQuery({ open: v.id })}>
+                              {col.render(v)}
+                            </button>{" "}
+                            <FitBadge fit={fits[v.id]} />
+                          </>
                         ) : (
                           col.render(v)
                         )}
@@ -233,6 +267,7 @@ export function Pipeline({ params }: Props) {
                 <button type="button" class="row-open vcard-title" onClick={() => setQuery({ open: v.id })}>
                   {v.title}
                 </button>
+                <FitBadge fit={fits[v.id]} />
                 <div class="muted">{v.company}</div>
                 <div class="vcard-meta">
                   <span class="badge-slot">{COLUMNS.find((c) => c.id === "status")?.render(v)}</span>

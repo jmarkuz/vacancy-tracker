@@ -1,63 +1,64 @@
 /*
- * Design tokens: Vacancy Tracker.
- * Style: modern minimalism. Neutral gray scale, one accent (indigo #4F46E5),
- * 1px borders instead of shadows, 4px spacing grid, 8/12px radii.
- * Light is the default; dark applies by system preference or by data-theme="dark".
+ * Design tokens: Vacancy Tracker (T-090, ADR-046).
+ * Style: (design file at the repository root): deep indigo-navy surfaces, a pale violet accent,
+ * a deep teal for success, warm off-greys for text, hairline borders, sub-default font weights (Inter 460 / 540),
+ * 8px rounded-rectangle buttons, 6px inputs, 12px cards, 16px dialogs.
+ * Dark is the default. Light applies with data-theme="light", or with data-theme="system" when the system asks.
  * Every color used in components must come from these tokens.
  */
 
 :root {
-  /* Neutral scale (light) */
-  --color-bg: #ffffff;
-  --color-bg-subtle: #f8f8fa;
-  --color-bg-muted: #f1f1f4;
-  --color-surface: #ffffff;
-  --color-surface-raised: #ffffff;
-  --color-border: #e4e4e9;
-  --color-border-strong: #c9c9d2;
-  --color-text: #15151c;
-  --color-text-muted: #5a5a68;
-  --color-text-subtle: #7a7a88;
-  --color-text-on-accent: #ffffff;
+  /* Surfaces and text (dark, the default) */
+  --color-bg: #0e0c1f;
+  --color-bg-subtle: #131129;
+  --color-bg-muted: #1b1938;
+  --color-surface: #15132c;
+  --color-surface-raised: #1f1c40;
+  --color-border: #2c2850;
+  --color-border-strong: #3f3a52;
+  --color-text: #f4f2fb;
+  --color-text-muted: #bcbac9;
+  --color-text-subtle: #8e8aa6;
+  --color-text-on-accent: #1b1938;
 
-  /* Accent */
-  --color-accent: #4f46e5;
-  --color-accent-hover: #4338ca;
-  --color-accent-subtle: #eef0ff;
-  --color-accent-border: #c7cafb;
-  --color-focus: #4f46e5;
+  /* Accent: pale violet on the navy */
+  --color-accent: #c9b4fa;
+  --color-accent-hover: #ddd0fd;
+  --color-accent-subtle: #272348;
+  --color-accent-border: #4b4380;
+  --color-focus: #c9b4fa;
 
   /* Semantic (always paired with a text label and a dot, never color alone) */
-  --color-success: #15803d;
-  --color-success-subtle: #e9f7ee;
-  --color-warning: #b45309;
-  --color-warning-subtle: #fdf4e3;
-  --color-danger: #b91c1c;
-  --color-danger-subtle: #fdecec;
-  --color-info: #0369a1;
-  --color-info-subtle: #e8f4fb;
+  --color-success: #6fd6c0;
+  --color-success-subtle: #0e3030;
+  --color-warning: #f2c46d;
+  --color-warning-subtle: #2f2513;
+  --color-danger: #f59a9a;
+  --color-danger-subtle: #321a22;
+  --color-info: #9cc2ff;
+  --color-info-subtle: #17213d;
 
   /* Status palette (badge dot + text + tint) */
-  --status-new: #4f46e5;
-  --status-saved: #0369a1;
-  --status-applied: #7c3aed;
-  --status-screening: #0f766e;
-  --status-interview: #15803d;
-  --status-test-task: #a16207;
-  --status-offer: #047857;
-  --status-accepted: #166534;
-  --status-rejected: #b91c1c;
-  --status-withdrawn: #6b7280;
-  --status-expired: #6b7280;
-  --status-dismissed: #6b7280;
-  --status-hidden: #6b7280;
+  --status-new: #c9b4fa;
+  --status-saved: #9cc2ff;
+  --status-applied: #d7c2ff;
+  --status-screening: #6fd6c0;
+  --status-interview: #8fe3b4;
+  --status-test-task: #f2c46d;
+  --status-offer: #7fe0c9;
+  --status-accepted: #8fe3b4;
+  --status-rejected: #f59a9a;
+  --status-withdrawn: #9a97ad;
+  --status-expired: #9a97ad;
+  --status-dismissed: #9a97ad;
+  --status-hidden: #9a97ad;
 
-  /* Score badge tiers (text + value, never color alone) */
-  --score-high: #15803d;
-  --score-mid: #a16207;
-  --score-low: #6b7280;
+  /* Score and fit tiers (text + value, never color alone) */
+  --score-high: #6fd6c0;
+  --score-mid: #f2c46d;
+  --score-low: #9a97ad;
 
-  /* Typography */
+  /* Typography: Inter variable at the in-between weights design file asks for */
   --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --font-size-xs: 12px;
@@ -66,11 +67,12 @@
   --font-size-lg: 16px;
   --font-size-xl: 20px;
   --font-size-2xl: 28px;
-  --line-height-tight: 1.25;
+  --line-height-tight: 1.2;
   --line-height-base: 1.5;
-  --font-weight-regular: 400;
-  --font-weight-medium: 500;
+  --font-weight-regular: 460;
+  --font-weight-medium: 540;
   --font-weight-semibold: 600;
+  --letter-spacing-display: -0.4px;
   --numeric-features: "tnum" 1, "ss01" 1;
 
   /* Spacing: 4px grid */
@@ -85,16 +87,19 @@
   --space-10: 40px;
   --space-12: 48px;
 
-  /* Radii */
+  /* Radii: tags 4, inputs 6, buttons 8, cards 12, dialogs 16 */
+  --radius-xs: 4px;
+  --radius-input: 6px;
   --radius-sm: 8px;
   --radius-md: 12px;
+  --radius-xl: 16px;
   --radius-pill: 999px;
 
   /* Borders and layout */
   --border-width: 1px;
   --sidebar-width: 224px;
   --header-height: 56px;
-  --drawer-width: 480px;
+  --drawer-width: 520px;
   --content-max-width: 1280px;
   --gutter-mobile: 16px;
 
@@ -103,112 +108,120 @@
   --duration-base: 160ms;
   --ease-out: cubic-bezier(0.2, 0, 0, 1);
 
-  /* Elevation: none by default; overlays use a border + subtle backdrop */
-  --overlay-backdrop: rgb(21 21 28 / 0.4);
+  /* Elevation: flat surfaces; floating panels lift */
+  --shadow-1: 0 1px 3px rgb(0 0 0 / 0.3);
+  --shadow-2: 0 8px 24px rgb(0 0 0 / 0.45);
+  --overlay-backdrop: rgb(5 4 14 / 0.65);
 
+  color-scheme: dark;
+}
+
+/* Light: white canvas, warm off-grey ink, indigo-navy accent. */
+:root[data-theme="light"] {
+  --color-bg: #ffffff;
+  --color-bg-subtle: #fafaf8;
+  --color-bg-muted: #f3f1ec;
+  --color-surface: #ffffff;
+  --color-surface-raised: #ffffff;
+  --color-border: #e8e4dd;
+  --color-border-strong: #d3cdc3;
+  --color-text: #292827;
+  --color-text-muted: #73706d;
+  --color-text-subtle: #8a8783;
+  --color-text-on-accent: #ffffff;
+
+  --color-accent: #1b1938;
+  --color-accent-hover: #0e0c1f;
+  --color-accent-subtle: #efebfd;
+  --color-accent-border: #c9b4fa;
+  --color-focus: #5b4bc4;
+
+  --color-success: #155555;
+  --color-success-subtle: #e4f2ef;
+  --color-warning: #8a5a00;
+  --color-warning-subtle: #fbf1dc;
+  --color-danger: #a8282f;
+  --color-danger-subtle: #fbeaea;
+  --color-info: #23518f;
+  --color-info-subtle: #e7eefa;
+
+  --status-new: #5b4bc4;
+  --status-saved: #23518f;
+  --status-applied: #6a3fb5;
+  --status-screening: #155555;
+  --status-interview: #1f6b3e;
+  --status-test-task: #8a5a00;
+  --status-offer: #0e5d4c;
+  --status-accepted: #1f6b3e;
+  --status-rejected: #a8282f;
+  --status-withdrawn: #73706d;
+  --status-expired: #73706d;
+  --status-dismissed: #73706d;
+  --status-hidden: #73706d;
+
+  --score-high: #155555;
+  --score-mid: #8a5a00;
+  --score-low: #73706d;
+
+  --shadow-1: 0 1px 3px rgb(0 0 0 / 0.08);
+  --shadow-2: 0 8px 24px rgb(0 0 0 / 0.12);
+  --overlay-backdrop: rgb(27 25 56 / 0.35);
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --color-bg: #0e0e12;
-    --color-bg-subtle: #14141a;
-    --color-bg-muted: #1b1b23;
-    --color-surface: #14141a;
-    --color-surface-raised: #1b1b23;
-    --color-border: #2a2a34;
-    --color-border-strong: #3d3d4a;
-    --color-text: #f2f2f6;
-    --color-text-muted: #a4a4b2;
-    --color-text-subtle: #8a8a98;
+/* "Follow the system": the light values when the system prefers light. */
+@media (prefers-color-scheme: light) {
+  :root[data-theme="system"] {
+    --color-bg: #ffffff;
+    --color-bg-subtle: #fafaf8;
+    --color-bg-muted: #f3f1ec;
+    --color-surface: #ffffff;
+    --color-surface-raised: #ffffff;
+    --color-border: #e8e4dd;
+    --color-border-strong: #d3cdc3;
+    --color-text: #292827;
+    --color-text-muted: #73706d;
+    --color-text-subtle: #8a8783;
     --color-text-on-accent: #ffffff;
 
-    --color-accent: #818cf8;
-    --color-accent-hover: #a5b4fc;
-    --color-accent-subtle: #1e1f3d;
-    --color-accent-border: #3b3f8a;
-    --color-focus: #a5b4fc;
+    --color-accent: #1b1938;
+    --color-accent-hover: #0e0c1f;
+    --color-accent-subtle: #efebfd;
+    --color-accent-border: #c9b4fa;
+    --color-focus: #5b4bc4;
 
-    --color-success: #4ade80;
-    --color-success-subtle: #12261a;
-    --color-warning: #fbbf24;
-    --color-warning-subtle: #2a2110;
-    --color-danger: #f87171;
-    --color-danger-subtle: #2b1414;
-    --color-info: #7dd3fc;
-    --color-info-subtle: #112430;
+    --color-success: #155555;
+    --color-success-subtle: #e4f2ef;
+    --color-warning: #8a5a00;
+    --color-warning-subtle: #fbf1dc;
+    --color-danger: #a8282f;
+    --color-danger-subtle: #fbeaea;
+    --color-info: #23518f;
+    --color-info-subtle: #e7eefa;
 
-    --status-new: #a5b4fc;
-    --status-saved: #7dd3fc;
-    --status-applied: #c4b5fd;
-    --status-screening: #5eead4;
-    --status-interview: #86efac;
-    --status-test-task: #fcd34d;
-    --status-offer: #6ee7b7;
-    --status-accepted: #4ade80;
-    --status-rejected: #f87171;
-    --status-withdrawn: #9ca3af;
-    --status-expired: #9ca3af;
-    --status-dismissed: #9ca3af;
-    --status-hidden: #9ca3af;
+    --status-new: #5b4bc4;
+    --status-saved: #23518f;
+    --status-applied: #6a3fb5;
+    --status-screening: #155555;
+    --status-interview: #1f6b3e;
+    --status-test-task: #8a5a00;
+    --status-offer: #0e5d4c;
+    --status-accepted: #1f6b3e;
+    --status-rejected: #a8282f;
+    --status-withdrawn: #73706d;
+    --status-expired: #73706d;
+    --status-dismissed: #73706d;
+    --status-hidden: #73706d;
 
-    --score-high: #4ade80;
-    --score-mid: #fbbf24;
-    --score-low: #9ca3af;
+    --score-high: #155555;
+    --score-mid: #8a5a00;
+    --score-low: #73706d;
 
-    --overlay-backdrop: rgb(0 0 0 / 0.6);
-    color-scheme: dark;
+    --shadow-1: 0 1px 3px rgb(0 0 0 / 0.08);
+    --shadow-2: 0 8px 24px rgb(0 0 0 / 0.12);
+    --overlay-backdrop: rgb(27 25 56 / 0.35);
+    color-scheme: light;
   }
-}
-
-:root[data-theme="dark"] {
-  --color-bg: #0e0e12;
-  --color-bg-subtle: #14141a;
-  --color-bg-muted: #1b1b23;
-  --color-surface: #14141a;
-  --color-surface-raised: #1b1b23;
-  --color-border: #2a2a34;
-  --color-border-strong: #3d3d4a;
-  --color-text: #f2f2f6;
-  --color-text-muted: #a4a4b2;
-  --color-text-subtle: #8a8a98;
-  --color-text-on-accent: #ffffff;
-
-  --color-accent: #818cf8;
-  --color-accent-hover: #a5b4fc;
-  --color-accent-subtle: #1e1f3d;
-  --color-accent-border: #3b3f8a;
-  --color-focus: #a5b4fc;
-
-  --color-success: #4ade80;
-  --color-success-subtle: #12261a;
-  --color-warning: #fbbf24;
-  --color-warning-subtle: #2a2110;
-  --color-danger: #f87171;
-  --color-danger-subtle: #2b1414;
-  --color-info: #7dd3fc;
-  --color-info-subtle: #112430;
-
-  --status-new: #a5b4fc;
-  --status-saved: #7dd3fc;
-  --status-applied: #c4b5fd;
-  --status-screening: #5eead4;
-  --status-interview: #86efac;
-  --status-test-task: #fcd34d;
-  --status-offer: #6ee7b7;
-  --status-accepted: #4ade80;
-  --status-rejected: #f87171;
-  --status-withdrawn: #9ca3af;
-  --status-expired: #9ca3af;
-  --status-dismissed: #9ca3af;
-  --status-hidden: #9ca3af;
-
-  --score-high: #4ade80;
-  --score-mid: #fbbf24;
-  --score-low: #9ca3af;
-
-  --overlay-backdrop: rgb(0 0 0 / 0.6);
-  color-scheme: dark;
 }
 
 @media (prefers-reduced-motion: reduce) {

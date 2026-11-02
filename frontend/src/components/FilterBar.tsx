@@ -1,5 +1,5 @@
 import { useState } from "preact/hooks";
-import { type Criterion, describe, FIELDS, specFor, toValue, type ValueKind } from "../domain/criteria";
+import { type Criterion, describe, FIELDS, needsInput, operatorKey, specFor, toValue, type ValueKind } from "../domain/criteria";
 
 interface Props {
   criteria: Criterion[];
@@ -10,15 +10,15 @@ interface Props {
 export function FilterBar({ criteria, onChange }: Props) {
   const [field, setField] = useState(FIELDS[0].field);
   const spec = specFor(field) ?? FIELDS[0];
-  const [operator, setOperator] = useState(spec.operators[0].op);
+  const [operator, setOperator] = useState(operatorKey(spec.operators[0]));
   const [text, setText] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
 
-  const op = spec.operators.find((o) => o.op === operator) ?? spec.operators[0];
+  const op = spec.operators.find((o) => operatorKey(o) === operator) ?? spec.operators[0];
 
   const add = () => {
     const value = toValue(op.value as ValueKind, text);
-    if (op.value !== "none" && value === undefined) {
+    if (needsInput(op.value) && value === undefined) {
       setFormError("Enter a value for this filter.");
       return;
     }
@@ -68,7 +68,7 @@ export function FilterBar({ criteria, onChange }: Props) {
             onChange={(e) => {
               const next = specFor((e.target as HTMLSelectElement).value) ?? FIELDS[0];
               setField(next.field);
-              setOperator(next.operators[0].op);
+              setOperator(operatorKey(next.operators[0]));
               setText("");
             }}
           >
@@ -81,15 +81,15 @@ export function FilterBar({ criteria, onChange }: Props) {
         </label>
         <label>
           <span class="sr-only">Operator</span>
-          <select class="input" value={op.op} onChange={(e) => setOperator((e.target as HTMLSelectElement).value)}>
+          <select class="input" value={operatorKey(op)} onChange={(e) => setOperator((e.target as HTMLSelectElement).value)}>
             {spec.operators.map((o) => (
-              <option key={o.op} value={o.op}>
+              <option key={operatorKey(o)} value={operatorKey(o)}>
                 {o.label}
               </option>
             ))}
           </select>
         </label>
-        {op.value !== "none" && (
+        {needsInput(op.value) && (
           <label>
             <span class="sr-only">Value</span>
             <input

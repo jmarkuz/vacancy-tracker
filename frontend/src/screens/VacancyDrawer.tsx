@@ -4,6 +4,12 @@ import { ApiError } from "../api/client";
 import { changeStatus, getHistory, getVacancy, patchVacancy, type StatusEvent } from "../api/vacancies";
 import type { Vacancy } from "../api/types";
 import { allowedNext } from "../domain/statuses";
+import { safeLink } from "../domain/links";
+import { FitPanel } from "../components/FitPanel";
+import { DocumentsPanel } from "../components/DocumentsPanel";
+import { ApplyPanel } from "../components/ApplyPanel";
+import { VacancyMailPanel } from "../components/VacancyMailPanel";
+import { markSubmitted } from "../api/ai";
 import { StatusBadge } from "../components/StatusBadge";
 import { formatDate, formatSalary } from "./columns";
 
@@ -44,6 +50,8 @@ export function VacancyDrawer({ id, onClose, onChange }: Props) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // Grows when a document version is saved, so the Apply section offers it.
+  const [docsVersion, setDocsVersion] = useState(0);
   const panelRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -94,24 +102,31 @@ export function VacancyDrawer({ id, onClose, onChange }: Props) {
     const savedFor = id;
     setSaving(true);
     setSaveError(null);
+    let updated: Vacancy;
     try {
-      const updated = await action();
-      // The drawer may have moved to another vacancy while this was in flight: its data must not land there.
-      if (currentId.current === savedFor) {
-        setVacancy(updated);
-        if (reloadHistory) {
+      updated = await action();
+    } catch (e: unknown) {
+      setSaveError(e instanceof ApiError ? e.message : "Save failed. Your change was not stored.");
+      setSaving(false);
+      return;
+    }
+    // Stored: the list behind the drawer must show it even if reloading the history below fails.
+    onChange();
+    // The drawer may have moved to another vacancy while this was in flight: its data must not land there.
+    if (currentId.current === savedFor) {
+      setVacancy(updated);
+      if (reloadHistory) {
+        try {
           const history = await getHistory(savedFor);
           if (currentId.current === savedFor) {
             setHistory(history);
           }
+        } catch {
+          setSaveError("Saved. The history could not be reloaded; reopen the vacancy to see it.");
         }
       }
-      onChange();
-    } catch (e: unknown) {
-      setSaveError(e instanceof ApiError ? e.message : "Save failed. Your change was not stored.");
-    } finally {
-      setSaving(false);
     }
+    setSaving(false);
   };
 
   const titleId = "drawer-title";
@@ -152,32 +167,12 @@ export function VacancyDrawer({ id, onClose, onChange }: Props) {
             )}
 
             <section class="drawer-section">
-              <div class="drawer-row">
-                <StatusBadge status={vacancy.status} />
-                <label>
-                  <span class="sr-only">Change status</span>
-                  <select
-                    class="input"
-                    disabled={saving || allowedNext(vacancy.status).length === 0}
-                    value=""
-                    onChange={(e) => {
-                      const next = (e.target as HTMLSelectElement).value;
-                      if (next) {
-                        save(() => changeStatus(id, next), true);
-                      }
-                    }}
-                  >
-                    <option value="">
-                      {allowedNext(vacancy.status).length ? "Move to…" : "No further steps"}
-                    </option>
-                    {allowedNext(vacancy.status).map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
+              <StatusMover
+                key={`${vacancy.id}-${vacancy.status}`}
+                status={vacancy.status}
+                disabled={saving}
+                onMove={(next) => save(() => changeStatus(id, next), true)}
+              />
               <dl class="facts">
                 <dt>Location</dt>
                 <dd>{vacancy.location ?? "-"}</dd>
@@ -188,12 +183,14 @@ export function VacancyDrawer({ id, onClose, onChange }: Props) {
                   {formatSalary(vacancy)}
                   {vacancy.userEditedFields.includes("salary") && <EditedMark />}
                 </dd>
+                <dt>Visa sponsorship</dt>
+                <dd>{vacancy.visaSponsorship === true ? "Offered" : vacancy.visaSponsorship === false ? "Not offered" : "Not stated"}</dd>
                 <dt>Last seen</dt>
                 <dd class="num">{formatDate(vacancy.lastSeenAt)}</dd>
                 <dt>Original</dt>
                 <dd>
-                  {vacancy.url ? (
-                    <a href={vacancy.url} target="_blank" rel="noopener noreferrer">
+                  {safeLink(vacancy.url) ? (
+                    <a href={safeLink(vacancy.url) ?? undefined} target="_blank" rel="noopener noreferrer">
                       Open posting
                     </a>
                   ) : (
@@ -203,6 +200,26 @@ export function VacancyDrawer({ id, onClose, onChange }: Props) {
               </dl>
             </section>
 
+            <FitPanel vacancyId={vacancy.id} />
+
+            <DocumentsPanel
+              vacancyId={vacancy.id}
+              title={vacancy.title}
+              company={vacancy.company}
+              onSaved={() => setDocsVersion((n) => n + 1)}
+            />
+
+            <ApplyPanel
+              key={vacancy.id}
+              vacancyId={vacancy.id}
+              vacancyUrl={safeLink(vacancy.url)}
+              docsVersion={docsVersion}
+              onSubmitted={async (packageId, note) => {
+                await markSubmitted(packageId, note || undefined);
+                await save(() => getVacancy(id), true);
+              }}
+            />
+
             <DescriptionEditor
               key={vacancy.id + vacancy.userEditedFields.includes("description")}
               value={vacancy.description ?? ""}
@@ -211,6 +228,8 @@ export function VacancyDrawer({ id, onClose, onChange }: Props) {
               onSave={(text) => save(() => patchVacancy(id, { description: text }))}
             />
 
+            <VacancyMailPanel vacancyId={vacancy.id} onStatusChanged={() => save(() => getVacancy(id), true)} />
+
             <NotesEditor
               key={`notes-${vacancy.id}`}
               value={vacancy.notes ?? ""}
@@ -218,26 +237,12 @@ export function VacancyDrawer({ id, onClose, onChange }: Props) {
               onSave={(text) => save(() => patchVacancy(id, { notes: text }))}
             />
 
-            <section class="drawer-section">
-              <h3>Priority</h3>
-              <select
-                class="input"
-                aria-label="Priority"
-                disabled={saving}
-                value={vacancy.priority ?? ""}
-                onChange={(e) => {
-                  const value = (e.target as HTMLSelectElement).value;
-                  if (value) {
-                    save(() => patchVacancy(id, { priority: Number(value) }));
-                  }
-                }}
-              >
-                <option value="" disabled={vacancy.priority != null}>Not set</option>
-                <option value="1">1 · high</option>
-                <option value="2">2 · medium</option>
-                <option value="3">3 · low</option>
-              </select>
-            </section>
+            <PriorityEditor
+              key={`${vacancy.id}-${vacancy.priority ?? ""}`}
+              value={vacancy.priority}
+              disabled={saving}
+              onSave={(priority) => save(() => patchVacancy(id, { priority }))}
+            />
 
             <section class="drawer-section">
               <h3>History</h3>
@@ -259,6 +264,70 @@ export function VacancyDrawer({ id, onClose, onChange }: Props) {
         )}
       </aside>
     </>
+  );
+}
+
+/**
+ * Choosing a status and applying it are two steps. On Windows, arrow keys and type-ahead on a closed select change
+ * its value at once, so committing on change recorded a status (often one with no way back) by accident.
+ */
+function StatusMover({ status, disabled, onMove }: { status: string; disabled: boolean; onMove: (next: string) => void }) {
+  const options = allowedNext(status);
+  const [next, setNext] = useState("");
+  return (
+    <div class="drawer-row">
+      <StatusBadge status={status} />
+      <label>
+        <span class="sr-only">Next status</span>
+        <select
+          class="input"
+          disabled={disabled || options.length === 0}
+          value={next}
+          onChange={(e) => setNext((e.target as HTMLSelectElement).value)}
+        >
+          <option value="">{options.length ? "Move to…" : "No further steps"}</option>
+          {options.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
+      </label>
+      <button class="btn" type="button" disabled={disabled || !next} onClick={() => onMove(next)}>
+        Move
+      </button>
+    </div>
+  );
+}
+
+function PriorityEditor({ value, disabled, onSave }: { value: number | null; disabled: boolean; onSave: (p: number) => void }) {
+  const [draft, setDraft] = useState(value == null ? "" : String(value));
+  return (
+    <section class="drawer-section">
+      <h3>Priority</h3>
+      <div class="drawer-row">
+        <select
+          class="input"
+          aria-label="Priority"
+          disabled={disabled}
+          value={draft}
+          onChange={(e) => setDraft((e.target as HTMLSelectElement).value)}
+        >
+          <option value="" disabled={value != null}>Not set</option>
+          <option value="1">1 · high</option>
+          <option value="2">2 · medium</option>
+          <option value="3">3 · low</option>
+        </select>
+        <button
+          class="btn"
+          type="button"
+          disabled={disabled || draft === "" || draft === String(value ?? "")}
+          onClick={() => onSave(Number(draft))}
+        >
+          Set priority
+        </button>
+      </div>
+    </section>
   );
 }
 

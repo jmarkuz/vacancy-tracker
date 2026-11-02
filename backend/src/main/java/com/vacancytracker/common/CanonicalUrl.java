@@ -20,6 +20,24 @@ public final class CanonicalUrl {
     private CanonicalUrl() {
     }
 
+    /**
+     * The link as given when it is an http or https address with a host, else null. Links from sources and imports
+     * end up in an href and in window.open, so a javascript: or data: value must never be stored (ADR-039).
+     */
+    public static String webLink(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        String trimmed = raw.trim();
+        try {
+            URI uri = new URI(trimmed);
+            String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase(Locale.ROOT);
+            return ("http".equals(scheme) || "https".equals(scheme)) && uri.getHost() != null ? trimmed : null;
+        } catch (URISyntaxException e) {
+            return null;
+        }
+    }
+
     public static Optional<String> of(String raw) {
         if (raw == null || raw.isBlank()) {
             return Optional.empty();
