@@ -251,7 +251,7 @@ export function Profiles({ params }: Props) {
         <div class="panel empty-state">
           <h2>No search profiles yet</h2>
           <p class="muted">A profile says what you look for. Create one to score and filter vacancies.</p>
-          <button class="btn primary" type="button" onClick={() => setQuery({ wizard: "1" })} disabled={!meta}>
+          <button class="btn primary" data-role="amber" type="button" onClick={() => setQuery({ wizard: "1" })} disabled={!meta}>
             Set up with the wizard
           </button>
           <button class="btn" type="button" onClick={() => setQuery({ edit: "new" })} disabled={!meta}>

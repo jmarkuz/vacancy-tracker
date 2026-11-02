@@ -78,7 +78,7 @@ export function AddVacancy({ onAdded, onClose }: Props) {
         <button class="btn ghost" type="button" onClick={onClose}>
           Cancel
         </button>
-        <button class="btn primary" type="submit" disabled={busy || (manual ? !title.trim() || !company.trim() : !url.trim())}>
+        <button class="btn primary" data-role="green" type="submit" disabled={busy || (manual ? !title.trim() || !company.trim() : !url.trim())}>
           {busy ? "Adding…" : "Add vacancy"}
         </button>
       </div>

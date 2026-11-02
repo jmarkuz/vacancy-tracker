@@ -1,0 +1,206 @@
+[
+  {
+    "theme": "light",
+    "pair": "text/canvas",
+    "ratio": 14.284973668957566,
+    "min": 7
+  },
+  {
+    "theme": "light",
+    "pair": "text/surface",
+    "ratio": 15.610500082868002,
+    "min": 7
+  },
+  {
+    "theme": "light",
+    "pair": "muted/canvas",
+    "ratio": 7.753094437365486,
+    "min": 7
+  },
+  {
+    "theme": "light",
+    "pair": "muted/surface",
+    "ratio": 8.472516937149482,
+    "min": 7
+  },
+  {
+    "theme": "light",
+    "pair": "border/surface",
+    "ratio": 3.877915293692602,
+    "min": 3
+  },
+  {
+    "theme": "light",
+    "pair": "blue accent/surface",
+    "ratio": 8.497028985979249,
+    "min": 7
+  },
+  {
+    "theme": "light",
+    "pair": "blue accent/soft",
+    "ratio": 7.362526544287618,
+    "min": 7
+  },
+  {
+    "theme": "light",
+    "pair": "blue button text/accent",
+    "ratio": 8.497028985979249,
+    "min": 7
+  },
+  {
+    "theme": "light",
+    "pair": "green accent/surface",
+    "ratio": 8.663174439664335,
+    "min": 7
+  },
+  {
+    "theme": "light",
+    "pair": "green accent/soft",
+    "ratio": 7.507787512923221,
+    "min": 7
+  },
+  {
+    "theme": "light",
+    "pair": "green button text/accent",
+    "ratio": 8.663174439664335,
+    "min": 7
+  },
+  {
+    "theme": "light",
+    "pair": "purple accent/surface",
+    "ratio": 9.31671764847366,
+    "min": 7
+  },
+  {
+    "theme": "light",
+    "pair": "purple accent/soft",
+    "ratio": 7.859796206564591,
+    "min": 7
+  },
+  {
+    "theme": "light",
+    "pair": "purple button text/accent",
+    "ratio": 9.31671764847366,
+    "min": 7
+  },
+  {
+    "theme": "light",
+    "pair": "amber accent/surface",
+    "ratio": 8.347252779234688,
+    "min": 7
+  },
+  {
+    "theme": "light",
+    "pair": "amber accent/soft",
+    "ratio": 7.423829804639142,
+    "min": 7
+  },
+  {
+    "theme": "light",
+    "pair": "amber button text/accent",
+    "ratio": 8.347252779234688,
+    "min": 7
+  },
+  {
+    "theme": "dark",
+    "pair": "text/canvas",
+    "ratio": 16.095826463077422,
+    "min": 7
+  },
+  {
+    "theme": "dark",
+    "pair": "text/surface",
+    "ratio": 14.22723584315269,
+    "min": 7
+  },
+  {
+    "theme": "dark",
+    "pair": "muted/canvas",
+    "ratio": 10.756054877068813,
+    "min": 7
+  },
+  {
+    "theme": "dark",
+    "pair": "muted/surface",
+    "ratio": 9.507367007776036,
+    "min": 7
+  },
+  {
+    "theme": "dark",
+    "pair": "border/surface",
+    "ratio": 5.00701058393377,
+    "min": 3
+  },
+  {
+    "theme": "dark",
+    "pair": "blue accent/surface",
+    "ratio": 8.666881494480041,
+    "min": 7
+  },
+  {
+    "theme": "dark",
+    "pair": "blue accent/soft",
+    "ratio": 7.769178314591162,
+    "min": 7
+  },
+  {
+    "theme": "dark",
+    "pair": "blue button text/accent",
+    "ratio": 9.80518085516569,
+    "min": 7
+  },
+  {
+    "theme": "dark",
+    "pair": "green accent/surface",
+    "ratio": 9.909441316306937,
+    "min": 7
+  },
+  {
+    "theme": "dark",
+    "pair": "green accent/soft",
+    "ratio": 8.012960082048211,
+    "min": 7
+  },
+  {
+    "theme": "dark",
+    "pair": "green button text/accent",
+    "ratio": 11.210937214489961,
+    "min": 7
+  },
+  {
+    "theme": "dark",
+    "pair": "purple accent/surface",
+    "ratio": 8.801155684727084,
+    "min": 7
+  },
+  {
+    "theme": "dark",
+    "pair": "purple accent/soft",
+    "ratio": 7.915246369636403,
+    "min": 7
+  },
+  {
+    "theme": "dark",
+    "pair": "purple button text/accent",
+    "ratio": 9.957090480374216,
+    "min": 7
+  },
+  {
+    "theme": "dark",
+    "pair": "amber accent/surface",
+    "ratio": 10.024790499753346,
+    "min": 7
+  },
+  {
+    "theme": "dark",
+    "pair": "amber accent/soft",
+    "ratio": 8.240736178584502,
+    "min": 7
+  },
+  {
+    "theme": "dark",
+    "pair": "amber button text/accent",
+    "ratio": 11.341436241840004,
+    "min": 7
+  }
+]
