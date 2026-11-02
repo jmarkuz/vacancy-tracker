@@ -41,7 +41,7 @@ class DeduplicatorTest extends AbstractIntegrationTest {
     private static NormalizedPosting p(String adapter, String ext, String canonical, String title, String company,
                                        String location) {
         return new NormalizedPosting(adapter, ext, canonical == null ? null : canonical, canonical, title, company,
-                location, null, null, (BigDecimal) null, null, null, null, null);
+                location, null, null, null, (BigDecimal) null, null, null, null, null);
     }
 
     @Test

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Example Jobs</title>
+    <link>https://feeds.example.test/</link>
+    <description>Synthetic feed for tests</description>
+    <item>
+      <title>Example Role Alpha</title>
+      <link>https://feeds.example.test/jobs/1</link>
+      <guid>job-1</guid>
+      <author>Northwind Labs</author>
+      <pubDate>Mon, 26 Oct 2026 09:00:00 GMT</pubDate>
+      <description><![CDATA[<p>Build <b>things</b> &amp; ship them.</p><script>alert(1)</script><ul><li>Remote</li></ul>]]></description>
+    </item>
+    <item>
+      <title>Example Role Beta</title>
+      <link>https://feeds.example.test/jobs/2</link>
+      <guid>job-2</guid>
+    </item>
+    <item>
+      <title>No link here</title>
+      <guid>job-3</guid>
+    </item>
+    <item>
+      <title>Unsafe link</title>
+      <link>javascript:alert(1)</link>
+      <guid>job-4</guid>
+    </item>
+    <item>
+      <title>Example Role Alpha</title>
+      <link>https://feeds.example.test/jobs/1</link>
+      <guid>job-1</guid>
+    </item>
+  </channel>
+</rss>

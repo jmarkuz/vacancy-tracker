@@ -39,7 +39,7 @@ public class IngestService {
         if (match.isEmpty()) {
             Vacancy created = Vacancy.discovered(UUID.randomUUID(), posting.title(), posting.company(), posting.url(),
                     posting.canonicalUrl(), posting.description(), now);
-            created.setPlacement(posting.location(), null, posting.workMode());
+            created.setPlacement(posting.location(), posting.country(), posting.workMode());
             created.applyAutomated(new AutomatedFields(null, posting.salaryMin(), posting.salaryMax(),
                     posting.currency(), posting.salaryPeriod(), now));
             vacancies.save(created.toState());
@@ -56,6 +56,9 @@ public class IngestService {
                 posting.currency(), posting.salaryPeriod(), now));
         if (existing.getLocation() == null && posting.location() != null) {
             existing.setPlacement(posting.location(), existing.getCountry(), existing.getWorkMode());
+        }
+        if (existing.getCountry() == null && posting.country() != null) {
+            existing.setPlacement(existing.getLocation(), posting.country(), existing.getWorkMode());
         }
         boolean changed = !Objects.equals(before, existing.getDescription())
                 || !Objects.equals(beforeMin, existing.getSalaryMin())

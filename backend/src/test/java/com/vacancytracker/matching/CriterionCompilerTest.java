@@ -61,6 +61,14 @@ class CriterionCompilerTest {
     }
 
     @Test
+    void scoreAndPostedDateAreFilterable() throws Exception {
+        SqlFragment f = compiler.compile(List.of(
+                c("{\"field\":\"score\",\"operator\":\"gte\",\"value\":70}"),
+                c("{\"field\":\"postedAt\",\"operator\":\"gte\",\"value\":\"2026-10-01T00:00:00Z\"}")));
+        assertThat(f.sql()).contains("match_score >= :f0").contains("posted_at >= :f1");
+    }
+
+    @Test
     void sourceFilterUsesExistsOnSourceTable() throws Exception {
         SqlFragment f = compiler.compile(List.of(c("{\"field\":\"source\",\"operator\":\"in\",\"value\":[\"arbeitnow\"]}")));
         assertThat(f.sql()).contains("EXISTS (SELECT 1 FROM vacancy_source s WHERE s.vacancy_id = vacancy.id");

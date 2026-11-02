@@ -9,8 +9,9 @@ import org.jsoup.Jsoup;
 
 /**
  * Turns a RawPosting into a NormalizedPosting (T-041). Returns empty when the posting lacks a title or
- * company, which the pipeline reports as a rejected row. Country and seniority detection need the
- * user's profile data and are not done here yet.
+ * company, which the pipeline reports as a rejected row. The country is read from the location when it
+ * names one (CountryDetector). Seniority is not detected: its levels are the user's own list (docs/search-profiles.md),
+ * so a profile expresses it with title keywords (ADR-036).
  */
 public final class Normalizer {
 
@@ -48,6 +49,7 @@ public final class Normalizer {
                 title,
                 company,
                 location,
+                CountryDetector.detect(location).orElse(null),
                 workMode,
                 description,
                 hasSalary ? (min != null ? min : max) : null,

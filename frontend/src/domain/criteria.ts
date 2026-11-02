@@ -44,9 +44,25 @@ export const FIELDS: FieldSpec[] = [
       { op: "lte", label: "at most", value: "number" },
     ],
   },
+  {
+    field: "score",
+    label: "Match score",
+    operators: [
+      { op: "gte", label: "at least", value: "number" },
+      { op: "lte", label: "at most", value: "number" },
+    ],
+  },
   { field: "salary", label: "Salary (yearly)", operators: [{ op: "gte", label: "at least", value: "number" }] },
   { field: "tags", label: "Tags", operators: [{ op: "contains_any", label: "contains", value: "list" }] },
   { field: "source", label: "Source", operators: [{ op: "in", label: "is one of", value: "list" }] },
+  {
+    field: "postedAt",
+    label: "Posted",
+    operators: [
+      { op: "gte", label: "on or after", value: "date" },
+      { op: "lte", label: "on or before", value: "date" },
+    ],
+  },
   {
     field: "lastSeenAt",
     label: "Last seen",

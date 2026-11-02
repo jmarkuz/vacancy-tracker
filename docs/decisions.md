@@ -530,3 +530,16 @@ Status: Accepted (T-073)
 - Vacancies use the source id `html` for all sites so that the run statistics and the expiry rule (ADR-014) agree on the source; the site is the first part of the external id.
 
 **Consequences.** A site that is blocked by `robots.txt` is skipped with a warning, not an error. Selectors break when the page changes; the result is no vacancies or a failed source, never wrong ones, because cards without a title and a real link are dropped. Health is per source (`html`), not per site; the log names the site. Whether a site's terms really allow reading is the owner's judgement and is recorded, not enforced.
+
+## ADR-036 Feed adapter, country detection, and what stays undetected
+
+**Context.** Closing the open rows of the plan (T-020, T-035, T-040, T-041) raised four small questions.
+
+**Decision.**
+- **RSS and Atom (T-040).** One adapter, `rss`, with Rome 2.1.0. It follows the rule of ADR-035: no feed is shipped, and a feed is requested only when it is enabled and its configuration records a terms check. DOCTYPE declarations are refused, so an external entity in a feed cannot read a local file. The item text is reduced to plain text. Feeds are machine interfaces, so `robots.txt` is not consulted; the conditional cache (ETag) applies.
+- **Country (T-041).** The country is set at ingestion only when a whole comma-separated part of the location is a country name in one of ten languages (JDK locale data) or one of a few aliases (UK, USA). Two-letter codes are not read because they clash with US state codes, "Georgia" is excluded, a name that differs by language is dropped, and a location naming two countries gives nothing. A wrong country would hide vacancies through a `require` rule, so a missing one is the safer error.
+- **Seniority (T-041).** Not detected. The levels are the user's own list (docs/search-profiles.md), and any built-in word list would be hardcoded data the brief forbids. A profile expresses seniority with `title` keywords, which the live preview shows at once.
+- **Adzuna countries (T-035).** Codes are checked against the 19 the public documentation lists; the official page has no machine-readable list, so the set is the known one, and a code outside it fails the source before any request (it also keeps the value safe in the URL path).
+- **Views (T-020).** `score` and `postedAt` join the filterable fields.
+
+**Consequences.** Locations such as "Praha" or "Berlin" alone give no country; the user can still filter by `location`. The Adzuna list must be updated by hand if Adzuna adds a country.
