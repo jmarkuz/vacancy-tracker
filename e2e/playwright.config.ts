@@ -3,7 +3,8 @@ import { defineConfig } from "@playwright/test";
 /**
  * Browser tests of the running app (T-074, T-091). They expect the app, built with its UI, at BASE_URL, on an empty
  * database, started with APP_AI_PROVIDER=fake: CI starts it in .github/workflows/ci.yml and `npm run test:local` does
- * the same on this machine. The smoke test runs first; the full-cycle test runs after it on the same database.
+ * the same on this machine. The smoke test runs first; the full-cycle test and then the M7 test run after it on the
+ * same database.
  * PW_CHANNEL=chrome uses an installed Google Chrome instead of the browser Playwright downloads.
  */
 export default defineConfig({
@@ -24,5 +25,6 @@ export default defineConfig({
   projects: [
     { name: "smoke", testMatch: /smoke\.spec\.ts/ },
     { name: "full-cycle", testMatch: /full-cycle\.spec\.ts/, dependencies: ["smoke"] },
+    { name: "m7", testMatch: /m7-presets\.spec\.ts/, dependencies: ["full-cycle"] },
   ],
 });
