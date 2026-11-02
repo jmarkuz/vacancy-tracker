@@ -85,7 +85,8 @@ export function ResumeScreen() {
         <h2>{resume ? "Replace the resume" : "Upload your resume"}</h2>
         <p class="muted">
           PDF, DOCX, TXT or Markdown, up to 5 MB. The text stays in your database. Every vacancy gets a fit score from
-          it, with the reasons.
+          it, with the reasons. It is also the base resume of your default <a href="#/presets">preset</a>: changing it
+          in either place changes the same resume.
         </p>
         <div class="drawer-row">
           <label class="btn primary file-button">

@@ -62,12 +62,57 @@ public class ResumeService {
         return store(name == null || name.isBlank() ? "Pasted resume" : name.strip(), null, "text/plain", clean, null);
     }
 
+    /** Reads an uploaded file as a preset's base resume (T-093); it becomes the active resume only when active. */
+    @Transactional
+    public Resume uploadBase(String fileName, String contentType, byte[] bytes, boolean active) {
+        String text = ResumeTextExtractor.extract(fileName, bytes);
+        return store(displayName(fileName), fileName, contentType, text, bytes, active);
+    }
+
+    /** Pasted text as a preset's base resume; it becomes the active resume only when active. */
+    @Transactional
+    public Resume pasteBase(String name, String text, boolean active) {
+        String clean = text == null ? "" : ResumeTextExtractor.normalize(text);
+        if (clean.isBlank()) {
+            throw new UnsupportedResumeException("The resume text is empty.");
+        }
+        return store(name == null || name.isBlank() ? "Pasted resume" : name.strip(), null, "text/plain", clean, null, active);
+    }
+
+    /** Makes a stored resume the active one (the default preset's base resume); null leaves none active. */
+    @Transactional
+    public void activate(UUID id) {
+        Optional<Resume> before = repository.findActive();
+        if (before.map(Resume::id).equals(Optional.ofNullable(id))) {
+            return;
+        }
+        repository.activate(id);
+        notifyListeners(id == null ? null : repository.find(id).orElse(null));
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Resume> find(UUID id) {
+        return id == null ? Optional.empty() : repository.find(id);
+    }
+
+    /** The uploaded file of any stored resume, when it was uploaded rather than pasted. */
+    @Transactional(readOnly = true)
+    public Optional<ResumeRepository.Original> originalOf(UUID id) {
+        return id == null ? Optional.empty() : repository.findOriginal(id);
+    }
+
     private Resume store(String name, String fileName, String contentType, String text, byte[] original) {
+        return store(name, fileName, contentType, text, original, true);
+    }
+
+    private Resume store(String name, String fileName, String contentType, String text, byte[] original, boolean active) {
         Instant now = clock.instant();
         Resume resume = new Resume(UUID.randomUUID(), name, fileName, contentType, text,
                 Terms.resumeKeywords(text, PROPOSED_KEYWORDS), 1, now, now);
-        repository.insertActive(resume, original);
-        notifyListeners(resume);
+        repository.insert(resume, original, active);
+        if (active) {
+            notifyListeners(resume);
+        }
         return resume;
     }
 
