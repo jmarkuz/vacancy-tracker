@@ -2,6 +2,7 @@ package com.vacancytracker.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -99,10 +100,14 @@ class FullCycleIntegrationTest extends AbstractIntegrationTest {
         assertThat(JsonPath.<String>read(fit, "$.reasons[0].text")).startsWith("Matches");
         assertThat(JsonPath.<java.util.List<String>>read(fit, "$.missing")).contains("AWS");
 
-        // 3. Tailored documents with the fake AI, after the owner's opt-in; edited before saving.
+        // 3. Tailored documents with the fake AI, after the owner's opt-in and with a filled preset; edited before saving.
+        String preset = JsonPath.read(json("GET", "/api/presets", null), "$[0].id");
+        mvc.perform(patch("/api/presets/" + preset).contentType(JSON).content(
+                "{\"mainGoal\":\"Backend roles.\",\"baseCoverLetter\":\"Dear Hiring Manager,\\n\\nI build payment systems.\"}"));
         json("POST", "/api/ai/consent", null);
         String resumeDraft = JsonPath.read(json("POST", "/api/vacancies/" + vacancy + "/documents/draft", "{\"kind\":\"resume\"}"), "$.content");
-        assertThat(resumeDraft).startsWith("# Tailored resume for Backend Engineer at Acme Pay");
+        // An adaptation of the base resume (the fake adds the two vacancy skills the resume lacks).
+        assertThat(resumeDraft).startsWith("Jane Doe").contains("Built production services with Docker and AWS.");
         String resume = JsonPath.read(json("POST", "/api/vacancies/" + vacancy + "/documents",
                 "{\"kind\":\"resume\",\"content\":\"" + resumeDraft.replace("\n", "\\n") + "\\nEdited by Jane.\",\"origin\":\"ai\","
                         + "\"provider\":\"fake\",\"model\":\"fake-model\"}"), "$.id");

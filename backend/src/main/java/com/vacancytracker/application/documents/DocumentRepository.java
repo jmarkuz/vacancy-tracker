@@ -14,7 +14,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 class DocumentRepository {
 
-    private static final String COLUMNS = "id, vacancy_id, kind, version, content, origin, provider, model, created_at";
+    private static final String COLUMNS = "id, vacancy_id, kind, version, content, origin, provider, model, created_at, snapshot_id";
 
     private final JdbcClient jdbc;
 
@@ -24,11 +24,11 @@ class DocumentRepository {
 
     /** Inserts the next version for the vacancy and kind; the unique key settles a race between two saves. */
     TailoredDocument insertNext(UUID vacancyId, String kind, String content, String origin, String provider, String model,
-                                java.time.Instant at) {
+                                java.time.Instant at, UUID snapshotId) {
         UUID id = UUID.randomUUID();
         int version = jdbc.sql("SELECT coalesce(max(version), 0) + 1 FROM tailored_document WHERE vacancy_id = :v AND kind = :k")
                 .param("v", vacancyId).param("k", kind).query(Integer.class).single();
-        jdbc.sql("INSERT INTO tailored_document (" + COLUMNS + ") VALUES (:id, :v, :k, :version, :content, :origin, :provider, :model, :at)")
+        jdbc.sql("INSERT INTO tailored_document (" + COLUMNS + ") VALUES (:id, :v, :k, :version, :content, :origin, :provider, :model, :at, :snapshot)")
                 .param("id", id)
                 .param("v", vacancyId)
                 .param("k", kind)
@@ -38,8 +38,9 @@ class DocumentRepository {
                 .param("provider", provider)
                 .param("model", model)
                 .param("at", OffsetDateTime.ofInstant(at, ZoneOffset.UTC))
+                .param("snapshot", snapshotId)
                 .update();
-        return new TailoredDocument(id, vacancyId, kind, version, content, origin, provider, model, at);
+        return new TailoredDocument(id, vacancyId, kind, version, content, origin, provider, model, at, snapshotId);
     }
 
     Optional<TailoredDocument> find(UUID id) {
@@ -55,6 +56,7 @@ class DocumentRepository {
     private static TailoredDocument map(ResultSet rs, int row) throws SQLException {
         return new TailoredDocument(rs.getObject("id", UUID.class), rs.getObject("vacancy_id", UUID.class), rs.getString("kind"),
                 rs.getInt("version"), rs.getString("content"), rs.getString("origin"), rs.getString("provider"),
-                rs.getString("model"), rs.getObject("created_at", OffsetDateTime.class).toInstant());
+                rs.getString("model"), rs.getObject("created_at", OffsetDateTime.class).toInstant(),
+                rs.getObject("snapshot_id", UUID.class));
     }
 }
