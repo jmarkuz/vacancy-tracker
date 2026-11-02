@@ -8,6 +8,7 @@ import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.io.MemoryUsageSetting;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.encryption.InvalidPasswordException;
 import org.apache.pdfbox.text.PDFTextStripper;
@@ -23,6 +24,42 @@ public final class ResumeTextExtractor {
 
     public static final int MAX_BYTES = 5 * 1024 * 1024;
     static final int MAX_CHARS = 200_000;
+    static final int MAX_PAGES = 30;
+    private static final long PDF_MEMORY_BYTES = 32L * 1024 * 1024;
+    private static final long PDF_STORAGE_BYTES = 128L * 1024 * 1024;
+
+    /** Keeps the first characters written to it and drops the rest. */
+    private static final class BoundedWriter extends java.io.Writer {
+        private final StringBuilder text = new StringBuilder();
+        private final int limit;
+
+        BoundedWriter(int limit) {
+            this.limit = limit;
+        }
+
+        @Override
+        public void write(char[] buffer, int offset, int length) {
+            int room = limit - text.length();
+            if (room > 0) {
+                text.append(buffer, offset, Math.min(room, length));
+            }
+        }
+
+        @Override
+        public void flush() {
+            // nothing buffered
+        }
+
+        @Override
+        public void close() {
+            // nothing to release
+        }
+
+        @Override
+        public String toString() {
+            return text.toString();
+        }
+    }
 
     private ResumeTextExtractor() {
     }
@@ -64,11 +101,19 @@ public final class ResumeTextExtractor {
         return t.length() > MAX_CHARS ? t.substring(0, MAX_CHARS) : t;
     }
 
+    /**
+     * A small file can expand a lot (compressed streams, thousands of pages), so the parser gets a memory budget that
+     * spills to a capped temporary file, only the first pages are read, and the text stops growing at the cap.
+     */
     private static String pdf(byte[] bytes) {
-        try (PDDocument document = Loader.loadPDF(bytes)) {
+        try (PDDocument document = Loader.loadPDF(bytes, "", null, null,
+                MemoryUsageSetting.setupMixed(PDF_MEMORY_BYTES, PDF_STORAGE_BYTES).streamCache)) {
             PDFTextStripper stripper = new PDFTextStripper();
             stripper.setSortByPosition(true);
-            return stripper.getText(document);
+            stripper.setEndPage(MAX_PAGES);
+            BoundedWriter out = new BoundedWriter(MAX_CHARS);
+            stripper.writeText(document, out);
+            return out.toString();
         } catch (InvalidPasswordException e) {
             throw new UnsupportedResumeException("The PDF is password-protected. Save it without a password and upload again.");
         } catch (IOException e) {
@@ -76,10 +121,12 @@ public final class ResumeTextExtractor {
         }
     }
 
+    /** POI refuses zip bombs itself (minimum inflate ratio, entry and text size limits); the text is capped here too. */
     private static String docx(byte[] bytes) {
         try (XWPFDocument document = new XWPFDocument(new ByteArrayInputStream(bytes));
              XWPFWordExtractor extractor = new XWPFWordExtractor(document)) {
-            return extractor.getText();
+            String text = extractor.getText();
+            return text.length() > MAX_CHARS ? text.substring(0, MAX_CHARS) : text;
         } catch (IOException | org.apache.poi.UnsupportedFileFormatException | IllegalStateException e) {
             throw new UnsupportedResumeException("The DOCX file could not be read. Save it again as .docx (Word 2007 or later).");
         }

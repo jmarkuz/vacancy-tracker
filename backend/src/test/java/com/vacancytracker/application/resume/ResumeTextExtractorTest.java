@@ -55,6 +55,29 @@ class ResumeTextExtractorTest {
     }
 
     @Test
+    void readsOnlyTheFirstPagesOfALongPdf() throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try (PDDocument doc = new PDDocument()) {
+            for (int i = 1; i <= ResumeTextExtractor.MAX_PAGES + 5; i++) {
+                PDPage page = new PDPage();
+                doc.addPage(page);
+                try (PDPageContentStream content = new PDPageContentStream(doc, page)) {
+                    content.beginText();
+                    content.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
+                    content.newLineAtOffset(72, 700);
+                    content.showText("Page " + i + " end");
+                    content.endText();
+                }
+            }
+            doc.save(out);
+        }
+
+        String text = ResumeTextExtractor.extract("long.pdf", out.toByteArray());
+
+        assertThat(text).contains("Page " + ResumeTextExtractor.MAX_PAGES + " end").doesNotContain("Page " + (ResumeTextExtractor.MAX_PAGES + 1) + " end");
+    }
+
+    @Test
     void refusesWhatItCannotRead() {
         assertThatThrownBy(() -> ResumeTextExtractor.extract("cv.txt", new byte[0])).hasMessageContaining("empty");
         assertThatThrownBy(() -> ResumeTextExtractor.extract("cv.exe", "MZ".getBytes(StandardCharsets.US_ASCII)))
