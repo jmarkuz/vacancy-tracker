@@ -1,0 +1,1174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vacancy Tracker: dashboard mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="tokens.css">
+<style>
+  /* Base */
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    font-size: var(--font-size-md);
+    line-height: var(--line-height-base);
+  }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; background: none; border: 0; padding: 0; }
+  :focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; border-radius: 4px; }
+  .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .muted { color: var(--color-text-muted); }
+  .subtle { color: var(--color-text-subtle); }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+  /* Shell */
+  .app { display: grid; grid-template-columns: var(--sidebar-width) 1fr; min-height: 100vh; }
+  .sidebar {
+    border-right: var(--border-width) solid var(--color-border);
+    padding: var(--space-4) var(--space-3);
+    display: flex; flex-direction: column; gap: var(--space-1);
+    background: var(--color-bg-subtle);
+  }
+  .logo { font-weight: var(--font-weight-semibold); padding: var(--space-2) var(--space-3) var(--space-4); }
+  .nav-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm);
+    color: var(--color-text-muted); text-align: left;
+    transition: background var(--duration-fast) var(--ease-out);
+  }
+  .nav-item:hover { background: var(--color-bg-muted); color: var(--color-text); }
+  .nav-item[aria-current="page"] { background: var(--color-accent-subtle); color: var(--color-accent); font-weight: var(--font-weight-medium); }
+  .count { font-family: var(--font-mono); font-size: var(--font-size-xs); color: var(--color-text-subtle); }
+  .main { min-width: 0; display: flex; flex-direction: column; }
+  .header {
+    height: var(--header-height); display: flex; align-items: center; gap: var(--space-4);
+    padding: 0 var(--space-6); border-bottom: var(--border-width) solid var(--color-border);
+    position: sticky; top: 0; background: var(--color-bg); z-index: 5;
+  }
+  .search {
+    flex: 1; max-width: 420px; display: flex; align-items: center; gap: var(--space-2);
+    border: var(--border-width) solid var(--color-border); border-radius: var(--radius-sm);
+    padding: var(--space-2) var(--space-3); color: var(--color-text-subtle); background: var(--color-surface);
+  }
+  .search kbd, .kbd {
+    font-family: var(--font-mono); font-size: var(--font-size-xs);
+    border: var(--border-width) solid var(--color-border); border-radius: 4px; padding: 0 4px;
+    color: var(--color-text-subtle);
+  }
+  .header .refresh-meta { margin-left: auto; font-size: var(--font-size-sm); color: var(--color-text-muted); white-space: nowrap; }
+  .content { padding: var(--space-6); max-width: var(--content-max-width); width: 100%; }
+  h1 { font-size: var(--font-size-2xl); line-height: var(--line-height-tight); margin: 0 0 var(--space-4); font-weight: var(--font-weight-semibold); }
+  h2 { font-size: var(--font-size-lg); margin: 0 0 var(--space-3); font-weight: var(--font-weight-semibold); }
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* Controls */
+  .btn {
+    display: inline-flex; align-items: center; gap: var(--space-2);
+    padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm);
+    border: var(--border-width) solid var(--color-border-strong); background: var(--color-surface);
+    font-size: var(--font-size-sm); transition: background var(--duration-fast) var(--ease-out);
+  }
+  .btn:hover { background: var(--color-bg-muted); }
+  .btn.primary { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-text-on-accent); }
+  .btn.primary:hover { background: var(--color-accent-hover); }
+  .btn.ghost { border-color: transparent; background: transparent; }
+  .btn.ghost:hover { background: var(--color-bg-muted); }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .select, .input {
+    padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm);
+    border: var(--border-width) solid var(--color-border-strong); background: var(--color-surface);
+    font-size: var(--font-size-sm); min-width: 0;
+  }
+  .segmented { display: inline-flex; border: var(--border-width) solid var(--color-border-strong); border-radius: var(--radius-sm); overflow: hidden; }
+  .segmented button { padding: var(--space-2) var(--space-3); font-size: var(--font-size-sm); color: var(--color-text-muted); }
+  .segmented button[aria-pressed="true"] { background: var(--color-accent-subtle); color: var(--color-accent); font-weight: var(--font-weight-medium); }
+  .chip {
+    display: inline-flex; align-items: center; gap: var(--space-1);
+    padding: 2px var(--space-3); border-radius: var(--radius-pill);
+    border: var(--border-width) solid var(--color-border-strong); font-size: var(--font-size-sm);
+    background: var(--color-surface);
+  }
+  .chip[aria-pressed="true"] { border-color: var(--color-accent-border); background: var(--color-accent-subtle); color: var(--color-accent); }
+
+  /* Badges: dot + text, never color alone */
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+    padding: 2px var(--space-2); border-radius: var(--radius-pill);
+    border: var(--border-width) solid var(--color-border); font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+  }
+  .badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .status-new { color: var(--status-new); }
+  .status-saved { color: var(--status-saved); }
+  .status-applied { color: var(--status-applied); }
+  .status-screening { color: var(--status-screening); }
+  .status-interview { color: var(--status-interview); }
+  .status-test-task { color: var(--status-test-task); }
+  .status-offer { color: var(--status-offer); }
+  .status-accepted { color: var(--status-accepted); }
+  .status-rejected { color: var(--status-rejected); }
+  .status-expired, .status-dismissed, .status-hidden, .status-withdrawn { color: var(--status-hidden); }
+  .health-ok { color: var(--color-success); }
+  .health-warn { color: var(--color-warning); }
+  .health-error { color: var(--color-danger); }
+  .score {
+    display: inline-flex; align-items: baseline; gap: 4px; font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums; font-weight: var(--font-weight-medium);
+    padding: 2px var(--space-2); border-radius: var(--radius-sm); background: var(--color-bg-muted);
+    position: relative; cursor: help;
+  }
+  .score.high { color: var(--score-high); }
+  .score.mid { color: var(--score-mid); }
+  .score.low { color: var(--score-low); }
+  .score .tip {
+    display: none; position: absolute; left: 0; top: calc(100% + 6px); z-index: 10;
+    width: 280px; padding: var(--space-3); border-radius: var(--radius-md);
+    border: var(--border-width) solid var(--color-border-strong); background: var(--color-surface-raised);
+    color: var(--color-text); font-family: var(--font-sans); font-size: var(--font-size-sm); font-weight: var(--font-weight-regular);
+    text-align: left;
+  }
+  .score:hover .tip, .score:focus-visible .tip { display: block; }
+  .score .tip li { margin: 2px 0; }
+
+  /* Cards and layout */
+  .grid-kpi { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--space-3); margin-bottom: var(--space-6); }
+  .kpi {
+    border: var(--border-width) solid var(--color-border); border-radius: var(--radius-md);
+    padding: var(--space-4); background: var(--color-surface); text-align: left;
+    transition: border-color var(--duration-fast) var(--ease-out);
+  }
+  .kpi:hover { border-color: var(--color-accent-border); }
+  .kpi .label { font-size: var(--font-size-sm); color: var(--color-text-muted); }
+  .kpi .value { font-size: var(--font-size-2xl); font-family: var(--font-mono); font-variant-numeric: tabular-nums; margin-top: var(--space-1); }
+  .panels { display: grid; grid-template-columns: 2fr 1fr; gap: var(--space-4); }
+  .panel {
+    border: var(--border-width) solid var(--color-border); border-radius: var(--radius-md);
+    padding: var(--space-4); background: var(--color-surface); min-width: 0;
+  }
+  .panel + .panel { margin-top: 0; }
+  .stack { display: grid; gap: var(--space-4); }
+  .table-wrap { overflow-x: auto; border: var(--border-width) solid var(--color-border); border-radius: var(--radius-md); }
+  table { width: 100%; border-collapse: separate; border-spacing: 0; }
+  th, td { text-align: left; padding: var(--space-2) var(--space-3); border-bottom: var(--border-width) solid var(--color-border); white-space: nowrap; }
+  th { font-size: var(--font-size-xs); font-weight: var(--font-weight-medium); color: var(--color-text-muted); background: var(--color-bg-subtle); position: sticky; top: 0; }
+  tbody tr { transition: background var(--duration-fast) var(--ease-out); }
+  tbody tr:hover { background: var(--color-bg-subtle); }
+  tbody tr.selected { background: var(--color-accent-subtle); }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.wrap, th.wrap { white-space: normal; }
+  .row-click { cursor: pointer; }
+  .title-link { font-weight: var(--font-weight-medium); }
+  .toolbar { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin-bottom: var(--space-4); }
+  .toolbar .grow { flex: 1; }
+  .filters { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-4); }
+  .list-item { display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-3) 0; border-bottom: var(--border-width) solid var(--color-border); }
+  .list-item:last-child { border-bottom: 0; }
+  .list-item .meta { flex: 1; min-width: 0; }
+  .progress { height: 6px; border-radius: var(--radius-pill); background: var(--color-bg-muted); overflow: hidden; }
+  .progress > span { display: block; height: 100%; background: var(--color-accent); transition: width var(--duration-base) var(--ease-out); }
+  .bar-chart { display: flex; align-items: flex-end; gap: var(--space-3); height: 140px; padding-top: var(--space-2); }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: var(--space-1); font-size: var(--font-size-xs); color: var(--color-text-muted); }
+  .bar { width: 100%; max-width: 40px; background: var(--color-accent); border-radius: 4px 4px 0 0; }
+  .funnel-row { display: grid; grid-template-columns: 96px 1fr 48px; gap: var(--space-3); align-items: center; margin-bottom: var(--space-2); font-size: var(--font-size-sm); }
+  .funnel-bar { height: 14px; border-radius: 4px; background: var(--color-accent); opacity: .85; }
+  .empty { text-align: center; padding: var(--space-10) var(--space-4); color: var(--color-text-muted); border: var(--border-width) dashed var(--color-border-strong); border-radius: var(--radius-md); }
+  .empty h2 { color: var(--color-text); }
+
+  /* Kanban */
+  .kanban { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(200px, 1fr); gap: var(--space-3); overflow-x: auto; padding-bottom: var(--space-2); }
+  .kanban-col { background: var(--color-bg-subtle); border: var(--border-width) solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-3); min-height: 240px; }
+  .kanban-col h3 { font-size: var(--font-size-sm); margin: 0 0 var(--space-3); display: flex; justify-content: space-between; align-items: center; }
+  .kanban-card {
+    background: var(--color-surface); border: var(--border-width) solid var(--color-border); border-radius: var(--radius-sm);
+    padding: var(--space-3); margin-bottom: var(--space-2); cursor: grab;
+  }
+  .kanban-card:focus-visible { outline: 2px solid var(--color-focus); }
+  .kanban-card.dragging { opacity: .5; }
+  .kanban-col.drop-target { border-color: var(--color-accent-border); background: var(--color-accent-subtle); }
+  .kanban-card .small { font-size: var(--font-size-xs); color: var(--color-text-muted); }
+
+  /* Drawer and overlays */
+  .scrim { position: fixed; inset: 0; background: var(--overlay-backdrop); display: none; z-index: 20; }
+  .scrim.open { display: block; }
+  .drawer {
+    position: fixed; top: 0; right: 0; bottom: 0; width: min(var(--drawer-width), 100vw);
+    background: var(--color-surface); border-left: var(--border-width) solid var(--color-border);
+    transform: translateX(100%); transition: transform var(--duration-base) var(--ease-out); z-index: 21;
+    display: flex; flex-direction: column;
+  }
+  .drawer.open { transform: translateX(0); }
+  .drawer header, .drawer footer { padding: var(--space-4) var(--space-5); border-bottom: var(--border-width) solid var(--color-border); }
+  .drawer footer { border-top: var(--border-width) solid var(--color-border); border-bottom: 0; display: flex; gap: var(--space-2); justify-content: flex-end; }
+  .drawer .body { padding: var(--space-5); overflow-y: auto; flex: 1; display: grid; gap: var(--space-4); }
+  .field-label { display: grid; gap: var(--space-1); font-size: var(--font-size-sm); color: var(--color-text-muted); }
+  .field-label textarea { min-height: 80px; resize: vertical; }
+  .modal {
+    position: fixed; top: 12vh; left: 50%; transform: translateX(-50%); width: min(560px, calc(100vw - 32px));
+    background: var(--color-surface-raised); border: var(--border-width) solid var(--color-border-strong);
+    border-radius: var(--radius-md); z-index: 30; display: none; padding: var(--space-3);
+  }
+  .modal.open { display: block; }
+  .palette-item { display: block; width: 100%; text-align: left; padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); }
+  .palette-item:hover, .palette-item:focus-visible { background: var(--color-accent-subtle); }
+  .toast {
+    position: fixed; bottom: var(--space-6); left: 50%; transform: translateX(-50%); z-index: 40;
+    background: var(--color-text); color: var(--color-bg); padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md); font-size: var(--font-size-sm); display: none; max-width: calc(100vw - 32px);
+  }
+  .toast.open { display: flex; gap: var(--space-3); align-items: center; }
+  .toast a { color: inherit; text-decoration: underline; }
+
+  /* Rule builder */
+  .rules { display: grid; gap: var(--space-2); }
+  .rule-row {
+    display: grid; grid-template-columns: 24px 1.3fr 1.1fr 1.5fr 0.9fr 0.6fr 0.9fr auto;
+    gap: var(--space-2); align-items: center;
+    border: var(--border-width) solid var(--color-border); border-radius: var(--radius-sm); padding: var(--space-2);
+    background: var(--color-surface);
+  }
+  .rule-row.is-focus { border-color: var(--color-accent-border); }
+  .rule-row .select, .rule-row .input { width: 100%; }
+  .rule-row .grip { color: var(--color-text-subtle); text-align: center; }
+  .rule-row .icon-btn { padding: var(--space-1) var(--space-2); border-radius: 4px; border: var(--border-width) solid var(--color-border); font-size: var(--font-size-xs); }
+  .rule-actions { display: flex; gap: var(--space-1); }
+  .preview { position: sticky; top: calc(var(--header-height) + var(--space-4)); }
+  .preview .big { font-size: var(--font-size-xl); font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .profile-tabs { display: flex; gap: var(--space-2); margin-bottom: var(--space-4); flex-wrap: wrap; }
+  .toggle { display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--font-size-sm); }
+  .switch { width: 32px; height: 18px; border-radius: var(--radius-pill); background: var(--color-bg-muted); border: var(--border-width) solid var(--color-border-strong); position: relative; }
+  .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--color-text-muted); transition: transform var(--duration-fast) var(--ease-out); }
+  .switch[aria-checked="true"] { background: var(--color-accent); border-color: var(--color-accent); }
+  .switch[aria-checked="true"]::after { transform: translateX(14px); background: #fff; }
+
+  /* Responsive: 360px phone, table becomes cards, drawer becomes bottom sheet */
+  .mobile-nav { display: none; }
+  .card-list { display: none; }
+  @media (max-width: 1100px) {
+    .grid-kpi { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .panels { grid-template-columns: 1fr; }
+    .rule-row { grid-template-columns: 1fr 1fr; }
+    .rule-row .grip { display: none; }
+    .preview { position: static; }
+  }
+  @media (max-width: 760px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .mobile-nav {
+      display: flex; position: fixed; bottom: 0; left: 0; right: 0; z-index: 15;
+      background: var(--color-bg); border-top: var(--border-width) solid var(--color-border);
+      padding: var(--space-2) var(--gutter-mobile) calc(var(--space-2) + env(safe-area-inset-bottom));
+      justify-content: space-between; gap: var(--space-1); overflow-x: auto;
+    }
+    .mobile-nav button { font-size: var(--font-size-xs); color: var(--color-text-muted); padding: var(--space-1) var(--space-2); white-space: nowrap; }
+    .mobile-nav button[aria-current="page"] { color: var(--color-accent); font-weight: var(--font-weight-medium); }
+    .header { padding: 0 var(--gutter-mobile); gap: var(--space-2); }
+    .header .refresh-meta { display: none; }
+    .search { max-width: none; }
+    .search .hint { display: none; }
+    .content { padding: var(--gutter-mobile); padding-bottom: 96px; }
+    .grid-kpi { grid-template-columns: 1fr 1fr; }
+    .kpi .value { font-size: var(--font-size-xl); }
+    .rule-row { grid-template-columns: 1fr; }
+    .drawer {
+      top: auto; left: 0; right: 0; bottom: 0; width: 100%; max-height: 88vh;
+      border-left: 0; border-top: var(--border-width) solid var(--color-border);
+      border-radius: var(--radius-md) var(--radius-md) 0 0; transform: translateY(100%);
+    }
+    .drawer.open { transform: translateY(0); }
+    .table-wrap.pipeline-table { display: none; }
+    .card-list { display: grid; gap: var(--space-2); }
+    .vcard { border: var(--border-width) solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-3); background: var(--color-surface); text-align: left; width: 100%; }
+    .toolbar .grow { flex-basis: 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="sidebar" aria-label="Primary">
+    <div class="logo">Vacancy Tracker</div>
+    <button class="nav-item" data-nav="dashboard">Dashboard</button>
+    <button class="nav-item" data-nav="inbox">Inbox <span class="count" data-count="inbox">6</span></button>
+    <button class="nav-item" data-nav="pipeline">Pipeline <span class="count">14</span></button>
+    <button class="nav-item" data-nav="sources">Sources &amp; Runs</button>
+    <button class="nav-item" data-nav="profiles">Search profiles</button>
+    <button class="nav-item" data-nav="export" disabled title="Out of scope for this mockup">Export</button>
+    <div style="margin-top:auto" class="subtle">
+      <button class="btn ghost" data-theme-toggle aria-label="Theme: system">Theme: system</button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="header">
+      <button class="search" data-open="palette" aria-haspopup="dialog">
+        <span aria-hidden="true">Search</span>
+        <span class="hint" style="margin-left:auto"><kbd>Ctrl</kbd>+<kbd>K</kbd></span>
+      </button>
+      <span class="refresh-meta num" id="refresh-meta">Refreshed 14:02 · next 18:00</span>
+      <button class="btn primary" id="refresh-btn" aria-describedby="refresh-meta">Refresh</button>
+    </header>
+
+    <main class="content">
+
+      <!-- DASHBOARD -->
+      <section class="screen" id="screen-dashboard" aria-labelledby="h-dashboard">
+        <h1 id="h-dashboard">Dashboard</h1>
+        <div class="grid-kpi">
+          <button class="kpi" data-go="inbox" data-filter="new-today"><div class="label">New today</div><div class="value">12</div></button>
+          <button class="kpi" data-go="inbox"><div class="label">Inbox</div><div class="value">6</div></button>
+          <button class="kpi" data-go="pipeline" data-filter="active"><div class="label">Active</div><div class="value">9</div></button>
+          <button class="kpi" data-go="pipeline" data-filter="interviews"><div class="label">Interviews this week</div><div class="value">2</div></button>
+          <button class="kpi" data-go="pipeline" data-filter="overdue"><div class="label">Overdue</div><div class="value">3</div></button>
+        </div>
+
+        <div class="panels">
+          <div class="stack">
+            <div class="panel">
+              <h2>Top matches</h2>
+              <div id="top-matches"></div>
+            </div>
+            <div class="panel">
+              <h2>Funnel: Saved to Offer</h2>
+              <div class="funnel-row"><span>Saved</span><div><div class="funnel-bar" style="width:100%"></div></div><span class="num">14</span></div>
+              <div class="funnel-row"><span>Applied</span><div><div class="funnel-bar" style="width:64%"></div></div><span class="num">9</span></div>
+              <div class="funnel-row"><span>Screening</span><div><div class="funnel-bar" style="width:36%"></div></div><span class="num">5</span></div>
+              <div class="funnel-row"><span>Interview</span><div><div class="funnel-bar" style="width:21%"></div></div><span class="num">3</span></div>
+              <div class="funnel-row"><span>Offer</span><div><div class="funnel-bar" style="width:7%"></div></div><span class="num">1</span></div>
+            </div>
+          </div>
+          <div class="stack">
+            <div class="panel">
+              <h2>Applications per week</h2>
+              <div class="bar-chart" role="img" aria-label="Applications per week: W40 2, W41 4, W42 1, W43 3, W44 5">
+                <div class="bar-col"><div class="bar" style="height:40%"></div>W40<span class="num">2</span></div>
+                <div class="bar-col"><div class="bar" style="height:80%"></div>W41<span class="num">4</span></div>
+                <div class="bar-col"><div class="bar" style="height:20%"></div>W42<span class="num">1</span></div>
+                <div class="bar-col"><div class="bar" style="height:60%"></div>W43<span class="num">3</span></div>
+                <div class="bar-col"><div class="bar" style="height:100%"></div>W44<span class="num">5</span></div>
+              </div>
+            </div>
+            <div class="panel">
+              <h2>Next actions</h2>
+              <div class="list-item"><div class="meta"><div>Reply to recruiter</div><div class="small subtle num">Nov 3 · Northwind Labs</div></div><span class="badge status-screening">Screening</span></div>
+              <div class="list-item"><div class="meta"><div>Send take-home test</div><div class="small subtle num">Overdue · Vantage Lane</div></div><span class="badge status-test-task">Test task</span></div>
+              <div class="list-item"><div class="meta"><div>Prepare for panel</div><div class="small subtle num">Nov 5 · Helio Cloud</div></div><span class="badge status-interview">Interview</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:var(--space-4)">
+          <h2>Source health</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Source</th><th>Health</th><th>Last run</th><th class="num">Fetched</th><th class="num">New</th><th>Note</th></tr></thead>
+              <tbody id="dash-health"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- INBOX -->
+      <section class="screen" id="screen-inbox" aria-labelledby="h-inbox">
+        <h1 id="h-inbox">Inbox</h1>
+        <div class="toolbar">
+          <div class="filters" role="group" aria-label="Score filter">
+            <button class="chip" aria-pressed="true" data-chip="all">All</button>
+            <button class="chip" aria-pressed="false" data-chip="high">Score 70+</button>
+            <button class="chip" aria-pressed="false" data-chip="remote">Remote</button>
+          </div>
+          <span class="grow"></span>
+          <span class="subtle" style="font-size:var(--font-size-sm)">
+            <kbd class="kbd">J</kbd>/<kbd class="kbd">K</kbd> move ·
+            <kbd class="kbd">S</kbd> save ·
+            <kbd class="kbd">X</kbd> dismiss ·
+            <kbd class="kbd">O</kbd> open original
+          </span>
+        </div>
+        <div class="table-wrap">
+          <table aria-label="Inbox vacancies">
+            <thead><tr><th>Score</th><th>Title</th><th>Company</th><th>Location</th><th>Source</th><th>Profile</th><th>Seen</th></tr></thead>
+            <tbody id="inbox-body"></tbody>
+          </table>
+        </div>
+        <p class="subtle" style="font-size:var(--font-size-sm);margin-top:var(--space-3)">Hover a score to see the reasons. Keyboard actions apply to the selected row.</p>
+      </section>
+
+      <!-- PIPELINE -->
+      <section class="screen" id="screen-pipeline" aria-labelledby="h-pipeline">
+        <h1 id="h-pipeline">Pipeline</h1>
+        <div class="toolbar">
+          <div class="segmented" role="group" aria-label="View">
+            <button aria-pressed="true" data-view="table">Table</button>
+            <button aria-pressed="false" data-view="kanban">Kanban</button>
+          </div>
+          <div class="filters" role="group" aria-label="Pipeline filters" id="pipeline-chips">
+            <button class="chip" aria-pressed="false" data-pchip="overdue">Overdue</button>
+            <button class="chip" aria-pressed="false" data-pchip="has-next">Has next action</button>
+          </div>
+          <span class="grow"></span>
+          <button class="btn" data-open="bulk" id="bulk-btn" disabled>Bulk actions</button>
+        </div>
+
+        <div class="table-wrap pipeline-table" id="pipeline-table-wrap">
+          <table aria-label="Pipeline table">
+            <thead><tr><th style="width:36px"><span class="sr-only">Select</span></th><th>Title</th><th>Company</th><th>Status</th><th>Score</th><th>Location</th><th>Salary</th><th>Next action</th></tr></thead>
+            <tbody id="pipeline-body"></tbody>
+          </table>
+        </div>
+
+        <div id="kanban-wrap" hidden>
+          <p class="subtle" style="font-size:var(--font-size-sm)">Drag cards between columns, or focus a card and press <kbd class="kbd">←</kbd> / <kbd class="kbd">→</kbd> to move it.</p>
+          <div class="kanban" id="kanban"></div>
+        </div>
+        <div id="pipeline-empty" class="empty" hidden>
+          <h2>No vacancies match these filters</h2>
+          <p>Clear the filters or refresh the sources to look for new ones.</p>
+          <button class="btn" data-clear-filters>Clear filters</button>
+        </div>
+      </section>
+
+      <!-- SOURCES & RUNS -->
+      <section class="screen" id="screen-sources" aria-labelledby="h-sources">
+        <h1 id="h-sources">Sources &amp; Runs</h1>
+        <div class="panel" style="margin-bottom:var(--space-4)">
+          <h2>Sources</h2>
+          <div class="table-wrap">
+            <table aria-label="Sources">
+              <thead><tr><th>Adapter</th><th>Enabled</th><th>Health</th><th>Last success</th><th>Failures</th><th></th></tr></thead>
+              <tbody id="sources-body"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>Recent runs</h2>
+          <div class="table-wrap">
+            <table aria-label="Runs">
+              <thead><tr><th>Run</th><th>Trigger</th><th>Started</th><th>Status</th><th class="num">New</th><th class="num">Updated</th><th class="num">Duplicates</th><th>Errors</th></tr></thead>
+              <tbody>
+                <tr><td class="num">#128</td><td>schedule</td><td class="num">14:00</td><td><span class="badge health-ok">completed</span></td><td class="num">12</td><td class="num">3</td><td class="num">7</td><td>0</td></tr>
+                <tr><td class="num">#127</td><td>manual</td><td class="num">11:42</td><td><span class="badge health-warn">completed with errors</span></td><td class="num">4</td><td class="num">1</td><td class="num">2</td><td>1 source failed</td></tr>
+                <tr><td class="num">#126</td><td>schedule</td><td class="num">08:00</td><td><span class="badge health-ok">completed</span></td><td class="num">9</td><td class="num">0</td><td class="num">5</td><td>0</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- SEARCH PROFILES -->
+      <section class="screen" id="screen-profiles" aria-labelledby="h-profiles">
+        <h1 id="h-profiles">Search profiles</h1>
+        <div class="profile-tabs" role="tablist" aria-label="Profiles">
+          <button class="chip" role="tab" aria-selected="true" aria-pressed="true">Remote, EU-friendly</button>
+          <button class="chip" role="tab" aria-selected="false" aria-pressed="false">On-site, Warsaw</button>
+          <button class="btn ghost" id="new-profile">+ New profile</button>
+        </div>
+        <div class="panels" style="grid-template-columns: minmax(0,2fr) minmax(0,1fr)">
+          <div class="panel">
+            <div class="toolbar" style="margin-bottom:var(--space-3)">
+              <label class="toggle"><span class="switch" role="switch" aria-checked="true" tabindex="0" id="profile-enabled"></span> Enabled</label>
+              <span class="grow"></span>
+              <button class="btn" id="add-rule">Add rule</button>
+              <button class="btn" id="dup-rule">Duplicate rule</button>
+            </div>
+            <div class="rules" id="rules" aria-label="Rules"></div>
+            <p class="subtle" style="font-size:var(--font-size-sm);margin-top:var(--space-3)">
+              Reorder with the arrows on each row. Modes: require and exclude filter a vacancy out; prefer adds weight; avoid subtracts weight.
+            </p>
+            <div class="toolbar" style="margin-top:var(--space-4)">
+              <button class="btn" id="recalc-btn">Recalculate scores</button>
+              <button class="btn ghost" disabled title="Mockup only">Import YAML / JSON</button>
+              <button class="btn ghost" disabled title="Mockup only">Export</button>
+              <span class="grow"></span>
+              <button class="btn primary" id="save-profile">Save as version 8</button>
+            </div>
+          </div>
+          <aside class="panel preview" aria-live="polite" aria-label="Live preview">
+            <h2>Live preview</h2>
+            <p class="big" id="preview-count">-</p>
+            <p class="muted" id="preview-text" style="font-size:var(--font-size-sm)"></p>
+            <h2 style="margin-top:var(--space-4)">Sample vacancies</h2>
+            <div id="preview-samples"></div>
+          </aside>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<nav class="mobile-nav" aria-label="Primary mobile">
+  <button data-nav="dashboard">Dashboard</button>
+  <button data-nav="inbox">Inbox</button>
+  <button data-nav="pipeline">Pipeline</button>
+  <button data-nav="sources">Sources</button>
+  <button data-nav="profiles">Profiles</button>
+</nav>
+
+<!-- Drawer -->
+<div class="scrim" id="scrim" data-close-drawer></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" aria-hidden="true">
+  <header>
+    <div class="subtle num" id="drawer-id" style="font-size:var(--font-size-xs)"></div>
+    <div style="display:flex;justify-content:space-between;gap:var(--space-3);align-items:flex-start">
+      <h2 id="drawer-title" style="margin:var(--space-1) 0 0"></h2>
+      <button class="btn ghost" data-close-drawer aria-label="Close">Close</button>
+    </div>
+  </header>
+  <div class="body">
+    <div class="toolbar" style="margin:0">
+      <span id="drawer-status"></span>
+      <span id="drawer-score"></span>
+    </div>
+    <label class="field-label">Status
+      <select class="select" id="drawer-select-status"></select>
+    </label>
+    <dl style="display:grid;grid-template-columns:110px 1fr;gap:var(--space-2) var(--space-3);margin:0;font-size:var(--font-size-sm)" id="drawer-facts"></dl>
+    <label class="field-label">Notes
+      <textarea class="input" id="drawer-notes" rows="4"></textarea>
+    </label>
+    <label class="field-label">Next action
+      <input class="input" id="drawer-next" placeholder="e.g. Follow up on Nov 5">
+    </label>
+    <div>
+      <h3 style="font-size:var(--font-size-sm);margin:0 0 var(--space-2)">Match reasons</h3>
+      <ul id="drawer-reasons" style="margin:0;padding-left:var(--space-5);font-size:var(--font-size-sm)"></ul>
+    </div>
+    <div>
+      <h3 style="font-size:var(--font-size-sm);margin:0 0 var(--space-2)">Sources</h3>
+      <ul id="drawer-sources" style="margin:0;padding-left:var(--space-5);font-size:var(--font-size-sm)"></ul>
+    </div>
+    <div>
+      <h3 style="font-size:var(--font-size-sm);margin:0 0 var(--space-2)">Status history</h3>
+      <ol id="drawer-history" style="margin:0;padding-left:var(--space-5);font-size:var(--font-size-sm)"></ol>
+    </div>
+  </div>
+  <footer>
+    <button class="btn" id="drawer-open">Open original</button>
+    <button class="btn primary" id="drawer-save">Save notes</button>
+  </footer>
+</aside>
+
+<!-- Command palette -->
+<div class="scrim" id="palette-scrim" data-close-palette></div>
+<div class="modal" id="palette" role="dialog" aria-modal="true" aria-label="Command palette">
+  <input class="input" id="palette-input" placeholder="Search vacancies or jump to a screen" style="width:100%" aria-label="Search">
+  <div id="palette-list" style="margin-top:var(--space-2);display:grid" role="listbox"></div>
+</div>
+
+<!-- Bulk actions -->
+<div class="modal" id="bulk" role="dialog" aria-modal="true" aria-label="Bulk actions">
+  <p style="margin:0 0 var(--space-3)"><span id="bulk-count">0</span> selected</p>
+  <div class="toolbar" style="margin:0">
+    <button class="btn" data-bulk="Saved">Mark saved</button>
+    <button class="btn" data-bulk="Dismissed">Dismiss</button>
+    <span class="grow"></span>
+    <button class="btn" data-close-bulk>Close</button>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"><span id="toast-text"></span><a href="#inbox" id="toast-link" hidden>Open Inbox</a></div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- Fake data (neutral IT vacancies, fictional companies) ---------- */
+  var STATUSES = ["New", "Saved", "Applied", "Screening", "Interview", "Test task", "Offer", "Accepted", "Rejected", "Withdrawn", "Expired", "Dismissed", "Hidden"];
+  var STATUS_CLASS = { "New": "status-new", "Saved": "status-saved", "Applied": "status-applied", "Screening": "status-screening", "Interview": "status-interview", "Test task": "status-test-task", "Offer": "status-offer", "Accepted": "status-accepted", "Rejected": "status-rejected", "Withdrawn": "status-withdrawn", "Expired": "status-expired", "Dismissed": "status-dismissed", "Hidden": "status-hidden" };
+  var KANBAN_COLS = ["Saved", "Applied", "Screening", "Interview", "Test task", "Offer"];
+
+  var V = [
+    { id: "V-101", title: "Backend Engineer (Java)", company: "Northwind Labs", location: "Berlin, DE (hybrid)", country: "DE", workMode: "hybrid", source: "Greenhouse", profile: "Remote, EU-friendly", score: 86, status: "New", seen: "2h ago", salary: "€70–85k / yr gross", salaryYear: 77500, currency: "EUR", reasons: ["+8 keyword in description: Spring Boot", "+6 hybrid or remote", "+5 salary within range", "-3 undesired term: on-call 24/7"], url: "https://example.com/jobs/101", next: "", notes: "", history: ["New (auto, Nov 1 14:00)"] },
+    { id: "V-102", title: "Platform Engineer", company: "Kestrel Systems", location: "Remote, EU", country: "remote", workMode: "remote", source: "Arbeitnow", profile: "Remote, EU-friendly", score: 78, status: "New", seen: "3h ago", salary: "not stated", salaryYear: null, currency: "", reasons: ["+6 hybrid or remote", "+4 keyword in title: platform", "salary missing: ignored"], url: "https://example.com/jobs/102", next: "", notes: "", history: ["New (auto, Nov 1 14:00)"] },
+    { id: "V-103", title: "Data Engineer", company: "Lumen Works", location: "Warsaw, PL", country: "PL", workMode: "onsite", source: "Adzuna", profile: "On-site, Warsaw", score: 64, status: "New", seen: "5h ago", salary: "PLN 18–22k / mo gross", salaryYear: 252000, currency: "PLN", reasons: ["+5 keyword in title: data", "+3 posted in last 14 days", "-2 undesired term: legacy stack"], url: "https://example.com/jobs/103", next: "", notes: "", history: ["New (auto, Nov 1 09:00)"] },
+    { id: "V-104", title: "Frontend Engineer (TypeScript)", company: "Orbit Forge", location: "Amsterdam, NL (hybrid)", country: "NL", workMode: "hybrid", source: "Ashby", profile: "Remote, EU-friendly", score: 72, status: "New", seen: "6h ago", salary: "€60–70k / yr gross", salaryYear: 65000, currency: "EUR", reasons: ["+8 keyword in description: TypeScript", "+4 hybrid", "-0 no avoid rules matched"], url: "https://example.com/jobs/104", next: "", notes: "", history: ["New (auto, Nov 1 09:00)"] },
+    { id: "V-105", title: "QA Automation Engineer", company: "Brightpath", location: "Remote, worldwide", country: "remote", workMode: "remote", source: "Remotive", profile: "Remote, EU-friendly", score: 58, status: "New", seen: "1d ago", salary: "$80–95k / yr", salaryYear: 87500, currency: "USD", reasons: ["+6 hybrid or remote", "+3 keyword in title: automation", "+2 salary within range"], url: "https://example.com/jobs/105", next: "", notes: "", history: ["New (auto, Oct 31 14:00)"] },
+    { id: "V-106", title: "DevOps Engineer", company: "Quarry Tech", location: "Toronto, CA", country: "CA", workMode: "onsite", source: "Himalayas", profile: "Remote, EU-friendly", score: 31, status: "Hidden", seen: "1d ago", salary: "CAD 120k / yr", salaryYear: 120000, currency: "CAD", reasons: ["-8 undesired company type: agency", "missing workMode: penalized"], url: "https://example.com/jobs/106", next: "", notes: "", history: ["Hidden (auto, Oct 31 14:00)"] },
+    { id: "V-107", title: "Senior Backend Engineer", company: "Helio Cloud", location: "Remote, US only", country: "US", workMode: "remote", source: "Lever", profile: "Remote, EU-friendly", score: 81, status: "Interview", seen: "2d ago", salary: "$130–160k / yr", salaryYear: 145000, currency: "USD", reasons: ["+8 keyword in description: Java", "+6 hybrid or remote", "+5 salary within range"], url: "https://example.com/jobs/107", next: "Interview panel Nov 5", notes: "Panel with two engineers.", history: ["New (auto, Oct 30)", "Saved (Oct 30)", "Applied (Oct 31)", "Screening (Nov 1)", "Interview (Nov 1)"] },
+    { id: "V-108", title: "Data Platform Engineer", company: "Vantage Lane", location: "Remote, EU", country: "remote", workMode: "remote", source: "Jobicy", profile: "Remote, EU-friendly", score: 74, status: "Test task", seen: "3d ago", salary: "€65–75k / yr gross", salaryYear: 70000, currency: "EUR", reasons: ["+6 hybrid or remote", "+5 keyword in title: data", "+3 posted in last 14 days"], url: "https://example.com/jobs/108", next: "Overdue: send take-home test", notes: "Deadline Nov 4.", history: ["New (auto, Oct 29)", "Saved (Oct 29)", "Applied (Oct 30)", "Screening (Oct 31)", "Test task (Nov 1)"] },
+    { id: "V-109", title: "Java Developer", company: "Marrow.io", location: "Remote, EU", country: "remote", workMode: "remote", source: "Email: LinkedIn alert", profile: "Remote, EU-friendly", score: 69, status: "Saved", seen: "4d ago", salary: "not stated", salaryYear: null, currency: "", reasons: ["+8 keyword in description: Java", "+6 hybrid or remote", "salary missing: ignored"], url: "https://example.com/jobs/109", next: "", notes: "", history: ["New (auto, Oct 28)", "Saved (Oct 29)"] },
+    { id: "V-110", title: "Site Reliability Engineer", company: "Acme Data", location: "Prague, CZ (hybrid)", country: "CZ", workMode: "hybrid", source: "Greenhouse", profile: "On-site, Warsaw", score: 66, status: "Applied", seen: "5d ago", salary: "CZK 90–110k / mo", salaryYear: 1200000, currency: "CZK", reasons: ["+5 keyword in title: reliability", "+4 hybrid", "-2 undesired term: on-call"], url: "https://example.com/jobs/110", next: "Follow up Nov 6", notes: "", history: ["New (auto, Oct 27)", "Saved (Oct 27)", "Applied (Oct 28)"] },
+    { id: "V-111", title: "Backend Developer (Kotlin)", company: "Kestrel Systems", location: "Warsaw, PL (on-site)", country: "PL", workMode: "onsite", source: "Email: StartupJobs.cz", profile: "On-site, Warsaw", score: 73, status: "Saved", seen: "6d ago", salary: "PLN 20–24k / mo", salaryYear: 264000, currency: "PLN", reasons: ["+8 keyword in description: Kotlin", "+5 onsite in target city", "+3 posted in last 14 days"], url: "https://example.com/jobs/111", next: "", notes: "", history: ["New (auto, Oct 26)", "Saved (Oct 27)"] },
+    { id: "V-112", title: "Platform Reliability Lead", company: "Helio Cloud", location: "Remote, EU", country: "remote", workMode: "remote", source: "RSS", profile: "Remote, EU-friendly", score: 42, status: "New", seen: "7d ago", salary: "not stated", salaryYear: null, currency: "", reasons: ["+4 keyword in title: platform", "salary missing: ignored"], url: "https://example.com/jobs/112", next: "", notes: "", history: ["New (auto, Oct 25)"] },
+    { id: "V-113", title: "Staff Engineer, Infrastructure", company: "Orbit Forge", location: "London, GB (hybrid)", country: "GB", workMode: "hybrid", source: "Ashby", profile: "Remote, EU-friendly", score: 58, status: "Offer", seen: "8d ago", salary: "£95–110k / yr gross", salaryYear: 102500, currency: "GBP", reasons: ["+4 hybrid", "+6 salary within range", "-4 undesired term: management track"], url: "https://example.com/jobs/113", next: "Decide by Nov 8", notes: "Offer received Oct 31.", history: ["New (auto, Oct 24)", "Saved (Oct 24)", "Applied (Oct 25)", "Screening (Oct 26)", "Interview (Oct 28)", "Offer (Oct 31)"] },
+    { id: "V-114", title: "Backend Engineer", company: "Lumen Works", location: "Remote, DE", country: "remote", workMode: "remote", source: "Lever", profile: "Remote, EU-friendly", score: 77, status: "Saved", seen: "1h ago", salary: "€68–78k / yr gross", salaryYear: 73000, currency: "EUR", reasons: ["+8 keyword in description: Java", "+6 hybrid or remote", "+5 salary within range"], url: "https://example.com/jobs/114", next: "", notes: "", history: ["New (auto, Nov 1 15:00)", "Saved (Nov 1 15:05)"] }
+  ];
+
+  /* ---------- Helpers ---------- */
+  function $(sel, root) { return (root || document).querySelector(sel); }
+  function $$(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c]; }); }
+  function byId(id) { for (var i = 0; i < V.length; i++) { if (V[i].id === id) return V[i]; } return null; }
+  function scoreTier(s) { return s >= 70 ? "high" : s >= 50 ? "mid" : "low"; }
+  function scoreHtml(v) {
+    var items = v.reasons.map(function (r) { return "<li>" + esc(r) + "</li>"; }).join("");
+    return '<span class="score ' + scoreTier(v.score) + '" tabindex="0" aria-label="Score ' + v.score + ' for ' + esc(v.profile) + '">' +
+      v.score + '<span class="subtle" style="font-size:var(--font-size-xs);font-family:var(--font-sans)">' + esc(v.profile) + '</span>' +
+      '<span class="tip" role="tooltip"><strong>Why this score</strong><ul style="margin:var(--space-2) 0 0;padding-left:var(--space-4)">' + items + '</ul></span></span>';
+  }
+  function statusHtml(s) { return '<span class="badge ' + STATUS_CLASS[s] + '">' + esc(s) + '</span>'; }
+  function healthHtml(h) {
+    var map = { ok: ["health-ok", "ok"], warn: ["health-warn", "warn"], error: ["health-error", "error"] };
+    return '<span class="badge ' + map[h][0] + '">' + map[h][1] + '</span>';
+  }
+
+  /* ---------- Navigation ---------- */
+  var current = "dashboard";
+  var viewMode = "table";
+  var pipelineChips = {};
+  var inboxFilter = "all";
+
+  function go(name) {
+    current = name;
+    $$(".screen").forEach(function (s) { s.classList.toggle("active", s.id === "screen-" + name); });
+    $$("[data-nav]").forEach(function (b) {
+      if (b.dataset.nav === name) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+    });
+    if (location.hash !== "#" + name) history.replaceState(null, "", "#" + name);
+    window.scrollTo(0, 0);
+    if (name === "inbox") renderInbox();
+    if (name === "pipeline") renderPipeline();
+    if (name === "profiles") renderPreview();
+  }
+
+  $$("[data-nav]").forEach(function (b) { b.addEventListener("click", function () { if (!b.disabled) go(b.dataset.nav); }); });
+  $$("[data-go]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var f = b.dataset.filter;
+      if (f === "overdue") pipelineChips = { overdue: true };
+      else if (f === "interviews") pipelineChips = { interview: true };
+      else if (f === "active") pipelineChips = {};
+      else if (f === "new-today") inboxFilter = "all";
+      go(b.dataset.go);
+    });
+  });
+
+  /* ---------- Theme toggle (system -> light -> dark) ---------- */
+  var themes = ["system", "light", "dark"];
+  var themeIdx = 0;
+  var themeBtn = $("[data-theme-toggle]");
+  themeBtn.addEventListener("click", function () {
+    themeIdx = (themeIdx + 1) % themes.length;
+    var t = themes[themeIdx];
+    if (t === "system") document.documentElement.removeAttribute("data-theme");
+    else document.documentElement.setAttribute("data-theme", t);
+    themeBtn.textContent = "Theme: " + t;
+    themeBtn.setAttribute("aria-label", "Theme: " + t);
+  });
+
+  /* ---------- Toast ---------- */
+  var toastTimer = null;
+  function toast(text, linkToInbox) {
+    $("#toast-text").textContent = text;
+    $("#toast-link").hidden = !linkToInbox;
+    var t = $("#toast");
+    t.classList.add("open");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove("open"); }, 4500);
+  }
+
+  /* ---------- Refresh with progress ---------- */
+  var refreshBtn = $("#refresh-btn");
+  refreshBtn.addEventListener("click", function () {
+    refreshBtn.disabled = true;
+    refreshBtn.textContent = "Refreshing…";
+    var meta = $("#refresh-meta");
+    var steps = ["Greenhouse", "Arbeitnow", "Remotive", "Adzuna", "Email (IMAP)"];
+    var i = 0;
+    var timer = setInterval(function () {
+      meta.textContent = "Refreshing: " + steps[i] + " (" + (i + 1) + "/" + steps.length + ")";
+      i++;
+      if (i === steps.length) {
+        clearInterval(timer);
+        setTimeout(function () {
+          refreshBtn.disabled = false;
+          refreshBtn.textContent = "Refresh";
+          meta.textContent = "Refreshed 14:02 · next 18:00";
+          toast("+12 new, 3 updated, 1 source failed (Adzuna: rate limited)", true);
+        }, 400);
+      }
+    }, 500);
+  });
+
+  /* ---------- Dashboard ---------- */
+  function renderDashboard() {
+    var top = V.filter(function (v) { return v.status !== "Hidden"; }).sort(function (a, b) { return b.score - a.score; }).slice(0, 4);
+    $("#top-matches").innerHTML = top.map(function (v) {
+      return '<div class="list-item"><div class="meta"><button class="title-link" data-open-drawer="' + v.id + '">' + esc(v.title) + '</button>' +
+        '<div class="small muted">' + esc(v.company) + ' · ' + esc(v.location) + '</div></div>' + scoreHtml(v) + '</div>';
+    }).join("");
+    $("#dash-health").innerHTML = [
+      ["Greenhouse", "ok", "Nov 1 14:00", 42, 6, "All boards responded"],
+      ["Arbeitnow", "ok", "Nov 1 14:00", 60, 3, "-"],
+      ["Remotive", "warn", "Nov 1 08:00", 10, 0, "Daily quota used: 3 of 4"],
+      ["Adzuna", "error", "Nov 1 11:42", 0, 0, "Rate limited (HTTP 429), backing off"],
+      ["Email (IMAP)", "ok", "Nov 1 14:00", 5, 3, "Folder: job-alerts"]
+    ].map(function (r) {
+      return "<tr><td>" + esc(r[0]) + "</td><td>" + healthHtml(r[1]) + "</td><td class='num'>" + esc(r[2]) + "</td><td class='num'>" + r[3] + "</td><td class='num'>" + r[4] + "</td><td class='wrap'>" + esc(r[5]) + "</td></tr>";
+    }).join("");
+  }
+
+  /* ---------- Inbox ---------- */
+  var inboxSel = 0;
+  function inboxList() {
+    return V.filter(function (v) {
+      if (v.status !== "New") return false;
+      if (inboxFilter === "high") return v.score >= 70;
+      if (inboxFilter === "remote") return v.workMode === "remote";
+      return true;
+    }).sort(function (a, b) { return b.score - a.score; });
+  }
+  function renderInbox() {
+    var list = inboxList();
+    if (inboxSel >= list.length) inboxSel = Math.max(0, list.length - 1);
+    $("#inbox-body").innerHTML = list.length ? list.map(function (v, i) {
+      return '<tr class="row-click' + (i === inboxSel ? " selected" : "") + '" data-row="' + i + '" data-id="' + v.id + '">' +
+        '<td>' + scoreHtml(v) + '</td>' +
+        '<td><span class="title-link">' + esc(v.title) + '</span></td>' +
+        '<td>' + esc(v.company) + '</td><td>' + esc(v.location) + '</td>' +
+        '<td class="subtle">' + esc(v.source) + '</td><td class="muted">' + esc(v.profile) + '</td>' +
+        '<td class="num subtle">' + esc(v.seen) + '</td></tr>';
+    }).join("") : '<tr><td colspan="7"><div class="empty" style="border:0"><h2>Inbox is empty</h2><p>Refresh the sources or relax the filter.</p></div></td></tr>';
+    $("[data-count=inbox]").textContent = V.filter(function (v) { return v.status === "New"; }).length;
+    $$("[data-chip]").forEach(function (c) { c.setAttribute("aria-pressed", String(c.dataset.chip === inboxFilter)); });
+  }
+  function selectedInbox() { return inboxList()[inboxSel]; }
+  function setStatus(v, status, note) {
+    if (!v || v.status === status) return;
+    v.history.push(status + " (Nov 1, mockup)");
+    v.status = status;
+    if (note) v.notes = note;
+  }
+  function moveInbox(delta) {
+    var len = inboxList().length;
+    if (!len) return;
+    inboxSel = (inboxSel + delta + len) % len;
+    renderInbox();
+  }
+  $$("[data-chip]").forEach(function (c) {
+    c.addEventListener("click", function () { inboxFilter = c.dataset.chip; inboxSel = 0; renderInbox(); });
+  });
+  $("#inbox-body").addEventListener("click", function (e) {
+    var tr = e.target.closest("tr[data-id]");
+    if (!tr) return;
+    inboxSel = Number(tr.dataset.row);
+    renderInbox();
+    openDrawer(tr.dataset.id);
+  });
+
+  /* ---------- Pipeline ---------- */
+  function pipelineList() {
+    return V.filter(function (v) {
+      if (v.status === "New" || v.status === "Hidden") return false;
+      if (pipelineChips.overdue && !/overdue/i.test(v.next)) return false;
+      if (pipelineChips["has-next"] && !v.next) return false;
+      if (pipelineChips.interview && v.status !== "Interview") return false;
+      return true;
+    });
+  }
+  function renderPipeline() {
+    $$("[data-view]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.view === viewMode)); });
+    $("#pipeline-table-wrap").hidden = viewMode !== "table";
+    $("#kanban-wrap").hidden = viewMode !== "kanban";
+    $$("[data-pchip]").forEach(function (c) { c.setAttribute("aria-pressed", String(!!pipelineChips[c.dataset.pchip])); });
+    var list = pipelineList();
+    $("#pipeline-empty").hidden = list.length > 0;
+    if (viewMode === "table") {
+      $("#pipeline-body").innerHTML = list.map(function (v) {
+        return '<tr class="row-click" data-id="' + v.id + '"><td><input type="checkbox" aria-label="Select ' + esc(v.title) + '" data-select="' + v.id + '"></td>' +
+          '<td><span class="title-link">' + esc(v.title) + '</span></td><td>' + esc(v.company) + '</td>' +
+          '<td>' + statusHtml(v.status) + '</td><td>' + scoreHtml(v) + '</td><td>' + esc(v.location) + '</td>' +
+          '<td class="num">' + esc(v.salary) + '</td><td class="muted">' + esc(v.next || "-") + '</td></tr>';
+      }).join("");
+    } else {
+      $("#kanban").innerHTML = KANBAN_COLS.map(function (col) {
+        var cards = list.filter(function (v) { return v.status === col; });
+        return '<div class="kanban-col" data-col="' + esc(col) + '"><h3>' + esc(col) + ' <span class="count">' + cards.length + '</span></h3>' +
+          cards.map(function (v) {
+            return '<div class="kanban-card" draggable="true" tabindex="0" data-card="' + v.id + '" aria-label="' + esc(v.title) + ', ' + esc(col) + '. Use left and right arrows to move.">' +
+              '<div style="font-weight:var(--font-weight-medium)">' + esc(v.title) + '</div>' +
+              '<div class="small">' + esc(v.company) + '</div>' +
+              '<div style="margin-top:var(--space-2);display:flex;justify-content:space-between;align-items:center">' + scoreHtml(v) + '<span class="small num">' + esc(v.salary) + '</span></div></div>';
+          }).join("") + '</div>';
+      }).join("");
+    }
+    $("#bulk-btn").disabled = !$$("[data-select]:checked").length;
+  }
+  $$("[data-view]").forEach(function (b) { b.addEventListener("click", function () { viewMode = b.dataset.view; renderPipeline(); }); });
+  $$("[data-pchip]").forEach(function (c) {
+    c.addEventListener("click", function () {
+      var key = c.dataset.pchip;
+      pipelineChips[key] = !pipelineChips[key];
+      renderPipeline();
+    });
+  });
+  $("[data-clear-filters]").addEventListener("click", function () { pipelineChips = {}; renderPipeline(); });
+  $("#pipeline-body").addEventListener("change", function (e) {
+    if (e.target.matches("[data-select]")) $("#bulk-btn").disabled = !$$("[data-select]:checked").length;
+  });
+  $("#pipeline-body").addEventListener("click", function (e) {
+    if (e.target.matches("input")) return;
+    var tr = e.target.closest("tr[data-id]");
+    if (tr) openDrawer(tr.dataset.id);
+  });
+
+  // Kanban: drag and drop, plus keyboard alternative (arrow keys)
+  var dragId = null;
+  var kb = $("#kanban");
+  kb.addEventListener("dragstart", function (e) {
+    var card = e.target.closest("[data-card]");
+    if (!card) return;
+    dragId = card.dataset.card;
+    card.classList.add("dragging");
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", dragId);
+  });
+  kb.addEventListener("dragend", function (e) {
+    var card = e.target.closest("[data-card]");
+    if (card) card.classList.remove("dragging");
+    $$(".kanban-col").forEach(function (c) { c.classList.remove("drop-target"); });
+  });
+  kb.addEventListener("dragover", function (e) {
+    var col = e.target.closest("[data-col]");
+    if (!col) return;
+    e.preventDefault();
+    $$(".kanban-col").forEach(function (c) { c.classList.toggle("drop-target", c === col); });
+  });
+  kb.addEventListener("drop", function (e) {
+    var col = e.target.closest("[data-col]");
+    if (!col) return;
+    e.preventDefault();
+    var v = byId(e.dataTransfer.getData("text/plain") || dragId);
+    if (v) { setStatus(v, col.dataset.col); toast("Moved to " + col.dataset.col); renderPipeline(); }
+  });
+  kb.addEventListener("keydown", function (e) {
+    var card = e.target.closest("[data-card]");
+    if (!card) return;
+    var dir = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+    if (!dir) return;
+    e.preventDefault();
+    var v = byId(card.dataset.card);
+    var idx = KANBAN_COLS.indexOf(v.status);
+    var next = KANBAN_COLS[Math.min(KANBAN_COLS.length - 1, Math.max(0, idx + dir))];
+    if (next !== v.status) { setStatus(v, next); toast("Moved to " + next); renderPipeline(); }
+    var focus = $('[data-card="' + v.id + '"]');
+    if (focus) focus.focus();
+  });
+
+  // Bulk actions
+  $("#bulk-btn").addEventListener("click", function () {
+    $("#bulk-count").textContent = $$("[data-select]:checked").length;
+    $("#bulk").classList.add("open");
+  });
+  $$("[data-bulk]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      $$("[data-select]:checked").forEach(function (cb) { setStatus(byId(cb.dataset.select), b.dataset.bulk); });
+      $("#bulk").classList.remove("open");
+      toast("Updated " + b.dataset.bulk + ". Undo is available for 10 seconds (mockup).");
+      renderPipeline();
+    });
+  });
+  $("[data-close-bulk]").addEventListener("click", function () { $("#bulk").classList.remove("open"); });
+
+  /* ---------- Drawer ---------- */
+  var drawer = $("#drawer");
+  var scrim = $("#scrim");
+  var drawerId = null;
+  function openDrawer(id) {
+    var v = byId(id);
+    if (!v) return;
+    drawerId = id;
+    $("#drawer-id").textContent = v.id;
+    $("#drawer-title").textContent = v.title;
+    $("#drawer-status").innerHTML = statusHtml(v.status);
+    $("#drawer-score").innerHTML = scoreHtml(v);
+    $("#drawer-select-status").innerHTML = STATUSES.map(function (s) {
+      return '<option' + (s === v.status ? " selected" : "") + '>' + s + '</option>';
+    }).join("");
+    $("#drawer-facts").innerHTML = [
+      ["Company", v.company], ["Location", v.location], ["Work mode", v.workMode], ["Salary", v.salary],
+      ["Source", v.source], ["Profile", v.profile], ["Last seen", v.seen]
+    ].map(function (r) { return "<dt class='muted'>" + esc(r[0]) + "</dt><dd style='margin:0'>" + esc(r[1]) + "</dd>"; }).join("");
+    $("#drawer-notes").value = v.notes;
+    $("#drawer-next").value = v.next;
+    $("#drawer-reasons").innerHTML = v.reasons.map(function (r) { return "<li>" + esc(r) + "</li>"; }).join("");
+    $("#drawer-sources").innerHTML = "<li>" + esc(v.source) + " · " + esc(v.url) + "</li>";
+    $("#drawer-history").innerHTML = v.history.map(function (h) { return "<li>" + esc(h) + "</li>"; }).join("");
+    drawer.classList.add("open");
+    drawer.setAttribute("aria-hidden", "false");
+    scrim.classList.add("open");
+    $("#drawer-select-status").focus();
+  }
+  function closeDrawer() {
+    drawer.classList.remove("open");
+    drawer.setAttribute("aria-hidden", "true");
+    scrim.classList.remove("open");
+  }
+  $$("[data-open-drawer]").forEach(function (b) { b.addEventListener("click", function () { openDrawer(b.dataset.openDrawer); }); });
+  $$("[data-close-drawer]").forEach(function (b) { b.addEventListener("click", closeDrawer); });
+  $("#drawer-select-status").addEventListener("change", function (e) {
+    var v = byId(drawerId);
+    setStatus(v, e.target.value);
+    openDrawer(drawerId);
+    toast("Status changed to " + v.status + " (recorded in history)");
+    renderInbox();
+  });
+  $("#drawer-save").addEventListener("click", function () {
+    var v = byId(drawerId);
+    v.notes = $("#drawer-notes").value;
+    v.next = $("#drawer-next").value;
+    closeDrawer();
+    toast("Saved");
+  });
+  $("#drawer-open").addEventListener("click", function () { toast("Would open " + byId(drawerId).url + " in a new tab"); });
+
+  /* ---------- Keyboard: global ---------- */
+  document.addEventListener("keydown", function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); openPalette(); return; }
+    if (e.key === "Escape") { closeDrawer(); closePalette(); $("#bulk").classList.remove("open"); return; }
+    var tag = (e.target.tagName || "").toLowerCase();
+    if (tag === "input" || tag === "textarea" || tag === "select" || e.target.isContentEditable) return;
+    if (current !== "inbox" || drawer.classList.contains("open")) return;
+    var k = e.key.toLowerCase();
+    var v = selectedInbox();
+    if (k === "j") moveInbox(1);
+    else if (k === "k") moveInbox(-1);
+    else if (!v) return;
+    else if (k === "s") { setStatus(v, "Saved"); toast("Saved: " + v.title); renderInbox(); }
+    else if (k === "x") { setStatus(v, "Dismissed"); toast("Dismissed: " + v.title); renderInbox(); }
+    else if (k === "o") toast("Would open " + v.url + " in a new tab");
+    else if (k === "enter") openDrawer(v.id);
+  });
+
+  /* ---------- Command palette ---------- */
+  var PALETTE_ITEMS = [
+    { label: "Go to Dashboard", run: function () { go("dashboard"); } },
+    { label: "Go to Inbox", run: function () { go("inbox"); } },
+    { label: "Go to Pipeline", run: function () { go("pipeline"); } },
+    { label: "Go to Sources & Runs", run: function () { go("sources"); } },
+    { label: "Go to Search profiles", run: function () { go("profiles"); } }
+  ].concat(V.map(function (v) {
+    return { label: v.title + " · " + v.company, run: function () { go("pipeline"); openDrawer(v.id); } };
+  }));
+  function openPalette() {
+    $("#palette").classList.add("open");
+    $("#palette-scrim").classList.add("open");
+    $("#palette-input").value = "";
+    renderPalette("");
+    $("#palette-input").focus();
+  }
+  function closePalette() {
+    $("#palette").classList.remove("open");
+    $("#palette-scrim").classList.remove("open");
+  }
+  function renderPalette(q) {
+    var list = PALETTE_ITEMS.filter(function (i) { return i.label.toLowerCase().indexOf(q.toLowerCase()) !== -1; }).slice(0, 8);
+    $("#palette-list").innerHTML = list.length ? list.map(function (i, idx) {
+      return '<button class="palette-item" role="option" data-pi="' + idx + '">' + esc(i.label) + '</button>';
+    }).join("") : '<p class="muted" style="padding:var(--space-3)">No results</p>';
+    $$("[data-pi]").forEach(function (b, idx) {
+      b.addEventListener("click", function () { closePalette(); list[idx].run(); });
+    });
+  }
+  $("#palette-input").addEventListener("input", function (e) { renderPalette(e.target.value); });
+  $("#palette-input").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { var first = $("[data-pi]"); if (first) first.click(); }
+  });
+  $$("[data-open='palette']").forEach(function (b) { b.addEventListener("click", openPalette); });
+  $("[data-close-palette]").addEventListener("click", closePalette);
+  $("#palette-scrim").addEventListener("click", closePalette);
+
+  /* ---------- Sources & Runs ---------- */
+  function renderSources() {
+    var rows = [
+      ["ats-greenhouse", true, "ok", "Nov 1 14:00", 0],
+      ["ats-lever", true, "ok", "Nov 1 14:00", 0],
+      ["ats-ashby", true, "ok", "Nov 1 14:00", 0],
+      ["arbeitnow", true, "ok", "Nov 1 14:00", 0],
+      ["adzuna", true, "error", "Nov 1 08:00", 3],
+      ["remotive", true, "warn", "Nov 1 08:00", 0],
+      ["email-imap", true, "ok", "Nov 1 14:00", 0],
+      ["rss", false, "warn", "Oct 30 09:00", 2]
+    ];
+    $("#sources-body").innerHTML = rows.map(function (r) {
+      return "<tr><td class='num'>" + esc(r[0]) + "</td><td>" + (r[1] ? "yes" : "no") + "</td><td>" + healthHtml(r[2]) +
+        "</td><td class='num'>" + esc(r[3]) + "</td><td class='num'>" + r[4] + "</td>" +
+        "<td><button class='btn' data-refresh-one='" + esc(r[0]) + "'>Refresh this source</button></td></tr>";
+    }).join("");
+    $$("[data-refresh-one]").forEach(function (b) {
+      b.addEventListener("click", function () { toast("Refreshing " + b.dataset.refreshOne + " only (mockup)"); });
+    });
+  }
+
+  /* ---------- Search profiles: rule builder + live preview ---------- */
+  var FIELDS = ["title", "keywords", "company", "country", "workMode", "salary", "postedAge"];
+  var OPS = ["contains_any", "in", "gte", "lte", "exists", "not_exists"];
+  var MODES = ["require", "prefer", "avoid", "exclude"];
+  var POLICIES = ["ignore", "penalize", "hide"];
+  var rules = [
+    { label: "Keyword in title", field: "title", op: "contains_any", value: "backend, platform, data", mode: "require", weight: 5, policy: "hide" },
+    { label: "Keyword in description", field: "keywords", op: "contains_any", value: "java, typescript, kotlin", mode: "prefer", weight: 8, policy: "ignore" },
+    { label: "Remote or hybrid", field: "workMode", op: "in", value: "remote, hybrid", mode: "prefer", weight: 6, policy: "ignore" },
+    { label: "Salary at least 60k EUR-equivalent", field: "salary", op: "gte", value: "60000", mode: "prefer", weight: 5, policy: "ignore" },
+    { label: "Undesired term: on-call", field: "keywords", op: "contains_any", value: "on-call, 24/7", mode: "avoid", weight: 3, policy: "ignore" }
+  ];
+  var focusRule = 0;
+
+  function renderRules() {
+    $("#rules").innerHTML = rules.map(function (r, i) {
+      function sel(list, cur, cls) {
+        return '<select class="select" data-k="' + cls + '" data-i="' + i + '">' + list.map(function (o) {
+          return '<option' + (o === cur ? " selected" : "") + '>' + o + '</option>';
+        }).join("") + '</select>';
+      }
+      return '<div class="rule-row' + (i === focusRule ? " is-focus" : "") + '" data-rule="' + i + '">' +
+        '<span class="grip" aria-hidden="true">⋮⋮</span>' +
+        '<input class="input" aria-label="Label" data-k="label" data-i="' + i + '" value="' + esc(r.label) + '">' +
+        sel(FIELDS, r.field, "field") +
+        '<input class="input" aria-label="Value" data-k="value" data-i="' + i + '" value="' + esc(r.value) + '">' +
+        sel(OPS, r.op, "op") +
+        sel(MODES, r.mode, "mode") +
+        '<input class="input num" type="number" min="1" max="10" aria-label="Weight" data-k="weight" data-i="' + i + '" value="' + r.weight + '" style="width:64px">' +
+        '<div class="rule-actions"><button class="icon-btn" data-move="-1" data-i="' + i + '" aria-label="Move up">↑</button>' +
+        '<button class="icon-btn" data-move="1" data-i="' + i + '" aria-label="Move down">↓</button>' +
+        sel(POLICIES, r.policy, "policy").replace('class="select"', 'class="select" aria-label="Missing value policy"') + '</div>' +
+        '</div>';
+    }).join("");
+    renderPreview();
+  }
+
+  $("#rules").addEventListener("input", function (e) {
+    var i = Number(e.target.dataset.i); var k = e.target.dataset.k;
+    if (isNaN(i) || !k) return;
+    rules[i][k === "policy" ? "policy" : k === "op" ? "op" : k] = k === "weight" ? Number(e.target.value) : e.target.value;
+    renderPreview();
+  });
+  $("#rules").addEventListener("change", function (e) {
+    var i = Number(e.target.dataset.i); var k = e.target.dataset.k;
+    if (isNaN(i) || !k) return;
+    if (k === "field") rules[i].field = e.target.value;
+    if (k === "op") rules[i].op = e.target.value;
+    if (k === "mode") rules[i].mode = e.target.value;
+    if (k === "policy") rules[i].policy = e.target.value;
+    renderPreview();
+  });
+  $("#rules").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-move]");
+    if (!b) return;
+    var i = Number(b.dataset.i); var j = i + Number(b.dataset.move);
+    if (j < 0 || j >= rules.length) return;
+    var tmp = rules[i]; rules[i] = rules[j]; rules[j] = tmp;
+    focusRule = j;
+    renderRules();
+    var btn = $('[data-move="' + b.dataset.move + '"][data-i="' + j + '"]');
+    if (btn) btn.focus();
+  });
+  $("#add-rule").addEventListener("click", function () {
+    rules.push({ label: "New rule", field: "keywords", op: "contains_any", value: "", mode: "prefer", weight: 3, policy: "ignore" });
+    focusRule = rules.length - 1;
+    renderRules();
+  });
+  $("#dup-rule").addEventListener("click", function () {
+    var r = rules[focusRule];
+    rules.splice(focusRule + 1, 0, JSON.parse(JSON.stringify(r)));
+    rules[focusRule + 1].label = r.label + " (copy)";
+    focusRule = focusRule + 1;
+    renderRules();
+  });
+  $("#recalc-btn").addEventListener("click", function () { toast("Recalculating scores in the background (mockup). Statuses are not changed."); });
+  $("#save-profile").addEventListener("click", function () { toast("Saved as version 8. Previous version kept."); });
+  $("#new-profile").addEventListener("click", function () { toast("Onboarding wizard opens here (see design/README.md)"); });
+  $("#profile-enabled").addEventListener("click", function (e) {
+    var on = e.currentTarget.getAttribute("aria-checked") !== "true";
+    e.currentTarget.setAttribute("aria-checked", String(on));
+  });
+
+  // Preview: applies rules to the fake vacancies (simplified evaluator for the mockup)
+  function fieldValue(v, field) {
+    switch (field) {
+      case "title": return v.title;
+      case "keywords": return v.title + " " + v.reasons.join(" ");
+      case "company": return v.company;
+      case "country": return v.country;
+      case "workMode": return v.workMode;
+      case "salary": return v.salaryYear;
+      case "postedAge": return null;
+      default: return "";
+    }
+  }
+  function ruleSatisfied(r, v) {
+    var fv = fieldValue(v, r.field);
+    var missing = fv === null || fv === undefined || fv === "";
+    if (missing) return null; // caller applies missingValuePolicy
+    var list = String(r.value).split(",").map(function (s) { return s.trim().toLowerCase(); }).filter(Boolean);
+    var text = String(fv).toLowerCase();
+    if (r.op === "contains_any") return list.some(function (t) { return text.indexOf(t) !== -1; });
+    if (r.op === "in") return list.indexOf(text) !== -1;
+    if (r.op === "gte") return Number(fv) >= Number(r.value);
+    if (r.op === "lte") return Number(fv) <= Number(r.value);
+    if (r.op === "exists") return true;
+    if (r.op === "not_exists") return false;
+    return false;
+  }
+  function evaluate(v) {
+    var hidden = false, score = 0, max = 0;
+    rules.forEach(function (r) {
+      var sat = ruleSatisfied(r, v);
+      if (sat === null) {
+        if (r.policy === "hide") hidden = true;
+        return;
+      }
+      var w = Number(r.weight) || 0;
+      if (r.mode === "require" && !sat) hidden = true;
+      if (r.mode === "exclude" && sat) hidden = true;
+      if (r.mode === "prefer") { max += w; if (sat) score += w; }
+      if (r.mode === "avoid" && sat) score -= w;
+    });
+    var pct = max ? Math.max(0, Math.min(100, Math.round(100 * score / max))) : 0;
+    return { hidden: hidden, score: pct };
+  }
+  function renderPreview() {
+    var matched = 0, inbox = 0, samples = [];
+    V.forEach(function (v) {
+      var ev = evaluate(v);
+      if (!ev.hidden) matched++;
+      if (!ev.hidden && ev.score >= 40) inbox++;
+      if (samples.length < 4) samples.push({ v: v, ev: ev });
+    });
+    $("#preview-count").textContent = matched + " of " + V.length;
+    $("#preview-text").textContent = "Of " + V.length + " existing vacancies, " + matched + " would match, " + inbox + " of them would land in the Inbox (score 40 or more).";
+    $("#preview-samples").innerHTML = samples.map(function (s) {
+      return '<div class="list-item"><div class="meta"><div>' + esc(s.v.title) + '</div><div class="small muted">' + esc(s.v.company) + '</div></div>' +
+        (s.ev.hidden ? '<span class="badge status-hidden">Hidden</span>' : '<span class="score ' + scoreTier(s.ev.score) + '">' + s.ev.score + '</span>') + '</div>';
+    }).join("");
+  }
+
+  /* ---------- Initial render ---------- */
+  renderDashboard();
+  renderInbox();
+  renderPipeline();
+  renderSources();
+  renderRules();
+
+  var initial = (location.hash || "#dashboard").slice(1);
+  if (!$("#screen-" + initial)) initial = "dashboard";
+  go(initial);
+  window.addEventListener("hashchange", function () {
+    var h = location.hash.slice(1);
+    if ($("#screen-" + h)) go(h);
+  });
+
+})();
+</script>
+</body>
+</html>

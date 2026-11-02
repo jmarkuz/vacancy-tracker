@@ -1,0 +1,10 @@
+# The vps profile (ADR-017, ADR-033): access token required. The app sits behind a reverse proxy that terminates
+# HTTPS and sets X-Forwarded-For and X-Forwarded-Proto. Tomcat honours those headers only for connections from
+# private addresses (its default trusted proxies), so a client cannot fake its address for the failure limit.
+server:
+  forward-headers-strategy: native
+
+logging:
+  structured:
+    json:
+      customizer: com.vacancytracker.common.logging.MaskingJsonCustomizer

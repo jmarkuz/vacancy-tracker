@@ -1,0 +1,6 @@
+SYNTHETIC fixture, not a real email.
+
+Example Role Alpha
+Northwind Labs
+Praha
+https://cz.indeed.com/rc/clk?jk=0123456789abcdef&fccid=1234

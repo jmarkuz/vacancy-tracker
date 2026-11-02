@@ -1,0 +1,18 @@
+# Reverse proxy for the vps deployment (T-075, docs/deployment.md). Caddy gets and renews the HTTPS certificate for
+# DOMAIN by itself and passes requests to the app, adding X-Forwarded-For and X-Forwarded-Proto, which the app uses
+# for the login rate limit and the Secure cookie. DOMAIN comes from .env; "localhost" gives a local test certificate.
+{$DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+
+	# flush_interval -1 sends server-sent events (the Refresh progress) at once instead of buffering them.
+	reverse_proxy app:8080 {
+		flush_interval -1
+	}
+}

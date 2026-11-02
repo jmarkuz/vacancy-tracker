@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Console logging with secrets masked (T-072, ADR-034). Local profile: readable text. vps profile: one JSON object
+  per line (logstash format), for a log collector. In both, every message and stack trace goes through LogMasking.
+-->
+<configuration>
+    <conversionRule conversionWord="maskedMsg" class="com.vacancytracker.common.logging.MaskedMessageConverter"/>
+    <conversionRule conversionWord="maskedEx" class="com.vacancytracker.common.logging.MaskedThrowableConverter"/>
+
+    <property name="CONSOLE_LOG_PATTERN"
+              value="%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %5p ${PID:-} --- [%15.15t] %-40.40logger{39} : %maskedMsg%n%maskedEx"/>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <springProfile name="vps">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="org.springframework.boot.logging.logback.StructuredLogEncoder">
+                <format>logstash</format>
+            </encoder>
+        </appender>
+    </springProfile>
+    <springProfile name="!vps">
+        <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+    </springProfile>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>

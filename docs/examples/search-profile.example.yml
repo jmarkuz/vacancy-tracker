@@ -1,0 +1,92 @@
+# Example search profile (neutral placeholder data).
+# This file is NEVER loaded automatically. Import it manually via the UI
+# (Search profiles -> Import) after you have reviewed and edited it.
+# Schema: docs/search-profiles.md
+
+schemaVersion: 1
+profile:
+  name: Example profile
+  enabled: true
+  sources:
+    - all                   # or a list of adapter IDs, e.g. [ats-greenhouse, arbeitnow]
+  schedule: null            # optional cron override, e.g. "0 0 */6 * * *"
+
+  thresholds:
+    inboxMinScore: 40
+    notifyMinScore: 70
+    maxAgeDays: 60
+
+  criteria:
+    - id: keyword-title
+      label: Keyword in title
+      field: title
+      operator: contains_any
+      value: ["example role a", "example role b"]
+      mode: require
+      weight: 5
+      missingValuePolicy: hide
+
+    - id: keyword-description
+      label: Keyword in description
+      field: keywords
+      operator: contains_any
+      value: ["example skill x", "example skill y"]
+      mode: prefer
+      weight: 8
+      missingValuePolicy: ignore
+
+    - id: undesired-term
+      label: Undesired term in description
+      field: description
+      operator: contains_any
+      value: ["example undesired term"]
+      mode: avoid
+      weight: 5
+      missingValuePolicy: ignore
+
+    - id: work-mode
+      label: Remote work
+      field: workMode
+      operator: in
+      value: ["remote", "hybrid"]
+      mode: prefer
+      weight: 4
+      missingValuePolicy: ignore
+
+    - id: country
+      label: Allowed country
+      field: country
+      operator: in
+      value: ["AA", "BB"]     # placeholder ISO 3166-1 alpha-2 codes
+      mode: require
+      weight: 1
+      missingValuePolicy: ignore
+
+    - id: salary-floor
+      label: Salary at least the floor (normalized, yearly gross)
+      field: salary
+      operator: gte
+      value:
+        amount: 50000
+        currency: XXX         # placeholder currency; replace with the profile currency
+        period: year
+        basis: gross
+      mode: prefer
+      weight: 6
+      missingValuePolicy: ignore
+
+    - id: posted-recently
+      label: Posted in the last 14 days
+      field: postedAge
+      operator: lte
+      value: 14
+      mode: prefer
+      weight: 3
+      missingValuePolicy: ignore
+
+  # Company lists of this profile. Import replaces the profile's own lists when this key is present;
+  # global lists are managed on the Search profiles screen and are not part of the file.
+  companyLists:
+    allowlist: []           # company names always kept in the Inbox, with a score bonus
+    blocklist:
+      - Example Blocked Company
