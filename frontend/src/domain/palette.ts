@@ -12,7 +12,7 @@ export const GO_TO: Command[] = [
   { id: "board", label: "Pipeline board", href: "#/pipeline?layout=board" },
   { id: "sources", label: "Sources & Runs", href: "#/sources" },
   { id: "profiles", label: "Search profiles", href: "#/profiles" },
-  { id: "export", label: "Export", href: "#/export" },
+  { id: "export", label: "Export & import", href: "#/export" },
 ];
 
 /** Screens whose name contains every typed word. With no text, all of them. */

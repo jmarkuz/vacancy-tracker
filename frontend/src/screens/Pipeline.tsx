@@ -14,6 +14,7 @@ import { parseCriteria, serializeCriteria, type Criterion } from "../domain/crit
 import type { SavedView } from "../api/views";
 import { COLUMNS, DEFAULT_COLUMNS, type Column } from "./columns";
 import { VacancyDrawer } from "./VacancyDrawer";
+import { AddVacancy } from "../components/AddVacancy";
 
 const PAGE_SIZE = 100;
 const DEFAULT_SORT = "lastSeenAt:desc";
@@ -45,6 +46,7 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
   const applying = useRef(false);
   const [target, setTarget] = useState("");
   const [toast, setToast] = useState<{ message: string; tone: "info" | "error"; undo?: () => void } | null>(null);
+  const [adding, setAdding] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -138,7 +140,21 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
           <button type="button" class="chip" aria-pressed={board} onClick={() => setQuery({ layout: "board" })}>Board</button>
         </div>
         {!board && <ColumnPicker selected={visible} />}
+        <button type="button" class="btn primary" aria-expanded={adding} onClick={() => setAdding((a) => !a)}>
+          Add vacancy
+        </button>
       </div>
+
+      {adding && (
+        <AddVacancy
+          onClose={() => setAdding(false)}
+          onAdded={(id) => {
+            setAdding(false);
+            setAttempt((n) => n + 1);
+            setQuery({ open: id });
+          }}
+        />
+      )}
 
       <FilterBar criteria={criteria} onChange={(next) => setFilter(next)} />
       <ViewBar
@@ -161,7 +177,7 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
       {!error && data && data.total === 0 && !loading && (
         <div class="panel empty-state">
           <h2>No vacancies yet</h2>
-          <p class="muted">Add one by URL or refresh the sources once they are configured.</p>
+          <p class="muted">Add one with "Add vacancy", or refresh the sources once they are configured.</p>
         </div>
       )}
 

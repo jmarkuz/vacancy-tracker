@@ -9,6 +9,7 @@ import { Pipeline } from "./screens/Pipeline";
 import { Inbox } from "./screens/Inbox";
 import { Profiles } from "./screens/Profiles";
 import { Sources } from "./screens/Sources";
+import { Transfer } from "./screens/Transfer";
 import { getAuthStatus, logout, UNAUTHORIZED_EVENT } from "./api/auth";
 import { LoginScreen } from "./components/LoginScreen";
 import { listProfiles } from "./api/profiles";
@@ -22,7 +23,7 @@ const NAV: { id: Screen; label: string; short: string }[] = [
   { id: "pipeline", label: "Pipeline", short: "Pipeline" },
   { id: "sources", label: "Sources & Runs", short: "Sources" },
   { id: "profiles", label: "Search profiles", short: "Profiles" },
-  { id: "export", label: "Export", short: "Export" },
+  { id: "export", label: "Export & import", short: "Export" },
 ];
 
 const SCREEN_INFO: Record<Screen, { title: string; task: string; description: string }> = {
@@ -31,7 +32,7 @@ const SCREEN_INFO: Record<Screen, { title: string; task: string; description: st
   pipeline: { title: "Pipeline", task: "T-019 and T-022", description: "Table of all tracked vacancies." },
   sources: { title: "Sources & Runs", task: "T-047", description: "Source health and recent collection runs." },
   profiles: { title: "Search profiles", task: "T-055", description: "Rule builder for search profiles." },
-  export: { title: "Export", task: "T-024 to T-026", description: "CSV, XLSX and JSON backup downloads." },
+  export: { title: "Export & import", task: "T-079", description: "CSV, XLSX and JSON backup downloads and imports." },
 };
 
 export function App() {
@@ -142,6 +143,8 @@ export function App() {
             <Dashboard dataVersion={dataVersion} />
           ) : screen === "profiles" ? (
             <Profiles params={params} />
+          ) : screen === "export" ? (
+            <Transfer />
           ) : (
             <Placeholder title={info.title} task={info.task} description={info.description} />
           )}

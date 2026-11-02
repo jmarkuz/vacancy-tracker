@@ -176,6 +176,8 @@ export function VacancyDrawer({ id, onClose, onChange }: Props) {
                   {formatSalary(vacancy)}
                   {vacancy.userEditedFields.includes("salary") && <EditedMark />}
                 </dd>
+                <dt>Visa sponsorship</dt>
+                <dd>{vacancy.visaSponsorship === true ? "Offered" : vacancy.visaSponsorship === false ? "Not offered" : "Not stated"}</dd>
                 <dt>Last seen</dt>
                 <dd class="num">{formatDate(vacancy.lastSeenAt)}</dd>
                 <dt>Original</dt>
