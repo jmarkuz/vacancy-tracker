@@ -25,7 +25,7 @@ Status: every planned task is done except a Jooble adapter (T-036), which is blo
 - Application package: the chosen versions as a ZIP with the resume PDF and a checklist, the application page opened for you (you submit the form yourself), and "I submitted" moves the vacancy to Applied with the versions in its history
 - Mail tracking: answers of employers and LinkedIn notices from your mailbox (read-only), linked to the application with the reason, with a suggested status change you accept or dismiss
 - Automatic and on-demand collection ("Refresh" button with live per-source progress)
-- Inbox with keyboard triage (J/K, S, X, O) and score badges with reasons
+- Inbox with keyboard triage (J/K, S, X, O), a filter by words in the title or description (all or any, with exclusions; "/" to jump to it) and score badges with reasons
 - Pipeline as a table or a Kanban board, with status history, follow-up dates and bulk actions with Undo
 - Dashboard: inbox and active counts, top matches, next actions, a funnel and applications per week
 - Search profiles built from rules (require, prefer, avoid, exclude), live preview, versions and a step-by-step wizard for the first one

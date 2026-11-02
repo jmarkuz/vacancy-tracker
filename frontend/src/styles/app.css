@@ -1768,3 +1768,15 @@ label.inline {
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
+
+/* Inbox filter (T-100) */
+.inbox-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.inbox-filter .grow {
+  flex: 1 1 18rem;
+}
