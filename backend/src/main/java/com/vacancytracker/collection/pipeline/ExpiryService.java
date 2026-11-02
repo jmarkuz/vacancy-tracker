@@ -66,7 +66,7 @@ public class ExpiryService {
     }
 
     private void expire(UUID id) {
-        Vacancy vacancy = Vacancy.restore(vacancies.findById(id).orElseThrow());
+        Vacancy vacancy = Vacancy.restore(vacancies.findByIdForUpdate(id).orElseThrow());
         if (vacancy.getStatus() != VacancyStatus.NEW && vacancy.getStatus() != VacancyStatus.SAVED) {
             return;
         }

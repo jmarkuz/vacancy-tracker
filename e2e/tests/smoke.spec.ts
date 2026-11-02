@@ -95,6 +95,9 @@ test("the board moves a card with its list and records the change", async ({ pag
   await expect(saved.getByRole("button", { name: "Smoke test engineer" })).toBeVisible();
 
   await page.getByLabel("Move Smoke test engineer to").selectOption("Applied");
+  // Choosing alone changes nothing: the move needs the button (review 2026-11-02).
+  expect(await status(request, "Smoke test engineer")).toBe("Saved");
+  await page.getByRole("button", { name: "Move Smoke test engineer", exact: true }).click();
 
   await expect(page.locator('section[data-column="Applied"]').getByRole("button", { name: "Smoke test engineer" })).toBeVisible();
   expect(await status(request, "Smoke test engineer")).toBe("Applied");
@@ -116,7 +119,8 @@ test("the command palette finds a vacancy and opens it", async ({ page }) => {
   await page.keyboard.press("Enter");
 
   await expect(page).toHaveURL(/#\/pipeline\?open=/);
-  await expect(page.getByRole("dialog").or(page.getByRole("complementary")).first()).toBeVisible();
+  // The drawer is a dialog named by the vacancy title; the sidebar is an aside too, so a looser query always passed.
+  await expect(page.getByRole("dialog", { name: "Smoke test engineer" })).toBeVisible();
 });
 
 test("every main screen loads", async ({ page }) => {

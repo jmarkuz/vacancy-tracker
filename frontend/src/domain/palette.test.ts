@@ -10,6 +10,11 @@ describe("isPaletteShortcut", () => {
     expect(isPaletteShortcut(key("K", { metaKey: true }))).toBe(true);
   });
 
+  it("accepts Ctrl+K typed with a Ukrainian layout", () => {
+    expect(isPaletteShortcut({ ...key("л", { ctrlKey: true }), code: "KeyK" })).toBe(true);
+    expect(isPaletteShortcut({ ...key("о", { ctrlKey: true }), code: "KeyJ" })).toBe(false);
+  });
+
   it("ignores a bare K and other combinations", () => {
     expect(isPaletteShortcut(key("k"))).toBe(false);
     expect(isPaletteShortcut(key("j", { ctrlKey: true }))).toBe(false);

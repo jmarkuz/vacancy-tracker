@@ -93,6 +93,18 @@ class InboxRuleTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void aVacancyTheUserAddedIsNotHiddenWhenASourceLaterListsIt() {
+        profile("Main", 40, java());
+        UUID id = vacancyService.create("Cobol Developer", "Acme", "https://ex.com/cobol", "Plain").getId();
+        vacancies.upsertSource(id, "ats-lever", "cobol-1", "https://ex.com/cobol", NOW);
+
+        matchService.match(id);
+
+        assertThat(statusOf(id)).isEqualTo(VacancyStatus.NEW);
+        assertThat(history(id)).extracting(StatusEvent::note).containsExactly(VacancyService.ADDED_BY_HAND_NOTE);
+    }
+
+    @Test
     void aVacancyAtOrAboveTheThresholdStaysNew() {
         profile("Main", 100, java());
         UUID id = vacancy("Java Developer");

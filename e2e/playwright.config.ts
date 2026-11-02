@@ -9,7 +9,8 @@ export default defineConfig({
   testDir: "./tests",
   fullyParallel: false,
   workers: 1, // the tests share one database and run in order
-  retries: process.env.CI ? 1 : 0,
+  // No retries: the tests share one database in order, so a retried test would find the data the first try left.
+  retries: 0,
   timeout: 30_000,
   expect: { timeout: 10_000 },
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",

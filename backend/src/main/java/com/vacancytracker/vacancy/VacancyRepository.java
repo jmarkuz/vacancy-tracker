@@ -86,6 +86,18 @@ public class VacancyRepository {
                 .optional();
     }
 
+    /**
+     * The row, locked until the transaction ends. Every read-modify-write of a vacancy (user edits, ingest, the inbox
+     * rule, expiry, bulk changes) takes this lock, so a background job cannot write back a status or a note the user
+     * changed after the job read the row (review 2026-11-02, ADR-039).
+     */
+    public Optional<VacancyState> findByIdForUpdate(UUID id) {
+        return jdbc.sql("SELECT " + COLUMNS + " FROM vacancy WHERE id = :id FOR UPDATE")
+                .param("id", id)
+                .query((rs, n) -> map(rs))
+                .optional();
+    }
+
     /** One page of vacancies matching a compiled filter. The order clause is built from a whitelist. */
     public List<VacancyState> findPage(SqlFragment where, VacancySort sort, int limit, int offset) {
         JdbcClient.StatementSpec spec = jdbc.sql("SELECT " + COLUMNS + " FROM vacancy WHERE " + where.sql()
@@ -134,6 +146,17 @@ public class VacancyRepository {
                 .param("ext", externalId)
                 .query(UUID.class)
                 .optional();
+    }
+
+    /** Whether the same source already lists the vacancy under a different id: then a new id is a different opening. */
+    public boolean hasOtherSourceId(UUID vacancyId, String adapter, String externalId) {
+        return jdbc.sql("SELECT EXISTS (SELECT 1 FROM vacancy_source WHERE vacancy_id = :v AND adapter = :adapter"
+                        + " AND external_id IS NOT NULL AND external_id <> :ext)")
+                .param("v", vacancyId)
+                .param("adapter", adapter)
+                .param("ext", externalId)
+                .query(Boolean.class)
+                .single();
     }
 
     /** Vacancies of one company (case-insensitive), the candidate set for fuzzy matching. */

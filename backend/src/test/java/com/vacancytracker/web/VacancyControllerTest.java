@@ -54,9 +54,11 @@ class VacancyControllerTest extends AbstractIntegrationTest {
 
         mvc.perform(get("/api/vacancies/" + id + "/history"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].from").value("New"))
-                .andExpect(jsonPath("$[0].to").value("Saved"))
-                .andExpect(jsonPath("$[0].note").value("good"));
+                .andExpect(jsonPath("$[0].to").value("New"))
+                .andExpect(jsonPath("$[0].note").value("added by hand"))
+                .andExpect(jsonPath("$[1].from").value("New"))
+                .andExpect(jsonPath("$[1].to").value("Saved"))
+                .andExpect(jsonPath("$[1].note").value("good"));
 
         mvc.perform(get("/api/vacancies").param("status", "Saved"))
                 .andExpect(status().isOk())

@@ -55,8 +55,9 @@ class BackupRoundTripTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.tags[0]").value("dream"))
                 .andExpect(jsonPath("$.canonicalUrl").value("https://ex.com/a"));
         mvc.perform(get("/api/vacancies/" + id + "/history"))
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].note").value("good"));
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].note").value("added by hand"))
+                .andExpect(jsonPath("$[1].note").value("good"));
     }
 
     @Test
@@ -76,8 +77,8 @@ class BackupRoundTripTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.priority").value(2))
                 .andExpect(jsonPath("$.description").value("My edit"));
         mvc.perform(get("/api/vacancies/" + id + "/history"))
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[1].note").value("imported from CSV"));
+                .andExpect(jsonPath("$.length()").value(3))
+                .andExpect(jsonPath("$[2].note").value("imported from CSV"));
     }
 
     @Test
@@ -98,7 +99,7 @@ class BackupRoundTripTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.tags[0]").value("dream"))
                 .andExpect(jsonPath("$.priority").value(1))
                 .andExpect(jsonPath("$.url").value("https://ex.com/r"));
-        mvc.perform(get("/api/vacancies/" + id + "/history")).andExpect(jsonPath("$.length()").value(1));
+        mvc.perform(get("/api/vacancies/" + id + "/history")).andExpect(jsonPath("$.length()").value(2));
     }
 
     @Test
