@@ -24,9 +24,10 @@ public class AiService {
     private static final Logger LOG = LoggerFactory.getLogger(AiService.class);
 
     /** What the owner agrees to, shown next to the switch. */
-    public static final String NOTICE = "When you use AI, the text of your resume, the vacancy you chose and your instructions "
-            + "are sent to Anthropic (Claude) to write a draft. Nothing is sent automatically: only when you press Generate. "
-            + "Mail is never sent. You can switch AI off at any time.";
+    public static final String NOTICE = "When you use AI, Anthropic (Claude) receives the vacancy you chose, the preset you picked "
+            + "(its main goal, the weights of its parameters and the document prompt), your base resume and base cover letter, and "
+            + "any instructions you add, to adapt your base document to the vacancy. Nothing is sent automatically: only when you "
+            + "press Generate with AI. Use as is sends nothing. Mail is never sent. You can switch AI off at any time.";
 
     public record Status(String provider, boolean configured, boolean consented, boolean enabled, Instant consentedAt, String notice) {
     }

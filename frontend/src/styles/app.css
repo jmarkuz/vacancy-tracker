@@ -1621,3 +1621,48 @@ label.inline {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+.doc-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--space-3);
+}
+
+.doc-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+/* Base vs tailored: the + and − marks carry the meaning; colour only repeats it. */
+.diff {
+  max-height: 18rem;
+  margin: 0;
+  padding: var(--space-2);
+  overflow: auto;
+  list-style: none;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--font-size-xs);
+  white-space: pre-wrap;
+}
+
+.diff-mark {
+  display: inline-block;
+  width: 1.5ch;
+  font-weight: 600;
+}
+
+.diff-added {
+  background: var(--color-success-subtle);
+}
+
+.diff-removed {
+  background: var(--color-danger-subtle);
+  text-decoration: line-through;
+}

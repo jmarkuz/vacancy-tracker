@@ -718,3 +718,19 @@ Status: Accepted (T-093). Specification: [specs/M7-ai-presets.md](specs/M7-ai-pr
 - **Backup.** Modules other than export add sections to the JSON backup through `common.BackupSection`; presets are written with their base resume (text, and the uploaded file in Base64) and restored by id or name, the default one becoming the default again. The schema version stays 1: older backups have no `presets` field and import as before.
 
 **Consequences.** An old resume row stays in the table when a new one is uploaded, as before; presets may share one base resume after Duplicate. Fit scores (ADR-040) follow the default preset's base resume, because it is the active resume.
+
+## ADR-048 Generation from the base draft, with a snapshot
+
+Status: Accepted (T-094). Specification: [specs/M7-ai-presets.md](specs/M7-ai-presets.md).
+
+**Context.** With presets (ADR-047) the documents should be adaptations of the owner's own base resume and cover letter, never new texts, and it must stay known later what a sent version was made from even after the preset changes.
+
+**Decision.**
+- **Input.** The system prompt is the guardrail (D7, from resources, not editable) followed by the preset's document prompt. The user message holds the data in tags: `<goal>` (Main goal prompt and each parameter's share of the weights), `<base_resume>` for a resume; `<base_cover_letter>` and, as the source of facts, `<base_resume>` for a cover letter; `<vacancy>` (title, company, location, description); optional `<instructions>`; and the task as the last line. The vacancy is one data block: anything in any data that looks like one of these tags is turned into `[tag]`, so a posting cannot close its block and add a task; a test sends such a posting and checks the prompt.
+- **Readiness.** Generation of a document is refused (422, with a pointer to the Presets screen) while the main goal, the weights, its prompt or its base draft still has a placeholder or the base resume is the template.
+- **Use as is** stores the base draft itself as the next version (origin `base`) without AI; it only needs a filled base draft, so it works with AI off.
+- **Snapshot.** Every draft and every "use as is" stores a `generation_snapshot` (V20): preset id and name, guardrail, main goal, weights, document prompt, base draft, the base resume given with a cover letter, and the stored resume a resume came from. A saved version points at it (`tailored_document.snapshot_id`), and an edited copy of a version keeps the pointer. Snapshots are never changed, so editing or deleting the preset later leaves the history as it was. A snapshot of another vacancy or kind is refused on save.
+- The drawer compares the base draft with the AI draft line by line (added lines marked +, removed lines marked −, not by colour alone) before the owner edits and saves.
+- The consent notice in Settings and README Security list what is sent now: the vacancy, the preset's goal, weights and prompt, the base documents and the owner's instructions; Use as is sends nothing.
+
+**Consequences.** A draft that is never saved leaves its snapshot behind; snapshots are small and deleted with the vacancy. The old "write from the resume" prompts are gone: a cover letter without a filled base cover letter cannot be generated.
