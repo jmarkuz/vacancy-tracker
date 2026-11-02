@@ -78,8 +78,8 @@ T-076,Audit and code review and critical fixes,M6,M,,done
 T-077,Gap analysis against the compared platform,M6,S,T-076,done
 T-078,Visa sponsorship detection and filter,M6,M,T-077,done
 T-079,Export and import screen and add by URL,M6,S,T-077,done
-T-080,Resume upload and text extraction,M6,M,T-076,todo
-T-081,Resume fit score with reasons,M6,M,T-080,todo
+T-080,Resume upload and text extraction,M6,M,T-076,done
+T-081,Resume fit score with reasons,M6,M,T-080,done
 T-082,Claude adapter (CLI and API key) behind an explicit opt-in,M6,M,T-080,todo
 T-083,Tailored resume and cover letter with versions,M6,M,T-082,todo
 T-084,Application package and the apply page,M6,M,T-083,todo

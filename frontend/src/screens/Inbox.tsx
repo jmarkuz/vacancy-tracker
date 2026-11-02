@@ -3,6 +3,9 @@ import { ApiError, getJson } from "../api/client";
 import type { PageResponse, Vacancy } from "../api/types";
 import { changeStatus } from "../api/vacancies";
 import { safeLink } from "../domain/links";
+import { getFits, type ResumeFit } from "../api/resume";
+import { fitsById } from "../domain/fit";
+import { FitBadge } from "../components/FitBadge";
 import { actionForKey, activatesOnKey, isTypingTarget, moveSelection, selectionAfterRemoval } from "../domain/triage";
 import { Toast } from "../components/Toast";
 import { setQuery } from "../router";
@@ -41,6 +44,16 @@ export function Inbox({ params, dataVersion = 0 }: Props) {
   const openRef = useRef(openId);
   openRef.current = openId;
   const selected = items.findIndex((v) => v.id === selectedId);
+  const [fits, setFits] = useState<Record<string, ResumeFit>>({});
+
+  // Fit to the resume for the rows on show (T-081); none when no resume is uploaded.
+  useEffect(() => {
+    const controller = new AbortController();
+    getFits(items.map((v) => v.id), controller.signal)
+      .then((list) => setFits(fitsById(list)))
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [items.map((v) => v.id).join(",")]);
 
   const select = (id: string | null) => {
     selectedRef.current = id;
@@ -206,7 +219,9 @@ export function Inbox({ params, dataVersion = 0 }: Props) {
               onFocusIn={() => select(v.id)}
               onDblClick={() => setQuery({ open: v.id })}
             >
-              <span class="inbox-title">{v.title}</span>
+              <span class="inbox-title">
+                {v.title} <FitBadge fit={fits[v.id]} />
+              </span>
               <span class="muted">{v.company}</span>
               <span class="muted">{v.location ?? "-"}</span>
               <span class="muted num small">{formatDate(v.lastSeenAt)}</span>
