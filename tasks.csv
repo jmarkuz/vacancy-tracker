@@ -98,3 +98,4 @@ T-096,"Progress bars, before and after",M7,S,T-095,done
 T-097,"Resume PDF, two pages at most",M7,M,T-094,done
 T-098,Fact check,M7,S,T-094,done
 T-099,Finish: tests and documents,M7,M,"T-093,T-094,T-095,T-096,T-097,T-098",done
+T-100,Inbox filter by words,Requests,S,T-048,done
