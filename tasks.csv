@@ -93,7 +93,7 @@ T-091,Full-cycle end-to-end test,M6,M,"T-087,T-089",done
 T-092,Backlog from the review,M6,M,T-076,todo
 T-093,Presets: model and screen,M7,M,T-083,done
 T-094,Generation from the base draft,M7,M,T-093,done
-T-095,Employer match and Goal match,M7,M,T-094,todo
+T-095,Employer match and Goal match,M7,M,T-094,done
 T-096,"Progress bars, before and after",M7,S,T-095,todo
 T-097,"Resume PDF, two pages at most",M7,M,T-094,todo
 T-098,Fact check,M7,S,T-094,todo

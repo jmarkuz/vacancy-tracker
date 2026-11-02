@@ -1666,3 +1666,38 @@ label.inline {
   background: var(--color-danger-subtle);
   text-decoration: line-through;
 }
+
+/* Employer match: the status is a word; colour only repeats it. */
+.requirements {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.req-status {
+  display: inline-block;
+  min-width: 5.5em;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-sm, 4px);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-align: center;
+}
+
+.req-covered .req-status {
+  background: var(--color-success-subtle);
+  color: var(--color-success);
+}
+
+.req-partial .req-status {
+  background: var(--color-warning-subtle);
+  color: var(--color-warning);
+}
+
+.req-missing .req-status {
+  background: var(--color-danger-subtle);
+  color: var(--color-danger);
+}
