@@ -130,7 +130,8 @@ export function ProfileEditor({ initial, profile, meta, sourceIds, onSaved, onCl
   const toggleSource = (id: string, on: boolean) =>
     edit({ sources: on ? [...draft.sources, id] : draft.sources.filter((s) => s !== id) });
   const threshold = (key: keyof ProfileInput["thresholds"], text: string) =>
-    edit({ thresholds: { ...draft.thresholds, [key]: Number(text) } });
+    // An emptied field stays empty (NaN, sent as null and refused by the server) instead of turning into a valid-looking 0.
+    edit({ thresholds: { ...draft.thresholds, [key]: text.trim() === "" ? Number.NaN : Number(text) } });
 
   const canSave = !saving && validity === "valid" && (profile === null || dirty);
   return (
@@ -225,7 +226,12 @@ export function ProfileEditor({ initial, profile, meta, sourceIds, onSaved, onCl
                 onChange={(next) => setRules(draft.criteria.map((r, j) => (j === i ? next : r)))}
                 onMove={(delta, role) => move(i, delta, role)}
                 onDuplicate={() => duplicate(i)}
-                onRemove={() => setRules(removeRule(draft.criteria, i))} />
+                onRemove={() => {
+                  // The focused Remove button is about to disappear: hand focus to the neighbouring rule.
+                  const neighbour = draft.criteria[i + 1] ?? draft.criteria[i - 1];
+                  pendingFocus.current = neighbour ? { id: neighbour.id, role: "label" } : null;
+                  setRules(removeRule(draft.criteria, i));
+                }} />
             ))}
           </ol>
         )}

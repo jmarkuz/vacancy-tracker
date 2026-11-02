@@ -79,10 +79,10 @@ public final class JobPostingExtractor {
     private static ImportedPosting toJob(JsonNode posting) {
         JsonNode salary = posting.path("baseSalary");
         JsonNode value = salary.path("value");
-        BigDecimal min = decimal(value.has("minValue") ? value.get("minValue") : value.get("value"));
+        // "value" is an object with minValue/maxValue/value, or the amount itself.
+        BigDecimal min = decimal(value.has("minValue") ? value.get("minValue") : value.isObject() ? value.get("value") : value);
         BigDecimal max = decimal(value.has("maxValue") ? value.get("maxValue") : null);
-        String description = posting.hasNonNull("description")
-                ? Jsoup.parse(posting.get("description").asText()).text() : null;
+        String description = posting.hasNonNull("description") ? plain(posting.get("description").asText()) : null;
         return new ImportedPosting(
                 text(posting, "title"),
                 text(posting.path("hiringOrganization"), "name"),
@@ -93,6 +93,12 @@ public final class JobPostingExtractor {
                 max,
                 text(salary, "currency"),
                 period(text(value, "unitText")));
+    }
+
+    /** Markup can be escaped once more in JSON-LD ("&lt;p&gt;"), so the text is read again when it still holds tags. */
+    private static String plain(String html) {
+        String text = Jsoup.parse(html).text();
+        return text.contains("<") && text.contains(">") ? Jsoup.parse(text).text() : text;
     }
 
     private static String location(JsonNode jobLocation) {

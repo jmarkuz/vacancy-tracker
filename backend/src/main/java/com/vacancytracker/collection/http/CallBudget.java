@@ -18,6 +18,9 @@ public class CallBudget {
 
     /** Takes one call from the budget if the window has room. Returns false when the budget is used up. */
     public boolean tryAcquire(String adapter, String windowKey, int maxCalls) {
+        if (maxCalls <= 0) {
+            return false;
+        }
         return jdbc.sql("INSERT INTO source_quota (adapter, window_key, calls) VALUES (:adapter, :window, 1)"
                         + " ON CONFLICT (adapter, window_key) DO UPDATE SET calls = source_quota.calls + 1"
                         + " WHERE source_quota.calls < :max RETURNING calls")

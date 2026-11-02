@@ -178,6 +178,11 @@ export function Inbox({ params }: Props) {
               <span class="muted">{v.company}</span>
               <span class="muted">{v.location ?? "-"}</span>
               <span class="muted num small">{formatDate(v.lastSeenAt)}</span>
+              <span class="inbox-actions">
+                <button type="button" class="btn" onClick={(e) => { e.stopPropagation(); triage(v, "Saved", i); }}>Save</button>
+                <button type="button" class="btn" onClick={(e) => { e.stopPropagation(); triage(v, "Dismissed", i); }}>Dismiss</button>
+                <button type="button" class="btn ghost" onClick={(e) => { e.stopPropagation(); setQuery({ open: v.id }); }}>Details</button>
+              </span>
             </li>
           ))}
         </ul>

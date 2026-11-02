@@ -15,6 +15,9 @@ interface ToastState {
  * Header control: starts a refresh, shows per-source progress while it runs (T-046), and then a summary
  * toast that links to the Inbox. The "Last refreshed" line is read from the server.
  */
+/** Sent on window when a refresh has finished and stored new data. */
+export const DATA_CHANGED_EVENT = "vt:data-changed";
+
 export function RefreshControl() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [progress, setProgress] = useState<SourceEvent[]>([]);
@@ -49,6 +52,8 @@ export function RefreshControl() {
         onDone: (done) => {
           setPhase("idle");
           loadLatest();
+          // The screen behind the toast shows data from before the run: tell it to load again.
+          window.dispatchEvent(new Event(DATA_CHANGED_EVENT));
           if (done.status === "interrupted") {
             setToast({ message: "The refresh was interrupted before it finished.", tone: "error" });
             return;

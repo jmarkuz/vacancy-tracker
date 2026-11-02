@@ -7,7 +7,6 @@ import com.vacancytracker.support.AbstractIntegrationTest;
 import com.vacancytracker.vacancy.BulkStatusService.Changed;
 import com.vacancytracker.vacancy.BulkStatusService.Result;
 import com.vacancytracker.vacancy.BulkStatusService.UndoItem;
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.IntStream;
@@ -146,6 +145,5 @@ class BulkStatusServiceTest extends AbstractIntegrationTest {
         assertThat(r.changed()).hasSize(300);
         assertThat(r.skipped()).isEmpty();
         assertThat(repository.findById(ids.get(299)).orElseThrow().status()).isEqualTo(VacancyStatus.DISMISSED);
-        assertThat(Instant.now()).isNotNull();
     }
 }

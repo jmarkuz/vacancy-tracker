@@ -37,10 +37,24 @@ public class AuthController {
 
     /** required is false in the local profile; authenticated says whether this request carries a valid token. */
     @GetMapping("/status")
-    public Map<String, Boolean> status(HttpServletRequest request) {
+    public ResponseEntity<Map<String, Boolean>> status(HttpServletRequest request) {
         AccessToken configured = token.getIfAvailable();
-        boolean ok = configured == null || configured.matches(AuthFilter.presentedToken(request));
-        return Map.of("required", configured != null, "authenticated", ok);
+        String presented = AuthFilter.presentedToken(request);
+        boolean ok = configured == null || configured.matches(presented);
+        if (configured != null && presented != null && !presented.isEmpty()) {
+            // This endpoint must not be a way to guess the token without the limit that /login has.
+            FailureLimiter failures = limiter.getObject();
+            String client = AuthFilter.clientOf(request);
+            Duration wait = failures.retryAfter(client);
+            if (!wait.isZero()) {
+                return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                        .header(HttpHeaders.RETRY_AFTER, String.valueOf(AuthFilter.retryAfterSeconds(wait))).build();
+            }
+            if (!ok) {
+                failures.recordFailure(client);
+            }
+        }
+        return ResponseEntity.ok(Map.of("required", configured != null, "authenticated", ok));
     }
 
     @PostMapping("/login")

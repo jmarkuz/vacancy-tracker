@@ -174,6 +174,21 @@ class ExpiryAndRunLockTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void anUnexpectedErrorStillClosesTheRunAndTheStaleSweepFixesTheRest() {
+        SourceAdapter broken = adapter("broken", () -> {
+            throw new UnsupportedOperationException("not an upstream problem");
+        });
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> pipeline(List.of(broken)).run("manual"))
+                .isInstanceOf(UnsupportedOperationException.class);
+        assertThat(template.queryForObject("SELECT status FROM run", String.class)).isEqualTo("interrupted");
+
+        runs.start("manual", clock.instant());
+        assertThat(runs.interruptStale(clock.instant())).isEqualTo(1);
+        assertThat(template.queryForObject("SELECT count(*) FROM run WHERE status = 'running'", Integer.class)).isZero();
+    }
+
+    @Test
     void failingSourceDoesNotCountTowardExpiry() {
         AtomicBoolean fail = new AtomicBoolean(false);
         SourceAdapter source = adapter("exp", () -> {

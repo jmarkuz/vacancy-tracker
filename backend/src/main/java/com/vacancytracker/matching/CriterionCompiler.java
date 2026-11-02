@@ -217,7 +217,8 @@ public class CriterionCompiler {
         List<String> parts = new ArrayList<>();
         for (String needle : needles) {
             for (String col : cols) {
-                parts.add(col + " ILIKE " + p.add(likePattern(needle)) + " ESCAPE '\\'");
+                // COALESCE: a NULL column (no description) must read as "no match", or NOT (...) would be NULL too.
+                parts.add("COALESCE(" + col + " ILIKE " + p.add(likePattern(needle)) + " ESCAPE '\\', FALSE)");
             }
         }
         return "(" + String.join(" OR ", parts) + ")";

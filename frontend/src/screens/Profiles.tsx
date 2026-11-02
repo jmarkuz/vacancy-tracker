@@ -200,8 +200,9 @@ export function Profiles({ params }: Props) {
       {wizard && meta && (
         <Wizard meta={meta}
           onSkip={() => { skipWizard(); setQuery({ wizard: null, edit: "new" }); }}
-          onCreated={(created) => {
-            load();
+          onCreated={async (created) => {
+            // The list must hold the new profile before the editor looks for it, or "no longer exists" flashes.
+            await load();
             setToast({ message: `Created "${created.name}". Review its rules below. Scores are being recalculated.`, tone: "info" });
             watch();
             setQuery({ wizard: null, edit: created.id });
@@ -216,8 +217,8 @@ export function Profiles({ params }: Props) {
           meta={meta}
           sourceIds={sourceIds}
           onClose={() => setQuery({ edit: null })}
-          onSaved={(saved, created) => {
-            load();
+          onSaved={async (saved, created) => {
+            await load();
             setToast({
               message: created ? `Created "${saved.name}". Scores are being recalculated.` : `Saved "${saved.name}" as version ${saved.version}. Scores are being recalculated.`,
               tone: "info",

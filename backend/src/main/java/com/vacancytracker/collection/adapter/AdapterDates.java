@@ -13,10 +13,20 @@ public final class AdapterDates {
         if (value == null || value.isBlank()) {
             return null;
         }
+        String text = value.trim();
         try {
-            return Instant.parse(value.trim());
+            return Instant.parse(text);
         } catch (DateTimeParseException e) {
-            return null;
+            // Some sources send an offset ("+02:00") or a plain "2026-10-30 10:00:00", read as UTC.
+            try {
+                return java.time.OffsetDateTime.parse(text).toInstant();
+            } catch (DateTimeParseException ignored) {
+                try {
+                    return java.time.LocalDateTime.parse(text.replace(' ', 'T')).toInstant(java.time.ZoneOffset.UTC);
+                } catch (DateTimeParseException alsoIgnored) {
+                    return null;
+                }
+            }
         }
     }
 }

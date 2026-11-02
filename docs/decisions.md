@@ -561,3 +561,16 @@ Status: Accepted (T-073)
 - **Preview uses the edited profile's own company lists** when the editor passes its id.
 
 **Consequences.** More bytes are downloaded per run for the multi-request sources (a few hundred kilobytes). A vacancy from a windowed source stays New until the user closes it.
+
+## ADR-038 Full review (2026-11-02): decisions that change behavior
+
+**Decision.**
+- **Automation never hides what the user added.** A vacancy with no source (created or imported by hand) is skipped by the Inbox rule (ADR-026). Before, a recalculation could move it to Hidden.
+- **A run always ends.** An error that is not an upstream failure closes the run as interrupted and publishes the end of the stream. At start-up, runs still marked running are marked interrupted (`app.collection.sweep-stale-runs-on-startup`, default true).
+- **Quota sources are called once.** Remotive and Jobicy are fetched without retries (`HttpFetcher.getOnce`), because a retry is another call that the stored budget does not count. The next scheduled run is the retry.
+- **The ECB feed is fetched whole,** not with validators (same reason as ADR-037).
+- **Cross-site writes are refused.** A request that changes data and carries an `Origin` other than its own `Host` gets 403 (`OriginFilter`). Browsers send `Origin` on every cross-site POST, which closes the local-instance hole where a web page could start a run or import a profile. Requests without `Origin` are unchanged. `/api/auth/status` counts a wrong token against the same limit as `/login`.
+- **The dashboard counts applications from the status history** (first time a vacancy reached Applied); the `vacancy.applied_at` column was never written.
+- **Exports read in a stable order** (first sighting), so a collection running during a backup cannot make a row slip between pages; XLSX cells are cut at Excel's 32,767-character limit.
+- **Lower-case/NULL logic in view filters:** `keywords not_contains` treats a missing description as "no match", so the negation holds.
+- **Not changed, on purpose:** the live Jobicy window is per clock hour (a restart at the hour border can call twice); a profile saved during a running collection can be overwritten once by the old snapshot until the next recalculation; the funnel counts a stage reached even if a bulk change was undone.

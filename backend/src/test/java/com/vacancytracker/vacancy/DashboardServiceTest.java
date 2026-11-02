@@ -24,10 +24,14 @@ class DashboardServiceTest extends AbstractIntegrationTest {
     private UUID vacancy(String title, String status, Integer score, Instant firstSeen, Instant nextAction, Instant appliedAt) {
         UUID id = UUID.randomUUID();
         template.update("INSERT INTO vacancy (id, title, company, status, match_score, first_seen_at, last_seen_at, next_action_at,"
-                        + " next_action_note, applied_at) VALUES (?, ?, 'Acme', ?, ?, ?, ?, ?, ?, ?)",
+                        + " next_action_note) VALUES (?, ?, 'Acme', ?, ?, ?, ?, ?, ?)",
                 id, title, status, score, java.sql.Timestamp.from(firstSeen), java.sql.Timestamp.from(firstSeen),
-                nextAction == null ? null : java.sql.Timestamp.from(nextAction), nextAction == null ? null : "Do " + title,
-                appliedAt == null ? null : java.sql.Timestamp.from(appliedAt));
+                nextAction == null ? null : java.sql.Timestamp.from(nextAction), nextAction == null ? null : "Do " + title);
+        if (appliedAt != null) {
+            // The week counts come from the status history: the day the vacancy first reached Applied.
+            template.update("INSERT INTO status_event (id, vacancy_id, to_status, at) VALUES (?, ?, 'Applied', ?)",
+                    UUID.randomUUID(), id, java.sql.Timestamp.from(appliedAt));
+        }
         return id;
     }
 

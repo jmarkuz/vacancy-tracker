@@ -1,6 +1,6 @@
 # Operations
 
-Deployment on a VPS and the reverse proxy are covered in T-075. This page covers backups.
+Deployment on a VPS and the reverse proxy are in [deployment.md](deployment.md). This page covers backups.
 
 ## Backups
 

@@ -23,6 +23,12 @@ class LogMaskingTest {
     }
 
     @Test
+    void ordinaryWordsAfterBasicOrBearerAreNotMasked() {
+        assertThat(LogMasking.mask("Basic Accounting Clerk")).isEqualTo("Basic Accounting Clerk");
+        assertThat(LogMasking.mask("Authorization failed for Bearer abc.def-ghijkl12")).doesNotContain("abc.def-ghijkl12");
+    }
+
+    @Test
     void otherQueryParametersAreLeftAlone() {
         String text = "https://x.test/jobs?what=data+engineer&where=Prague&salary_min=50000&keyword=kotlin";
 

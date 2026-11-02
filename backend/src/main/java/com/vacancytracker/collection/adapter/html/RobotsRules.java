@@ -58,7 +58,8 @@ final class RobotsRules {
         List<Rule> bestRules = List.of();
         int bestDelay = 0;
 
-        List<String> lines = new ArrayList<>(body.lines().toList());
+        // A byte order mark would stick to the first field name and hide the first group.
+        List<String> lines = new ArrayList<>((body.startsWith("\uFEFF") ? body.substring(1) : body).lines().toList());
         lines.add("user-agent: \u0000end"); // a sentinel that closes the last group
         for (String raw : lines) {
             String line = raw.contains("#") ? raw.substring(0, raw.indexOf('#')) : raw;

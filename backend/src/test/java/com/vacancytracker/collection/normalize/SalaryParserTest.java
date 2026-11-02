@@ -37,6 +37,22 @@ class SalaryParserTest {
     }
 
     @Test
+    void spaceSeparatedThousandsAreOneNumber() {
+        var salary = SalaryParser.parse("70 000 - 85 000 PLN").orElseThrow();
+
+        assertThat(salary.min()).isEqualByComparingTo("70000");
+        assertThat(salary.max()).isEqualByComparingTo("85000");
+        assertThat(salary.currency()).isEqualTo("PLN");
+    }
+
+    @Test
+    void aKStartingAWordIsNotThousandsAndOnlyRealCurrencyCodesCount() {
+        assertThat(SalaryParser.parse("5 kids included").orElseThrow().max()).isEqualByComparingTo("5");
+        assertThat(SalaryParser.parse("NET 18-22k PLN").orElseThrow().currency()).isEqualTo("PLN");
+        assertThat(SalaryParser.parse("GROSS 5000 EUR").orElseThrow().currency()).isEqualTo("EUR");
+    }
+
+    @Test
     void reversedRangeIsReadInOrder() {
         var salary = SalaryParser.parse("EUR 90k - 70k yearly").orElseThrow();
         assertThat(salary.min()).isEqualByComparingTo("70000");

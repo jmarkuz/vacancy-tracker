@@ -94,7 +94,7 @@ public class RecalculationService {
             for (UUID id : ids) {
                 try {
                     session.match(id);
-                } catch (DataAccessException | IllegalArgumentException | NotFoundException e) {
+                } catch (DataAccessException | IllegalArgumentException | IllegalStateException | NotFoundException e) {
                     job.failed.incrementAndGet();
                 }
                 job.processed.incrementAndGet();

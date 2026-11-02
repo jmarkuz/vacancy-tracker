@@ -19,7 +19,7 @@ public final class SalaryParser {
     public record Salary(BigDecimal min, BigDecimal max, String currency, String period) {
     }
 
-    private static final Pattern NUMBER = Pattern.compile("(\\d{1,3}(?:[.,]\\d{3})+|\\d+(?:[.,]\\d+)?)\\s?(k)?",
+    private static final Pattern NUMBER = Pattern.compile("(\\d{1,3}(?:[.,]\\d{3})+|\\d{1,3}(?: \\d{3})+(?!\\d)|\\d+(?:[.,]\\d+)?)\\s?(k(?![a-z]))?",
             Pattern.CASE_INSENSITIVE);
     private static final Pattern CODE = Pattern.compile("\\b([A-Z]{3})\\b");
 
@@ -70,8 +70,23 @@ public final class SalaryParser {
         if (text.contains("£")) {
             return "GBP";
         }
+        // Only a real ISO 4217 code counts: "NET 18-22k PLN" must give PLN, not NET.
         Matcher code = CODE.matcher(text);
-        return code.find() ? code.group(1) : null;
+        while (code.find()) {
+            if (isCurrency(code.group(1))) {
+                return code.group(1);
+            }
+        }
+        return null;
+    }
+
+    private static boolean isCurrency(String code) {
+        try {
+            java.util.Currency.getInstance(code);
+            return true;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
     }
 
     static String period(String text) {
@@ -90,8 +105,8 @@ public final class SalaryParser {
 
     private static BigDecimal toNumber(String raw) {
         String value = raw;
-        if (value.matches("\\d{1,3}([.,]\\d{3})+")) {
-            value = value.replaceAll("[.,]", "");
+        if (value.matches("\\d{1,3}([.,]\\d{3})+") || value.matches("\\d{1,3}( \\d{3})+")) {
+            value = value.replaceAll("[., ]", "");
         } else {
             value = value.replace(',', '.');
         }

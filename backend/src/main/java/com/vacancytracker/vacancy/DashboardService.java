@@ -125,7 +125,8 @@ public class DashboardService {
         LocalDate thisMonday = now.atZone(zone).toLocalDate().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         LocalDate first = thisMonday.minusWeeks(WEEKS - 1L);
         long[] counts = new long[WEEKS];
-        jdbc.sql("SELECT applied_at FROM vacancy WHERE applied_at >= :from")
+        // The day a vacancy first reached Applied, from its status history (the vacancy row has no such column in use).
+        jdbc.sql("SELECT min(at) AS applied_at FROM status_event WHERE to_status = 'Applied' GROUP BY vacancy_id HAVING min(at) >= :from")
                 .param("from", java.sql.Timestamp.from(first.atStartOfDay(zone).toInstant()))
                 .query((rs, i) -> {
                     LocalDate day = rs.getTimestamp("applied_at").toInstant().atZone(zone).toLocalDate();

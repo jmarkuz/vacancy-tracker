@@ -20,7 +20,8 @@ public final class LogMasking {
     private static final List<Rule> RULES = List.of(
             new Rule("(?i)([?&;](?:api[_-]?key|apikey|app[_-]?key|app[_-]?id|key|token|access[_-]?token|secret|client[_-]?secret|password|passwd|pwd|auth|signature|sig)=)[^&\\s\"'<>)]*", "$1" + MASK),
             new Rule("(?i)(authorization[\"']?\\s*[:=]\\s*(?:bearer|basic|token)?\\s*)[^\\s,;\"']+", "$1" + MASK),
-            new Rule("(?i)\\b(bearer|basic)\\s+[A-Za-z0-9._~+/=-]{8,}", "$1 " + MASK),
+            // A credential has a digit or one of . _ ~ + / = in it; "Basic Accounting" is a job title, not a secret.
+            new Rule("(?i)\\b(bearer|basic)\\s+(?=[A-Za-z0-9._~+/=-]*[0-9._~+/=])[A-Za-z0-9._~+/=-]{8,}", "$1 " + MASK),
             new Rule("(?i)(https?://)[^/\\s:@]+:[^/\\s@]+@", "$1" + MASK + "@"),
             new Rule("/bot\\d+:[A-Za-z0-9_-]+/", "/bot" + MASK + "/"),
             new Rule("(?i)(vt_token=)[^;\\s,]+", "$1" + MASK),

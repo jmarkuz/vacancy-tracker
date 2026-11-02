@@ -85,11 +85,11 @@ class EcbRateRefresherTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void aSecondRefreshOfTheSameFeedIsNotModified() {
+    void aSecondRefreshOfTheSameFeedReplacesTheRatesInPlace() {
         EcbRateRefresher refresher = refresher(healthy);
         refresher.refresh();
 
-        assertThat(refresher.refresh()).isFalse();
+        assertThat(refresher.refresh()).isTrue();
         assertThat(template.queryForObject("SELECT count(*) FROM exchange_rate", Integer.class)).isEqualTo(4);
     }
 

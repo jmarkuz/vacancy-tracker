@@ -40,7 +40,10 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     ProblemDetail integrity(DataIntegrityViolationException e) {
-        return problem(HttpStatus.CONFLICT, "Conflicting data", "A vacancy with the same canonical URL already exists.");
+        if (e instanceof org.springframework.dao.DuplicateKeyException) {
+            return problem(HttpStatus.CONFLICT, "Conflicting data", "A vacancy with the same canonical URL already exists.");
+        }
+        return problem(HttpStatus.UNPROCESSABLE_ENTITY, "Value not allowed", "A value is too long or not allowed.");
     }
 
     @ExceptionHandler(NoJobPostingException.class)

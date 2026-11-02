@@ -24,7 +24,7 @@ public class VacancyExporter {
     public void forEach(VacancyStatus status, Consumer<Vacancy> consumer) {
         int page = 0;
         while (true) {
-            List<Vacancy> batch = vacancies.list(status, page, BATCH);
+            List<Vacancy> batch = vacancies.listStable(status, page, BATCH);
             batch.forEach(consumer);
             if (batch.size() < BATCH) {
                 return;

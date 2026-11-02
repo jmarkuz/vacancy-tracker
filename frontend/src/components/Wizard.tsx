@@ -33,7 +33,7 @@ export function Wizard({ meta, onCreated, onSkip }: Props) {
       onCreated(await createProfile(wizardProfile(a, meta)));
     } catch (err: unknown) {
       setServerError(err instanceof ProfileRejected
-        ? (err.status === 409 ? "A profile with this name already exists." : Object.values(err.errors).join(" "))
+        ? (err.status === 409 ? "A profile with this name already exists." : Object.values(err.errors).join(" ") || err.message || "The profile was not saved. Try again.")
         : "The profile was not saved. Try again.");
       setSaving(false);
     }

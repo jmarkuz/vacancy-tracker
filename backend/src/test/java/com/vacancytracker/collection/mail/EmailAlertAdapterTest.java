@@ -58,6 +58,12 @@ class EmailAlertAdapterTest extends AdapterContractTest {
 
     @Override
     protected SourceAdapter healthyAdapter() {
+        // The contract needs something to read: one fresh alert per call, so every adapter built has mail waiting.
+        try {
+            deliver("jobalerts-noreply@linkedin.com", "New jobs", fixture("linkedin-alert.html"), "<contract" + System.nanoTime() + "@x>");
+        } catch (MessagingException | IOException e) {
+            throw new IllegalStateException(e);
+        }
         return adapter(PASSWORD, true);
     }
 

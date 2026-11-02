@@ -40,6 +40,8 @@ public class XlsxExporter {
         }
     }
 
+    private static final int MAX_CELL_CHARS = 32_767;
+
     private static void setCell(org.apache.poi.ss.usermodel.Cell cell, Object value) {
         if (value == null) {
             return;
@@ -49,7 +51,9 @@ public class XlsxExporter {
         } else if (value instanceof Integer number) {
             cell.setCellValue(number);
         } else {
-            cell.setCellValue(value.toString());
+            String text = value.toString();
+            // Excel refuses a cell over 32,767 characters, and one long description must not fail the whole export.
+            cell.setCellValue(text.length() > MAX_CELL_CHARS ? text.substring(0, MAX_CELL_CHARS - 1) + "…" : text);
         }
     }
 }

@@ -144,13 +144,15 @@ public class AdzunaAdapter implements SourceAdapter {
 
     private RawPosting toPosting(String country, JsonNode job) {
         String currency = currencies.get(country);
-        BigDecimal min = decimal(job.path("salary_min"));
-        BigDecimal max = decimal(job.path("salary_max"));
+        // Adzuna fills many results with an estimate (salary_is_predicted = "1"); that is not a stated salary.
+        boolean predicted = "1".equals(job.path("salary_is_predicted").asText());
+        BigDecimal min = predicted ? null : decimal(job.path("salary_min"));
+        BigDecimal max = predicted ? null : decimal(job.path("salary_max"));
         return new RawPosting(
                 ID,
                 job.path("id").asText(),
                 job.path("redirect_url").asText(null),
-                job.path("title").asText(),
+                Normalizer.plainText(job.path("title").asText()),
                 job.path("company").path("display_name").asText(null),
                 job.path("location").path("display_name").asText(null),
                 null,

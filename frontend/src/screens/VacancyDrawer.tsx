@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "preact/hooks";
+import { isFieldTarget } from "../domain/triage";
 import { ApiError } from "../api/client";
 import { changeStatus, getHistory, getVacancy, patchVacancy, type StatusEvent } from "../api/vacancies";
 import type { Vacancy } from "../api/types";
@@ -14,6 +15,29 @@ interface Props {
 }
 
 /** Side drawer on desktop, bottom sheet on phones (design README). Opened by ?open=<id>. */
+/** Keeps Tab and Shift+Tab inside the open dialog. */
+function trapTab(e: KeyboardEvent, panel: HTMLElement | null) {
+  if (e.key !== "Tab" || !panel) {
+    return;
+  }
+  const focusable = Array.from(
+    panel.querySelectorAll<HTMLElement>("a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])"),
+  );
+  if (focusable.length === 0) {
+    e.preventDefault();
+    return;
+  }
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (e.shiftKey && (document.activeElement === first || document.activeElement === panel)) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && document.activeElement === last) {
+    e.preventDefault();
+    first.focus();
+  }
+}
+
 export function VacancyDrawer({ id, onClose, onChange }: Props) {
   const [vacancy, setVacancy] = useState<Vacancy | null>(null);
   const [history, setHistory] = useState<StatusEvent[]>([]);
@@ -41,12 +65,20 @@ export function VacancyDrawer({ id, onClose, onChange }: Props) {
 
   // Focus the panel once when it opens; re-running on every render would steal focus from the form.
   useEffect(() => {
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     panelRef.current?.focus();
+    // Give focus back to what opened the drawer, so a keyboard user does not start again from the top of the page.
+    return () => opener?.focus();
   }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        // In a field or an open list, Escape leaves the field first: it must not throw away an unsaved draft.
+        if (isFieldTarget(e.target)) {
+          (e.target as HTMLElement).blur();
+          return;
+        }
         onClose();
       }
     };
@@ -93,6 +125,7 @@ export function VacancyDrawer({ id, onClose, onChange }: Props) {
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
+        onKeyDown={(e) => trapTab(e as KeyboardEvent, panelRef.current)}
       >
         <header class="drawer-header">
           <div>
@@ -199,7 +232,7 @@ export function VacancyDrawer({ id, onClose, onChange }: Props) {
                   }
                 }}
               >
-                <option value="">Not set</option>
+                <option value="" disabled={vacancy.priority != null}>Not set</option>
                 <option value="1">1 · high</option>
                 <option value="2">2 · medium</option>
                 <option value="3">3 · low</option>

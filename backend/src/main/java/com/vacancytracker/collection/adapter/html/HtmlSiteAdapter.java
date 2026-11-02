@@ -176,7 +176,7 @@ public class HtmlSiteAdapter implements SourceAdapter {
             }
             String company = !site.company().isBlank() ? text(card, site.company()) : site.companyName();
             String location = site.location().isBlank() ? null : text(card, site.location());
-            into.putIfAbsent(href, new RawPosting(ID, site.id() + ":" + sha1(href), href, titleElement.text().trim(),
+            into.putIfAbsent(href, new RawPosting(ID, site.id() + ":" + sha1(com.vacancytracker.common.CanonicalUrl.of(href).orElse(href)), href, titleElement.text().trim(),
                     company == null || company.isBlank() ? site.id() : company, location, null, null, null, null, null, null, null));
         }
     }
