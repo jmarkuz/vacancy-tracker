@@ -5,6 +5,7 @@ All notable changes are recorded here. Format: date, task ID, short description.
 ## [Unreleased]
 
 ### 2026-11-01 — M1 core tracker
+- Second review round on the last fixes: Advisory lock for spaced calls, undo ordering on equal times, shared-block alert parsing, longer recalculation poll, stronger Telegram test.
 - Remaining review items: Jobicy spacing from the last call, profile reload in match sessions, funnel ignoring undone stages, node.js search, alert parser block check, stable cache keys over redirects, recalculation poller stops, ArchitectureTest covers new packages.
 - Full review (round): Closes runs after unexpected errors and at start-up; user-added vacancies are never auto-hidden; applications per week come from the status history; cross-site writes are refused (OriginFilter); the auth status endpoint is rate limited; salary text with space thousands, 'k' words and non-ISO codes is read correctly; ECB, Remotive and Jobicy are no longer retried against their quotas; robots.txt BOM, JSON-LD escaped markup and numeric base salaries are handled; exports are stable and XLSX cells are capped; the Inbox has Save/Dismiss/Details buttons for mouse and touch; the drawer traps and returns focus; refresh reloads the screen on show (ADR-038).
 - Review fixes (third round): CSV re-import: a blank status or date cell and the columns a short row has no cell for leave the stored values alone; the formula guard round-trips any run of leading apostrophes.

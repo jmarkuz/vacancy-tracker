@@ -98,13 +98,13 @@ class LinkedInAlertParserTest {
     }
 
     @Test
-    void lineSharedByTwoPostingsIsNotTakenAsEitherOnesCompany() {
-        String html = "<div><a href=\"https://www.linkedin.com/jobs/view/3911111111/\">Role One</a>"
-                + "<a href=\"https://www.linkedin.com/jobs/view/3922222222/\">Role Two</a><p>Some footer line</p></div>";
+    void postingsInOneBlockTakeTheTextBetweenTheirOwnLink() {
+        String html = "<div><a href=\"https://www.linkedin.com/jobs/view/3911111111/\">Role One</a><span>Northwind</span><span>Prague</span>"
+                + "<a href=\"https://www.linkedin.com/jobs/view/3922222222/\">Role Two</a><span>Vantage</span><span>Remote</span></div>";
 
         List<ParsedJob> jobs = parser.parse(mail("jobalerts-noreply@linkedin.com", null, html));
 
-        assertThat(jobs).extracting(ParsedJob::title).containsExactly("Role One", "Role Two");
-        assertThat(jobs).extracting(ParsedJob::company).containsOnlyNulls();
+        assertThat(jobs).extracting(ParsedJob::company).containsExactly("Northwind", "Vantage");
+        assertThat(jobs).extracting(ParsedJob::location).containsExactly("Prague", "Remote");
     }
 }

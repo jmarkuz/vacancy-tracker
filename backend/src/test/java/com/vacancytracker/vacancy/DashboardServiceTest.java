@@ -137,7 +137,8 @@ class DashboardServiceTest extends AbstractIntegrationTest {
         Instant now = Instant.now();
         UUID id = vacancy("undone", "Saved", null, now, null, null);
         template.update("INSERT INTO status_event (id, vacancy_id, to_status, at) VALUES (?, ?, 'Applied', ?)",
-                UUID.randomUUID(), id, java.sql.Timestamp.from(now.minusSeconds(60)));
+                UUID.randomUUID(), id, java.sql.Timestamp.from(now));  // the same instant as the undo entry
+
         template.update("INSERT INTO status_event (id, vacancy_id, from_status, to_status, at, note) VALUES (?, ?, 'Applied', 'Saved', ?, ?)",
                 UUID.randomUUID(), id, java.sql.Timestamp.from(now), BulkStatusService.UNDO_NOTE);
 
