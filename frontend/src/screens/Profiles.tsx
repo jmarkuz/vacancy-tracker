@@ -25,7 +25,8 @@ import { setQuery } from "../router";
 import { formatDate } from "./columns";
 
 const POLL_MS = 700;
-const MAX_IDLE_POLLS = 5;
+// A job that was just requested may take a moment to show up; about 20 seconds is far more than it needs.
+const MAX_IDLE_POLLS = 30;
 
 interface Props {
   params: URLSearchParams;
@@ -86,6 +87,7 @@ export function Profiles({ params }: Props) {
           idle += 1;
           if (idle >= MAX_IDLE_POLLS) {
             window.clearInterval(timer.current);
+            setToast({ message: "No recalculation is running. It may already have finished.", tone: "info" });
           }
           return;
         }

@@ -41,4 +41,9 @@ class SearchQueryTest {
     void aDottedWordMatchesAsAWholeAndAsItsParts() {
         assertThat(SearchQuery.toTsQuery("Node.js senior")).contains("('node.js':* | (node:* & js:*)) & senior:*");
     }
+
+    @Test
+    void aTrailingDotIsDroppedFromADottedWord() {
+        assertThat(SearchQuery.toTsQuery("node.")).contains("node:*");
+    }
 }

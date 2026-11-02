@@ -108,8 +108,9 @@ public abstract class LinkAlertParser implements MailParser {
 
     /**
      * The text lines of the smallest enclosing block that has more than the title, with the title and generic
-     * button labels removed. The block is the table cell, list item or division the link sits in, and never one that
-     * also holds another posting's link.
+     * button labels removed. The block is the table cell, list item or division the link sits in. When the block
+     * holds another posting's link too, only the text between this link and the next one is taken, since the rest
+     * is shared.
      */
     private List<String> linesAround(Element link, String title, java.util.Collection<Element> allLinks) {
         Element block = link;
@@ -117,18 +118,47 @@ public abstract class LinkAlertParser implements MailParser {
         for (int depth = 0; depth < 6 && block.parent() != null; depth++) {
             block = block.parent();
             Element enclosing = block;
-            if (allLinks.stream().anyMatch(other -> other != link && other.parents().contains(enclosing))) {
-                // The block holds another posting too: its lines would be shared, so none of them is this one's own.
-                break;
-            }
-            lines = leafLines(block).stream()
+            boolean shared = allLinks.stream().anyMatch(other -> other != link && other.parents().contains(enclosing));
+            lines = (shared ? linesAfter(block, link, allLinks) : leafLines(block)).stream()
                     .filter(l -> !l.equals(title) && !generic.contains(l.toLowerCase(java.util.Locale.ROOT)))
                     .toList();
-            if (!lines.isEmpty()) {
+            if (shared || !lines.isEmpty()) {
                 break;
             }
         }
         return lines.size() > 2 ? lines.subList(0, 2) : lines;
+    }
+
+    /** Text lines of the block that follow the link and come before the next posting's link. */
+    private static List<String> linesAfter(Element block, Element link, java.util.Collection<Element> allLinks) {
+        List<String> out = new ArrayList<>();
+        boolean[] passed = {false};
+        boolean[] done = {false};
+        NodeTraversor.traverse(new NodeVisitor() {
+            @Override
+            public void head(Node node, int depth) {
+                if (done[0]) {
+                    return;
+                }
+                if (node == link) {
+                    passed[0] = true;
+                } else if (passed[0] && node instanceof Element e && allLinks.contains(e)) {
+                    done[0] = true;
+                } else if (passed[0] && node instanceof TextNode t
+                        && !(t.parent() instanceof Element pe && (pe == link || pe.parents().contains(link)))) {
+                    String s = t.text().trim();
+                    if (!s.isEmpty()) {
+                        out.add(s);
+                    }
+                }
+            }
+
+            @Override
+            public void tail(Node node, int depth) {
+                // Nothing to do when leaving a node.
+            }
+        }, block);
+        return out;
     }
 
     private static List<String> leafLines(Element block) {

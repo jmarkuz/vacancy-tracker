@@ -34,6 +34,9 @@ public final class SearchQuery {
         while (m.find() && terms.size() < MAX_TERMS) {
             String word = m.group();
             word = word.substring(0, Math.min(word.length(), MAX_TERM_LENGTH));
+            while (word.endsWith(".")) {
+                word = word.substring(0, word.length() - 1);
+            }
             terms.add(word.contains(".") ? dotted(word) : word + ":*");
         }
         return terms.isEmpty() ? Optional.empty() : Optional.of(String.join(" & ", terms));

@@ -30,9 +30,9 @@ public class DashboardService {
      */
     private static final String EFFECTIVE_EVENTS = """
             SELECT vacancy_id, to_status, at FROM (
-                SELECT vacancy_id, to_status, at, lead(note) OVER (PARTITION BY vacancy_id ORDER BY at, id) AS next_note
+                SELECT vacancy_id, to_status, at, lead(note) OVER (PARTITION BY vacancy_id ORDER BY at, CASE WHEN note = '%1$s' THEN 1 ELSE 0 END, id) AS next_note
                 FROM status_event
-            ) e WHERE next_note IS DISTINCT FROM '%s'""".formatted(BulkStatusService.UNDO_NOTE);
+            ) e WHERE next_note IS DISTINCT FROM '%1$s'""".formatted(BulkStatusService.UNDO_NOTE);
     static final int TOP = 5;
     static final int NEXT_ACTIONS = 5;
 
