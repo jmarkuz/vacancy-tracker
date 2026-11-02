@@ -4,6 +4,9 @@ All notable changes are recorded here. Format: date, task ID, short description.
 
 ## [Unreleased]
 
+### 2026-11-03 — Owner requests
+- T-100: Inbox filter. Above the Inbox list: words to find in the title or description (all of them or any of them, "quoted phrases" allowed) and words to exclude. The server filters all New vacancies with the same keyword criteria the Pipeline views use; the filter is kept in the address, "/" jumps to it, Escape returns to the list, and an empty result offers to clear it. Browser test e2e/tests/inbox-filter.spec.ts.
+
 ### 2026-11-02 — M7 AI presets
 - Review fixes (Codex, before the pull request): saving one part of the Presets screen keeps unsaved edits in the other parts; an older package from a pasted resume downloads with a PDF made then; an edit after confirming facts needs a new check and confirmation; a quote over a line break inside Skills is not proof; long links are broken inside the PDF column; the analysis becomes stale when the vacancy's company or location changes.
 - T-099: The fake AI answers every M7 task deterministically (adaptation with one deliberate overreach for the fact check, checklist, statuses with quotes, goal ratings, shortening). New Playwright scenario after the full-cycle one (e2e/tests/m7-presets.spec.ts): the default preset filled in on the Presets screen, both matches as bars, both documents generated with Base → Tailored higher, the fact warning confirmed, a resume PDF of one page, the package and Applied; then a resume too long for two pages refused, and Use as is with AI off. The M6 scenario follows the new drawer. README, architecture (ERD of the M6 and M7 tables), PLAN and tasks.csv updated.
