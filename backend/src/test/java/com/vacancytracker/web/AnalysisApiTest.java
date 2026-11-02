@@ -138,6 +138,23 @@ class AnalysisApiTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void savingAnEditedVersionScoresThatVersion() throws Exception {
+        mvc.perform(post("/api/ai/consent"));
+        assertThat(JsonPath.<Object>read(analysis(), "$.resume")).isNull();
+
+        String edited = "## Experience\\n- Ran Kubernetes clusters with Java and PostgreSQL.\\n\\n## Skills\\nKafka";
+        mvc.perform(post("/api/vacancies/" + vacancy + "/documents").contentType(JSON)
+                .content("{\"kind\":\"resume\",\"content\":\"" + edited + "\",\"origin\":\"manual\"}")).andExpect(status().isOk());
+
+        String after = analysis();
+        assertThat(JsonPath.<Integer>read(after, "$.resume.version")).isEqualTo(1);
+        // Java, PostgreSQL, Kubernetes covered (3 + 3 + 2), Kafka in Skills only (3 × 0.5): 9.5 / 11 → 86.
+        assertThat(JsonPath.<Integer>read(after, "$.resume.match.score")).isEqualTo(86);
+        assertThat(JsonPath.<Integer>read(after, "$.baseResume.match.score")).isEqualTo(68);
+        assertThat(JsonPath.<Integer>read(match(edited), "$.score")).isEqualTo(86);
+    }
+
+    @Test
     void aChangedVacancyTextResetsTheChecklistAndMarksTheGoalStale() throws Exception {
         mvc.perform(post("/api/ai/consent"));
         analysis();

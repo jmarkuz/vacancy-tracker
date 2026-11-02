@@ -1701,3 +1701,53 @@ label.inline {
   background: var(--color-danger-subtle);
   color: var(--color-danger);
 }
+
+/* Match bars (T-096): the number and the level word carry the meaning. */
+.match-bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.match-bar-head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-weight: 540;
+}
+
+.match-track {
+  height: 0.6rem;
+  overflow: hidden;
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: 999px;
+  background: var(--color-bg-muted);
+}
+
+.match-track:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.match-fill {
+  height: 100%;
+  background: var(--color-accent);
+}
+
+.match-high .match-fill {
+  background: var(--color-success);
+}
+
+.match-low .match-fill {
+  background: var(--color-warning);
+}
+
+.comparison {
+  padding: var(--space-2);
+  border-left: 3px solid var(--color-accent-border);
+  background: var(--color-bg-subtle);
+}
+
+.comparison p {
+  margin: var(--space-1) 0 0;
+}

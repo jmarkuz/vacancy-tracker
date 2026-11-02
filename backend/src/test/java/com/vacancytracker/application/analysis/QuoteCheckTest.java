@@ -43,6 +43,8 @@ class QuoteCheckTest {
                 .isEqualTo(QuoteCheck.Place.EVIDENCE);
         assertThat(QuoteCheck.place("Jane Doe\n\nSkills\nJava, Kafka\n\nAcme Bank, 2019 - 2025", "Kafka"))
                 .isEqualTo(QuoteCheck.Place.SKILLS_ONLY);
+        // One skill per line under a Markdown Skills heading: still Skills, not a new section.
+        assertThat(QuoteCheck.place("## Experience\n- Built APIs.\n\n## Skills\nKafka\nJava", "Kafka")).isEqualTo(QuoteCheck.Place.SKILLS_ONLY);
     }
 
     @Test
