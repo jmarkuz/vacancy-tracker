@@ -1751,3 +1751,20 @@ label.inline {
 .comparison p {
   margin: var(--space-1) 0 0;
 }
+
+/* Fact check (T-098) */
+.notice.warn {
+  border-color: var(--color-warning);
+  background: var(--color-warning-subtle);
+}
+
+.facts-list {
+  margin: var(--space-1) 0;
+  padding-left: var(--space-4);
+}
+
+.fact-kind {
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}

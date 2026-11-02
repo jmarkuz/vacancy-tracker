@@ -38,7 +38,7 @@ public class DocumentService {
      * does not fit, when it does not.
      */
     public record Draft(String kind, String content, String provider, String model, UUID snapshotId, String baseDraft,
-                        String presetName, Integer pages, int shortened, String pageProblem) {
+                        String presetName, Integer pages, int shortened, String pageProblem, List<FactCheck.Finding> facts) {
     }
 
     /** A shortened resume and its pages. */
@@ -74,7 +74,8 @@ public class DocumentService {
         AiClient.AiReply reply = ai.complete(Prompts.adapt(s, vacancy, instructions));
         snapshots.insert(s);
         if (!TailoredDocument.RESUME.equals(kind)) {
-            return new Draft(kind, reply.text(), reply.provider(), reply.model(), s.id(), s.baseDraft(), s.presetName(), null, 0, null);
+            return new Draft(kind, reply.text(), reply.provider(), reply.model(), s.id(), s.baseDraft(), s.presetName(), null, 0, null,
+                    facts(s, vacancy, reply.text()));
         }
         // Over two pages: AI shortens the least relevant content, at most twice; then the owner edits.
         String text = reply.text();
@@ -86,7 +87,20 @@ public class DocumentService {
             shortened++;
         }
         return new Draft(kind, text, reply.provider(), reply.model(), s.id(), s.baseDraft(), s.presetName(), pages, shortened,
-                pages > ResumePdf.MAX_PAGES ? tooLong(pages, shortened) : null);
+                pages > ResumePdf.MAX_PAGES ? tooLong(pages, shortened) : null, facts(s, vacancy, text));
+    }
+
+    /** The fact check of a text against the base documents of its snapshot (T-098). */
+    public List<FactCheck.Finding> checkFacts(UUID vacancyId, UUID snapshotId, String text) {
+        Vacancy vacancy = vacancies.get(vacancyId);
+        GenerationSnapshot s = snapshots.find(snapshotId).filter(x -> x.vacancyId().equals(vacancyId))
+                .orElseThrow(() -> new IllegalArgumentException("Unknown snapshot."));
+        return facts(s, vacancy, text);
+    }
+
+    private static List<FactCheck.Finding> facts(GenerationSnapshot s, Vacancy vacancy, String text) {
+        String base = s.baseResume() == null ? s.baseDraft() : s.baseDraft() + "\n\n" + s.baseResume();
+        return FactCheck.check(base, text, vacancy.getCompany(), vacancy.getTitle());
     }
 
     /** Asks AI to shorten a resume that does not fit two pages, at most twice. */
@@ -127,7 +141,8 @@ public class DocumentService {
         GenerationSnapshot s = snapshot(vacancyId, kind, presetId, false);
         ResumePdf.Rendered pdf = TailoredDocument.RESUME.equals(kind) ? asIsPdf(s) : null;
         snapshots.insert(s);
-        return repository.insertNext(vacancyId, kind, s.baseDraft(), TailoredDocument.BASE, null, null, clock.instant(), s.id(), pdf);
+        return repository.insertNext(vacancyId, kind, s.baseDraft(), TailoredDocument.BASE, null, null, clock.instant(), s.id(), pdf,
+                List.of(), false);
     }
 
     /** An uploaded PDF of one or two pages is used unchanged; otherwise the PDF is rendered from the text. */
@@ -169,25 +184,32 @@ public class DocumentService {
      */
     @Transactional
     public TailoredDocument save(UUID vacancyId, String kind, String content, String origin, String provider, String model,
-                                 UUID snapshotId) {
+                                 UUID snapshotId, boolean factsConfirmed) {
         requireKind(kind);
-        vacancies.get(vacancyId);
+        Vacancy vacancy = vacancies.get(vacancyId);
         if (content == null || content.isBlank()) {
             throw new IllegalArgumentException("The document is empty.");
         }
         if (content.length() > MAX_CONTENT) {
             throw new IllegalArgumentException("The document is longer than " + MAX_CONTENT + " characters.");
         }
+        List<FactCheck.Finding> findings = null;
         if (snapshotId != null) {
             GenerationSnapshot s = snapshots.find(snapshotId).orElseThrow(() -> new IllegalArgumentException("Unknown snapshot."));
             if (!s.vacancyId().equals(vacancyId) || !s.kind().equals(kind)) {
                 throw new IllegalArgumentException("That draft belongs to another vacancy or document.");
             }
+            // Saving, and so the PDF, waits until new facts are fixed or the owner confirms they are true (T-098).
+            findings = facts(s, vacancy, content.strip());
+            if (!findings.isEmpty() && !factsConfirmed) {
+                throw new FactsNotConfirmedException(findings);
+            }
         }
         boolean fromAi = TailoredDocument.AI.equals(origin);
         ResumePdf.Rendered pdf = TailoredDocument.RESUME.equals(kind) ? pdfOf(content.strip()) : null;
         return repository.insertNext(vacancyId, kind, content.strip(), fromAi ? TailoredDocument.AI : TailoredDocument.MANUAL,
-                fromAi ? provider : null, fromAi ? model : null, clock.instant(), snapshotId, pdf);
+                fromAi ? provider : null, fromAi ? model : null, clock.instant(), snapshotId, pdf, findings,
+                findings != null && !findings.isEmpty() && factsConfirmed);
     }
 
     @Transactional(readOnly = true)

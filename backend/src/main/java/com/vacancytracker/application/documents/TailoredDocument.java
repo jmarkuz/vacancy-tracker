@@ -20,7 +20,10 @@ public record TailoredDocument(
         Instant createdAt,
         UUID snapshotId,
         /** Pages of the stored PDF (a resume saved since T-097 has one, of 1 or 2 pages); null otherwise. */
-        Integer pdfPages) {
+        Integer pdfPages,
+        /** Facts of the text that its base draft does not have (T-098), and whether the owner confirmed them as true. */
+        java.util.List<FactCheck.Finding> factFindings,
+        boolean factsConfirmed) {
 
     public static final String RESUME = "resume";
     public static final String COVER_LETTER = "cover_letter";
