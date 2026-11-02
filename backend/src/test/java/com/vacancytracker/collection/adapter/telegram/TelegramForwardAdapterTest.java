@@ -92,6 +92,8 @@ class TelegramForwardAdapterTest extends AbstractIntegrationTest {
         assertThat(post.title()).isEqualTo("Senior Java Developer (remote)");
         assertThat(post.company()).isEqualTo("Acme Payments");
         assertThat(post.postedAt()).isEqualTo(Instant.ofEpochSecond(1793590000));
+        // The bot token is in the address, so nothing about the request may be kept in the HTTP cache.
+        assertThat(template.queryForObject("SELECT count(*) FROM http_cache", Integer.class)).isZero();
         var pasted = outcome.postings().get(1);
         assertThat(pasted.company()).isEqualTo("Telegram");
         assertThat(pasted.url()).isEqualTo("https://jobs.example.com/qa-1");
