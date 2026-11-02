@@ -14,7 +14,7 @@ import java.util.Set;
  * so "Berlin, Germany" gives DE, while "Remote" or "Europe" give nothing. Names come from the JDK's locale data in
  * several languages; a name that means different countries in different languages is dropped. Bare two-letter
  * codes are not read, because they clash with US state codes ("Wilmington, DE", "Indianapolis, IN"), and
- * "Georgia" is left out because it is as likely a US state. When the parts name two different countries the
+ * "Georgia", "Granada" and "Jersey" are left out because they are as likely a US state or a city. When the parts name two different countries the
  * answer is nothing rather than a guess.
  */
 public final class CountryDetector {
@@ -23,7 +23,7 @@ public final class CountryDetector {
     private static final Map<String, String> ALIASES = Map.of(
             "uk", "GB", "u.k.", "GB", "great britain", "GB", "england", "GB", "scotland", "GB",
             "usa", "US", "u.s.", "US", "u.s.a.", "US", "us", "US", "czech republic", "CZ");
-    private static final Set<String> EXCLUDED = Set.of("georgia");
+    private static final Set<String> EXCLUDED = Set.of("georgia", "granada", "jersey");
     private static final Map<String, String> BY_NAME = build();
 
     private CountryDetector() {

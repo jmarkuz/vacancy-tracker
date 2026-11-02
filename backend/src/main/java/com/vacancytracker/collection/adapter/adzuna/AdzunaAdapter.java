@@ -33,6 +33,8 @@ public class AdzunaAdapter implements SourceAdapter {
 
     static final String ID = "adzuna";
 
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(AdzunaAdapter.class);
+
     private final HttpFetcher fetcher;
     private final ObjectMapper mapper;
     private final String baseUrl;
@@ -56,7 +58,7 @@ public class AdzunaAdapter implements SourceAdapter {
         this.baseUrl = baseUrl;
         this.appId = appId == null ? "" : appId.trim();
         this.appKey = appKey == null ? "" : appKey.trim();
-        this.countries = countries.stream().map(String::trim).filter(c -> !c.isEmpty()).toList();
+        this.countries = countries.stream().map(c -> c.trim().toLowerCase(java.util.Locale.ROOT)).filter(c -> !c.isEmpty()).toList();
         this.currencies = parseCurrencies(currencies);
         this.what = what == null ? "" : what.trim();
         this.maxPages = maxPages;
@@ -100,13 +102,14 @@ public class AdzunaAdapter implements SourceAdapter {
         if (appId.isEmpty() || appKey.isEmpty() || countries.isEmpty()) {
             return FetchOutcome.noChange();
         }
-        for (String country : countries) {
-            if (!SUPPORTED_COUNTRIES.contains(country)) {
-                throw new UpstreamException("Adzuna country '" + country + "' is not one of the supported codes");
-            }
+        List<String> valid = countries.stream().filter(SUPPORTED_COUNTRIES::contains).toList();
+        if (valid.isEmpty()) {
+            throw new UpstreamException("Adzuna country '" + countries.get(0) + "' is not one of the supported codes");
         }
+        countries.stream().filter(c -> !SUPPORTED_COUNTRIES.contains(c))
+                .forEach(c -> LOG.warn("Adzuna country '{}' is not one of the supported codes; it is skipped", c));
         List<RawPosting> all = new ArrayList<>();
-        for (String country : countries) {
+        for (String country : valid) {
             for (int page = 1; page <= maxPages; page++) {
                 String path = "/v1/api/jobs/" + country + "/search/" + page;
                 String query = "results_per_page=50" + (what.isEmpty() ? "" : "&what=" + enc(what));

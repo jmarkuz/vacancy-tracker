@@ -113,6 +113,18 @@ class RssAdapterTest extends AdapterContractTest {
     }
 
     @Test
+    void anAtomEntryWithOnlyUpdatedUsesItAsTheDate() {
+        String xml = "<feed xmlns='http://www.w3.org/2005/Atom'><title>t</title><id>x</id><updated>2026-10-26T09:00:00Z</updated>"
+                + "<entry><title>T</title><id>e1</id><link href='HTTPS://feeds.example.test/j/1'/><updated>2026-10-20T09:00:00Z</updated></entry></feed>";
+        routes.put("/upd", new TestHttp.Route(200, xml));
+
+        List<RawPosting> postings = adapter(feed("u", "/upd")).fetch().postings();
+
+        assertThat(postings).hasSize(1);
+        assertThat(postings.get(0).postedAt()).isEqualTo(java.time.Instant.parse("2026-10-20T09:00:00Z"));
+    }
+
+    @Test
     void aFixedCompanyNameWins() {
         RssFeed own = new RssFeed("own", true, base + "/rss", "2026-11-02", "https://x.test/terms", "Acme");
 

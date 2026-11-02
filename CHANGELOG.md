@@ -5,6 +5,7 @@ All notable changes are recorded here. Format: date, task ID, short description.
 ## [Unreleased]
 
 ### 2026-11-01 — M1 core tracker
+- Review fixes: Adzuna skips an invalid country code instead of failing the other countries; the country is filled on a known vacancy only when the location matches; Atom 'updated' is used as the date; one broken feed cannot stop the rest.
 - T-027: Every source row in docs/sources.md is now ok or blocked. We Work Remotely and Jooble are blocked until the owner reads their terms in a browser; no protection was bypassed.
 - T-041: The country is detected from the location when it names one; seniority is deliberately not detected (ADR-036).
 - T-040: Generic RSS/Atom adapter (Rome) for configured feeds with a recorded terms check; DOCTYPE refused, item HTML reduced to text (ADR-036).
