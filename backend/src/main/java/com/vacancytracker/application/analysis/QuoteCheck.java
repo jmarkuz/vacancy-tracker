@@ -30,25 +30,25 @@ final class QuoteCheck {
         if (q.length() < 2 || document == null) {
             return Place.NOT_FOUND;
         }
-        boolean inMarkdownSkills = false;
-        boolean inPlainSkills = false;
+        // A Markdown document has its sections under # headings; a plain-text one under short title lines that end at
+        // a blank line. A one-word line inside a Markdown Skills section is a skill, not a new heading.
+        boolean markdown = document.lines().anyMatch(l -> l.strip().startsWith("#"));
+        boolean inSkills = false;
         boolean skillsHit = false;
         boolean evidenceHit = false;
         for (String raw : document.split("\n")) {
             String line = raw.strip();
-            if (line.startsWith("#")) {
-                inMarkdownSkills = SKILLS_HEADING.matcher(line).find();
-                inPlainSkills = false;
-            } else if (line.isEmpty()) {
-                inPlainSkills = false;
-            } else if (PLAIN_HEADING.matcher(line).matches()) {
-                inPlainSkills = SKILLS_HEADING.matcher(line).find();
-                if (!inPlainSkills) {
-                    inMarkdownSkills = false;
+            if (markdown) {
+                if (line.startsWith("#")) {
+                    inSkills = SKILLS_HEADING.matcher(line).find();
                 }
+            } else if (line.isEmpty()) {
+                inSkills = false;
+            } else if (PLAIN_HEADING.matcher(line).matches()) {
+                inSkills = SKILLS_HEADING.matcher(line).find();
             }
             if (normalise(raw).contains(q)) {
-                if (inMarkdownSkills || inPlainSkills || SKILLS_LINE.matcher(line).lookingAt()) {
+                if (inSkills || SKILLS_LINE.matcher(line).lookingAt()) {
                     skillsHit = true;
                 } else {
                     evidenceHit = true;

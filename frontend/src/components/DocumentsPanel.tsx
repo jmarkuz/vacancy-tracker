@@ -14,7 +14,9 @@ import {
   type TailoredDocument,
 } from "../api/ai";
 import { listPresets, type MissingField, type Preset } from "../api/presets";
+import { matchText } from "../api/analysis";
 import { diffCounts, diffLines } from "../domain/diff";
+import { type Comparison, compare, comparisonLine } from "../domain/match";
 import { placeholders } from "../domain/presets";
 import { formatDate } from "../screens/columns";
 
@@ -38,6 +40,31 @@ interface Editing {
   snapshotId?: string | null;
   /** The base draft an AI draft adapts, for the comparison. */
   baseDraft?: string;
+}
+
+/** A comparison being computed, computed, or failed. */
+type Scored = { label: string; pending?: boolean; comparison?: Comparison; error?: string };
+
+/** "Base 62% → Tailored 78% (+16)" with the newly covered and still missing requirements. */
+function ScoreLine({ scored }: { scored: Scored | undefined }) {
+  if (!scored) {
+    return null;
+  }
+  if (scored.pending) {
+    return <p class="muted small" role="status">Scoring the {scored.label.toLowerCase()} text…</p>;
+  }
+  if (scored.error || !scored.comparison) {
+    return <p class="small warn-text">{scored.error}</p>;
+  }
+  const c = scored.comparison;
+  return (
+    <div class="comparison small" role="status">
+      <strong class="num">{comparisonLine(c, scored.label)}</strong>
+      {c.newlyCovered.length > 0 && <p>Newly covered: {c.newlyCovered.join("; ")}</p>}
+      {c.stillMissing.length > 0 && <p>Still missing: {c.stillMissing.join("; ")}</p>}
+      <p class="muted">Employer match: how well the text covers the vacancy's requirements, not a chance of being hired.</p>
+    </div>
+  );
 }
 
 const ORIGIN_LABEL: Record<TailoredDocument["origin"], string> = {
@@ -71,6 +98,8 @@ export function DocumentsPanel({ vacancyId, presetId, onPresetChange, onSaved }:
   const [instructions, setInstructions] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Base draft versus the AI draft or a saved version, per document, on the same checklist (T-096).
+  const [scores, setScores] = useState<Partial<Record<DocumentKind, Scored>>>({});
 
   useEffect(() => {
     const controller = new AbortController();
@@ -108,11 +137,26 @@ export function DocumentsPanel({ vacancyId, presetId, onPresetChange, onSaved }:
     }
   };
 
+  /** Scores the base draft and the text on the vacancy's checklist (cached on the server) and keeps the comparison. */
+  const score = async (kind: DocumentKind, base: string, text: string, label: string) => {
+    if (!ai?.enabled) {
+      return;
+    }
+    setScores((s) => ({ ...s, [kind]: { label, pending: true } }));
+    try {
+      const [before, after] = await Promise.all([matchText(vacancyId, base), matchText(vacancyId, text)]);
+      setScores((s) => ({ ...s, [kind]: { label, comparison: compare(before, after) } }));
+    } catch (e: unknown) {
+      setScores((s) => ({ ...s, [kind]: { label, error: e instanceof ApiError ? e.message : "The match could not be computed." } }));
+    }
+  };
+
   const generate = (kind: DocumentKind) =>
     act(`draft-${kind}`, async () => {
       const d = await draftDocument(vacancyId, kind, presetId, instructions);
       setEditing({ kind, content: d.content, origin: "ai", provider: d.provider, model: d.model, snapshotId: d.snapshotId, baseDraft: d.baseDraft });
       setShowDiff(true);
+      void score(kind, d.baseDraft, d.content, "Tailored");
     }, "The draft could not be generated.");
 
   const asIs = (kind: DocumentKind) => act(`as-is-${kind}`, async () => added(await saveAsIs(vacancyId, kind, presetId)), "The base draft could not be saved.");
@@ -120,8 +164,12 @@ export function DocumentsPanel({ vacancyId, presetId, onPresetChange, onSaved }:
   const save = () =>
     editing &&
     act("save", async () => {
-      added(await saveDocument(vacancyId, editing));
+      const saved = await saveDocument(vacancyId, editing);
+      added(saved);
       setEditing(null);
+      if (editing.baseDraft !== undefined) {
+        void score(saved.kind, editing.baseDraft, saved.content, `Version ${saved.version}`);
+      }
     }, "Saving failed. Your text is still in the editor.");
 
   const nextVersion = editing ? (latest[editing.kind]?.version ?? 0) + 1 : 1;
@@ -198,6 +246,7 @@ export function DocumentsPanel({ vacancyId, presetId, onPresetChange, onSaved }:
                   {busy === `draft-${kind}` ? "Generating…" : "Generate with AI"}
                 </button>
               </div>
+              <ScoreLine scored={scores[kind]} />
               {missing.length > 0 && (
                 <p class="small warn-text">
                   Not ready for AI: {missing.map((m) => m.message).join(" ")}{" "}
@@ -246,6 +295,12 @@ export function DocumentsPanel({ vacancyId, presetId, onPresetChange, onSaved }:
           <textarea class="input textarea" rows={14} aria-label={`${KIND_LABEL[editing.kind]} text`} value={editing.content}
             onInput={(e) => setEditing({ ...editing, content: (e.target as HTMLTextAreaElement).value })} />
           <div class="drawer-row end">
+            {ai?.enabled && editing.baseDraft !== undefined && (
+              <button class="btn ghost" type="button" disabled={busy !== null}
+                onClick={() => editing.baseDraft !== undefined && void score(editing.kind, editing.baseDraft, editing.content, "Edited")}>
+                Score my edit
+              </button>
+            )}
             <button class="btn ghost" type="button" onClick={() => setEditing(null)}>
               Discard
             </button>

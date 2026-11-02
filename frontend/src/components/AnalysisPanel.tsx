@@ -2,6 +2,7 @@ import { useEffect, useState } from "preact/hooks";
 import { ApiError } from "../api/client";
 import { type Analysis, getAnalysis, type MatchItem, PRIORITY_LABEL, runAnalysis, STATUS_LABEL } from "../api/analysis";
 import { FitBadge } from "./FitBadge";
+import { MatchBar } from "./MatchBar";
 
 interface Props {
   vacancyId: string;
@@ -101,17 +102,15 @@ export function AnalysisPanel({ vacancyId, presetId, docsVersion }: Props) {
 
       {analysis?.aiEnabled && analysis.checklist && (
         <div class="stack">
-          <h4>
-            Employer match{" "}
-            {resume && (
-              <span class="num">
-                {resume.match.score}%{" "}
-                <span class="muted small">
-                  ({resume.source === "version" ? `resume v${resume.version}` : "base resume"})
-                </span>
-              </span>
-            )}
-          </h4>
+          {resume ? (
+            <MatchBar
+              label={`Employer match, ${resume.source === "version" ? `resume v${resume.version}` : "base resume"}`}
+              score={resume.match.score}
+              note="How well the resume covers the vacancy's requirements, not a chance of being hired."
+            />
+          ) : (
+            <h4>Employer match</h4>
+          )}
           {analysis.checklist.coreProblem && <p class="small muted">Core problem of this hire: {analysis.checklist.coreProblem}</p>}
           {resume ? <Requirements items={resume.match.items} /> : <p class="muted small">Fill in the base resume of the preset to see it.</p>}
         </div>
@@ -119,10 +118,15 @@ export function AnalysisPanel({ vacancyId, presetId, docsVersion }: Props) {
 
       {analysis?.aiEnabled && (
         <div class="stack">
-          <h4>
-            Goal match {analysis.goal && <span class="num">{analysis.goal.score}%</span>}
-            {analysis.goalState === "stale" && <span class="muted small"> (from the earlier text)</span>}
-          </h4>
+          {analysis.goal ? (
+            <MatchBar
+              label={`Goal match${analysis.goalState === "stale" ? " (from the earlier text)" : ""}`}
+              score={analysis.goal.score}
+              note="How well the vacancy fits your preset's goal. Tailoring documents does not change it."
+            />
+          ) : (
+            <h4>Goal match</h4>
+          )}
           {analysis.goalState === "not_ready" && (
             <p class="muted small">
               Fill in the main goal of the <a href={`#/presets${presetId ? `?id=${encodeURIComponent(presetId)}` : ""}`}>preset</a> to see it.

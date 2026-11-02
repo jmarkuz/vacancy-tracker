@@ -749,4 +749,6 @@ Status: Accepted (T-095). Specification: [specs/M7-ai-presets.md](specs/M7-ai-pr
 - **When AI is called.** The lists keep the quick fit (no AI). The drawer reads what is known without AI; with AI on it runs the analysis once, cached on the server, showing that it is working. Without AI the drawer shows the quick fit, labelled as a quick estimate. The consent text and README Security say what the analysis sends.
 - Every prompt starts with the guardrail and keeps the vacancy, the checklist and the document in their own data blocks (ADR-048).
 
+- **Display (T-096).** Both matches are bars with the percentage and a level word (low, medium, high) written out; the bar is a focusable `meter` with its value spoken, so nothing depends on colour. A caption says the Employer match is coverage of the vacancy's requirements, not a chance of being hired. After a draft or a saved version the drawer shows `Base 62% → Tailored 78% (+16)` with the newly covered and the still missing requirements, scored on the same checklist; "Score my edit" scores the editor's text before saving.
+
 **Consequences.** Opening a vacancy with AI on costs up to four calls the first time (checklist, goal, base resume, base cover letter) and none afterwards while the texts stay the same. A model that quotes loosely loses points rather than gaining them.
