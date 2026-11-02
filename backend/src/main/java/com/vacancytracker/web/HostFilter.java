@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Refuses API requests addressed to a host name the app does not answer to (review 2026-11-02, ADR-039). Without it,
+ * Refuses requests addressed to a host name the app does not answer to (review 2026-11-02, ADR-039). Without it,
  * DNS rebinding defeats the Origin check: a page on evil.example whose name later resolves to 127.0.0.1 is
  * same-origin with itself, so it could read the backup and start runs on a local instance. A rebinding page always
  * sends its own name as Host, so only loopback names and the names in app.allowed-hosts (the VPS domain) pass.
@@ -36,9 +36,14 @@ public class HostFilter extends OncePerRequestFilter {
         this.allowed = Set.copyOf(hosts);
     }
 
+    /**
+     * Every request is checked, the static pages too: a check limited to paths starting with /api/ could be passed
+     * by a path the router reads differently (/API/, /api;x=1/, encoded letters). The pages hold no data, and a
+     * name the API refuses is useless for them anyway.
+     */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !request.getRequestURI().startsWith("/api/");
+        return false;
     }
 
     @Override
