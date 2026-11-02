@@ -103,24 +103,37 @@ public class ImapMailReader {
         keys.forEach(processed::markProcessed);
     }
 
+    /**
+     * Reads another folder of the same mailbox for another purpose (the correspondence reader, T-086). keyPrefix
+     * keeps its processed state apart from the alert adapters', so one message can serve both. Always read-only and
+     * deferred: the keys come back and the caller marks them once what they hold is stored.
+     */
+    public ReadResult readFolderDeferred(String folder, String keyPrefix, MailHandler handler) {
+        return readNew(folder, keyPrefix, false, handler, true);
+    }
+
     private ReadResult readNew(MailHandler handler, boolean defer) {
+        return readNew(folderName, "", markProcessed, handler, defer);
+    }
+
+    private ReadResult readNew(String folderToRead, String keyPrefix, boolean writable, MailHandler handler, boolean defer) {
         if (!isConfigured()) {
             return ReadResult.disabled();
         }
         Session session = Session.getInstance(properties());
         try (Store store = session.getStore(ssl ? "imaps" : "imap")) {
             store.connect(host, port, username, password);
-            try (FolderHandle handle = new FolderHandle(store.getFolder(folderName), markProcessed)) {
-                return process(handle.folder, handler, defer);
+            try (FolderHandle handle = new FolderHandle(store.getFolder(folderToRead), writable)) {
+                return process(handle.folder, keyPrefix, handler, defer);
             }
         } catch (MessagingException e) {
             // The message can mention the host and folder but never the password, which is not part of it.
-            LOG.warn("IMAP read failed for folder '{}' on {}: {}", folderName, host, e.getMessage());
+            LOG.warn("IMAP read failed for folder '{}' on {}: {}", folderToRead, host, e.getMessage());
             return ReadResult.failed("Could not read the mailbox: " + e.getMessage());
         }
     }
 
-    private ReadResult process(Folder folder, MailHandler handler, boolean defer) throws MessagingException {
+    private ReadResult process(Folder folder, String keyPrefix, MailHandler handler, boolean defer) throws MessagingException {
         Message[] all = folder.getMessages();
         FetchProfile profile = new FetchProfile();
         profile.add(FetchProfile.Item.ENVELOPE);
@@ -129,7 +142,7 @@ public class ImapMailReader {
 
         Map<String, Message> byKey = new LinkedHashMap<>();
         for (Message message : all) {
-            byKey.putIfAbsent(keyOf(folder, message), message);
+            byKey.putIfAbsent(keyPrefix + keyOf(folder, message), message);
         }
         var known = processed.known(byKey.keySet());
         List<Map.Entry<String, Message>> pending = byKey.entrySet().stream().filter(e -> !known.contains(e.getKey())).toList();
@@ -146,7 +159,7 @@ public class ImapMailReader {
             }
             MailMessage mail;
             try {
-                mail = read(entry.getKey(), (MimeMessage) entry.getValue());
+                mail = toMailMessage(entry.getKey(), (MimeMessage) entry.getValue());
             } catch (IOException | MessagingException e) {
                 LOG.warn("Skipping an unreadable message in '{}': {}", folderName, e.getMessage());
                 skipped++;
@@ -190,15 +203,18 @@ public class ImapMailReader {
         return folder.getFullName() + ":" + validity + ":" + uid;
     }
 
-    private MailMessage read(String key, MimeMessage message) throws MessagingException, IOException {
+    /** The parts the parsers read, from a message of the mailbox or from an uploaded .eml file. */
+    public static MailMessage toMailMessage(String key, MimeMessage message) throws MessagingException, IOException {
         String from = message.getFrom() != null && message.getFrom().length > 0
                 ? (message.getFrom()[0] instanceof InternetAddress a ? a.getAddress() : message.getFrom()[0].toString())
                 : null;
+        String name = message.getFrom() != null && message.getFrom().length > 0 && message.getFrom()[0] instanceof InternetAddress a
+                ? a.getPersonal() : null;
         Instant received = message.getReceivedDate() != null ? message.getReceivedDate().toInstant()
                 : message.getSentDate() != null ? message.getSentDate().toInstant() : null;
         Bodies bodies = new Bodies();
         collect(message, bodies);
-        return new MailMessage(key, from, message.getSubject(), received, bodies.text, bodies.html);
+        return new MailMessage(key, from, name, message.getSubject(), received, bodies.text, bodies.html);
     }
 
     private static final class Bodies {

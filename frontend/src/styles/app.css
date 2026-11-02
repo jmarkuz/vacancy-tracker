@@ -17,6 +17,8 @@ body {
   font-family: var(--font-sans);
   font-size: var(--font-size-md);
   line-height: var(--line-height-base);
+  font-weight: var(--font-weight-regular);
+  -webkit-font-smoothing: antialiased;
 }
 
 a {
@@ -143,6 +145,9 @@ a {
   background: var(--color-surface);
   font: inherit;
   font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  transition: background var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out);
   cursor: pointer;
 }
 
@@ -806,6 +811,15 @@ kbd {
   box-shadow: inset 3px 0 0 var(--color-accent);
 }
 
+/* Windows High Contrast drops backgrounds and shadows: the selected row keeps a real outline (review U10). */
+@media (forced-colors: active) {
+  .inbox-row.selected,
+  .palette-list li.selected {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+}
+
 .inbox-title {
   font-weight: var(--font-weight-medium);
   overflow-wrap: anywhere;
@@ -1346,4 +1360,253 @@ tr[aria-selected="true"] {
   display: grid;
   gap: var(--space-3);
   width: min(380px, 100%);
+}
+
+/* ---------- Superhuman-inspired surfaces (T-090, DESIGN.md) ---------- */
+
+h1,
+h2,
+.toolbar h1,
+.drawer-header h2 {
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--letter-spacing-display);
+}
+
+.sidebar {
+  background: var(--color-bg-muted);
+}
+
+.logo {
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--letter-spacing-display);
+}
+
+.drawer,
+.palette,
+.toast {
+  box-shadow: var(--shadow-2);
+}
+
+.drawer {
+  border-radius: var(--radius-xl) 0 0 var(--radius-xl);
+}
+
+.input {
+  border-radius: var(--radius-input);
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--color-accent-border);
+}
+
+.btn.primary:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
+.btn.danger {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+  background: transparent;
+}
+
+.link-button {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+label.inline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.file-button {
+  position: relative;
+  cursor: pointer;
+}
+
+/* Fit to the resume (T-081): number plus tier, never color alone. */
+.fit-badge {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: baseline;
+  padding: 0 var(--space-2);
+  border: var(--border-width) solid currentColor;
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+.fit-high {
+  color: var(--score-high);
+}
+
+.fit-mid {
+  color: var(--score-mid);
+}
+
+.fit-low {
+  color: var(--score-low);
+}
+
+.reasons {
+  margin: 0;
+  padding-left: var(--space-5);
+}
+
+.reason-missing {
+  color: var(--color-warning);
+}
+
+.resume-text {
+  max-height: 360px;
+  overflow: auto;
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-subtle);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  white-space: pre-wrap;
+}
+
+/* Documents and the application (T-083 to T-085). */
+.doc-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) 0;
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.doc-editor {
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--color-accent-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+}
+
+.card-mover {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.add-vacancy {
+  margin-bottom: var(--space-4);
+}
+
+.link-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.table.compact td,
+.table.compact th {
+  padding: var(--space-1) var(--space-2);
+}
+
+.state-badge {
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  font-weight: var(--font-weight-medium);
+}
+
+.state-badge.on {
+  background: var(--color-success-subtle);
+  color: var(--color-success);
+}
+
+.state-badge.off {
+  background: var(--color-bg-muted);
+  color: var(--color-text-muted);
+}
+
+/* Mail (T-086, T-087). */
+.mail-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mail-item {
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.mail-item.pending {
+  border-color: var(--color-accent-border);
+  box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
+.mail-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: baseline;
+}
+
+.mail-subject {
+  flex: 1 1 240px;
+  font-weight: var(--font-weight-medium);
+  overflow-wrap: anywhere;
+}
+
+.mail-category {
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-xs);
+  background: var(--color-bg-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+.cat-rejection {
+  color: var(--color-danger);
+}
+
+.cat-offer,
+.cat-interview,
+.cat-test_task {
+  color: var(--color-success);
+}
+
+.cat-application_received,
+.cat-application_viewed {
+  color: var(--color-info);
+}
+
+.mail-snippet {
+  margin: var(--space-2) 0;
+  color: var(--color-text-muted);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+  .drawer {
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  }
+
+  .card-mover {
+    flex-wrap: wrap;
+  }
 }

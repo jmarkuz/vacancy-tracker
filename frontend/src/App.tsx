@@ -9,6 +9,10 @@ import { Pipeline } from "./screens/Pipeline";
 import { Inbox } from "./screens/Inbox";
 import { Profiles } from "./screens/Profiles";
 import { Sources } from "./screens/Sources";
+import { Transfer } from "./screens/Transfer";
+import { ResumeScreen } from "./screens/ResumeScreen";
+import { Settings } from "./screens/Settings";
+import { MailScreen } from "./screens/MailScreen";
 import { getAuthStatus, logout, UNAUTHORIZED_EVENT } from "./api/auth";
 import { LoginScreen } from "./components/LoginScreen";
 import { listProfiles } from "./api/profiles";
@@ -20,18 +24,24 @@ const NAV: { id: Screen; label: string; short: string }[] = [
   { id: "dashboard", label: "Dashboard", short: "Home" },
   { id: "inbox", label: "Inbox", short: "Inbox" },
   { id: "pipeline", label: "Pipeline", short: "Pipeline" },
+  { id: "mail", label: "Mail", short: "Mail" },
+  { id: "resume", label: "Resume", short: "Resume" },
   { id: "sources", label: "Sources & Runs", short: "Sources" },
   { id: "profiles", label: "Search profiles", short: "Profiles" },
-  { id: "export", label: "Export", short: "Export" },
+  { id: "export", label: "Export & import", short: "Export" },
+  { id: "settings", label: "Settings", short: "Settings" },
 ];
 
 const SCREEN_INFO: Record<Screen, { title: string; task: string; description: string }> = {
   dashboard: { title: "Dashboard", task: "M3 (dashboard)", description: "KPI cards and top matches appear here." },
   inbox: { title: "Inbox", task: "T-048", description: "New vacancies waiting for triage." },
   pipeline: { title: "Pipeline", task: "T-019 and T-022", description: "Table of all tracked vacancies." },
+  mail: { title: "Mail", task: "T-086", description: "Answers of employers and job mail." },
+  resume: { title: "Resume", task: "T-080", description: "Your resume and the keywords the fit score uses." },
   sources: { title: "Sources & Runs", task: "T-047", description: "Source health and recent collection runs." },
   profiles: { title: "Search profiles", task: "T-055", description: "Rule builder for search profiles." },
-  export: { title: "Export", task: "T-024 to T-026", description: "CSV, XLSX and JSON backup downloads." },
+  export: { title: "Export & import", task: "T-079", description: "CSV, XLSX and JSON backup downloads and imports." },
+  settings: { title: "Settings", task: "T-082", description: "AI opt-in and mail tracking." },
 };
 
 export function App() {
@@ -133,15 +143,23 @@ export function App() {
         </header>
         <main class="content">
           {screen === "pipeline" ? (
-            <Pipeline key={dataVersion} params={params} />
+            <Pipeline dataVersion={dataVersion} params={params} />
           ) : screen === "sources" ? (
-            <Sources key={dataVersion} />
+            <Sources dataVersion={dataVersion} />
           ) : screen === "inbox" ? (
-            <Inbox key={dataVersion} params={params} />
+            <Inbox dataVersion={dataVersion} params={params} />
           ) : screen === "dashboard" ? (
-            <Dashboard key={dataVersion} />
+            <Dashboard dataVersion={dataVersion} />
           ) : screen === "profiles" ? (
             <Profiles params={params} />
+          ) : screen === "export" ? (
+            <Transfer />
+          ) : screen === "resume" ? (
+            <ResumeScreen />
+          ) : screen === "settings" ? (
+            <Settings />
+          ) : screen === "mail" ? (
+            <MailScreen dataVersion={dataVersion} />
           ) : (
             <Placeholder title={info.title} task={info.task} description={info.description} />
           )}

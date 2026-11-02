@@ -42,6 +42,7 @@ public class Vacancy {
     private final Instant firstSeenAt;
     private Instant lastSeenAt;
     private boolean isNew;
+    private Boolean visaSponsorship;
 
     private Vacancy(UUID id, String title, String company, String url, String canonicalUrl, String description,
                     VacancyStatus status, Instant firstSeenAt, Instant lastSeenAt) {
@@ -68,7 +69,9 @@ public class Vacancy {
         if (company == null || company.isBlank()) {
             throw new IllegalArgumentException("company is required");
         }
-        return new Vacancy(id, title, company, url, canonicalUrl, description, VacancyStatus.NEW, seenAt, seenAt);
+        Vacancy vacancy = new Vacancy(id, title, company, url, canonicalUrl, description, VacancyStatus.NEW, seenAt, seenAt);
+        vacancy.visaSponsorship = VisaSponsorship.detect(title, description);
+        return vacancy;
     }
 
     /** Placement is set by the user or by an importer; automation does not change it. */
@@ -97,13 +100,14 @@ public class Vacancy {
         v.tags = new ArrayList<>(state.tags());
         v.userEditedFields.addAll(state.userEditedFields());
         v.isNew = state.isNew();
+        v.visaSponsorship = state.visaSponsorship();
         return v;
     }
 
     public VacancyState toState() {
         return new VacancyState(id, title, company, url, canonicalUrl, location, country, workMode, description, salaryMin, salaryMax, currency,
                 salaryPeriod, status, priority, notes, contact, nextActionNote, nextActionAt, List.copyOf(tags),
-                Set.copyOf(userEditedFields), firstSeenAt, lastSeenAt, isNew);
+                Set.copyOf(userEditedFields), firstSeenAt, lastSeenAt, isNew, visaSponsorship);
     }
 
     /**
@@ -117,6 +121,7 @@ public class Vacancy {
         }
         if (!userEditedFields.contains(FIELD_DESCRIPTION) && fields.description() != null) {
             description = fields.description();
+            visaSponsorship = VisaSponsorship.detect(title, description);
         }
         // A posting that states no salary does not erase one an earlier sighting (or another source) gave.
         boolean salaryGiven = fields.salaryMin() != null || fields.salaryMax() != null;
@@ -168,6 +173,7 @@ public class Vacancy {
 
     public void editDescription(String value) {
         description = value;
+        visaSponsorship = VisaSponsorship.detect(title, value);
         userEditedFields.add(FIELD_DESCRIPTION);
     }
 
@@ -297,5 +303,9 @@ public class Vacancy {
 
     public boolean isNew() {
         return isNew;
+    }
+
+    public Boolean getVisaSponsorship() {
+        return visaSponsorship;
     }
 }

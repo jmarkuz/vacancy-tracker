@@ -17,7 +17,8 @@ import com.tngtech.archunit.lang.ArchRule;
 class ArchitectureTest {
 
     private static final String BASE = "com.vacancytracker.";
-    private static final java.util.List<String> MODULES = java.util.List.of("vacancy", "collection", "matching", "export", "notification", "web", "common");
+    private static final java.util.List<String> MODULES = java.util.List.of("vacancy", "collection", "matching", "export", "notification",
+            "application", "web", "common");
 
     private static ArchRule onlyDependsOn(String module, String... allowed) {
         String[] own = new String[allowed.length + 1];
@@ -57,6 +58,9 @@ class ArchitectureTest {
 
     @ArchTest
     static final ArchRule notificationDependsOnCollectionToo = onlyDependsOn("notification", "vacancy", "matching", "collection", "common");
+
+    @ArchTest
+    static final ArchRule applicationDependsOnCollectionToo = onlyDependsOn("application", "vacancy", "matching", "collection", "common");
 
     @ArchTest
     static final ArchRule everyPackageIsAKnownModule = classes().that().resideInAPackage("com.vacancytracker..")

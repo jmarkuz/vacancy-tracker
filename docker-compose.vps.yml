@@ -7,6 +7,8 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: vps
       APP_ACCESS_TOKEN: ${APP_ACCESS_TOKEN:?set APP_ACCESS_TOKEN in .env (at least 16 characters)}
+      # The API answers only to loopback names and these (the HostFilter, ADR-039).
+      APP_ALLOWED_HOSTS: ${DOMAIN:?set DOMAIN in .env (the host name that points at this server)}
 
   caddy:
     image: caddy:2

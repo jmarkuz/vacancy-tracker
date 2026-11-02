@@ -8,7 +8,8 @@ import java.util.Map;
 
 /**
  * Builds the facts the rule engine reads from a vacancy. A field the vacancy does not store (company type,
- * industry, seniority, employment type, language, visa and relocation flags, posting age) is left out, so
+ * industry, seniority, employment type, language, relocation flag, posting age), and visa sponsorship when the
+ * posting does not mention it (ADR-044), is left out, so
  * the engine reports it as missing and the criterion's missing-value policy applies. The source fact is the
  * earliest adapter that saw the vacancy.
  */
@@ -26,6 +27,9 @@ final class VacancyFacts {
         put(facts, "country", v.getCountry());
         put(facts, "workMode", v.getWorkMode());
         facts.put("tags", List.copyOf(v.getTags()));
+        if (v.getVisaSponsorship() != null) {
+            facts.put("visaSponsorship", v.getVisaSponsorship());
+        }
         if (!adapters.isEmpty()) {
             facts.put("source", adapters.get(0));
         }

@@ -122,3 +122,27 @@ Phase 0 ended with an approval request to the owner. Approved 2026-11-01.
 | [x] 2026-11-01 | T-073 | Tier 3 generic HTML adapter, approved sites only | M | T-030, T-027 | Adapter runs only for sites with a recorded terms check; robots.txt honored |
 | [x] 2026-11-01 | T-074 | Playwright smoke test | S | T-055, T-048 | Smoke test runs in CI |
 | [x] 2026-11-01 | T-075 | Deployment docs: VPS and reverse proxy HTTPS; run instructions | S | T-012, T-070 | Steps followed on a clean machine produce a running instance |
+
+## M6 Full application cycle
+
+Goal (owner, 2026-11-02): one tool for the whole cycle: find relevant vacancies, rate them against the resume, adapt the resume and cover letter, prepare and submit the application, and follow its status and the answers. The final submit stays with the owner. Constraints: the Compliance section of the README (no LinkedIn scraping, no logging in to job sites, no CAPTCHA bypass, no proxy rotation); AI features are off by default and need an explicit opt-in before a resume or a letter is sent to Claude.
+
+| Done | ID | Title | Est | Depends on | Acceptance criteria |
+|---|---|---|---|---|---|
+| [x] 2026-11-02 | T-076 | Audit and code review, critical fixes | M | - | `docs/code-review.md` lists findings with severity, place and state; critical and high findings fixed with tests; `mvn verify`, `npm test`, `npm run typecheck` green on current tools |
+| [x] 2026-11-02 | T-077 | Gap analysis against jobmetasearch.ai | S | T-076 | `docs/gap-analysis.md` lists gaps by priority with the evidence and the task that closes each; automated access blocked by the site is recorded, not bypassed |
+| [x] 2026-11-02 | T-078 | Visa sponsorship detection and filter | M | T-077 | Sponsorship is read from the posting text (yes, no, unknown) and filterable in views and profiles; tests for both directions |
+| [x] 2026-11-02 | T-079 | Export and import screen, add by URL | S | T-077 | The Export screen downloads CSV, XLSX and JSON and imports CSV/JSON with the row report; the Pipeline adds a vacancy by URL |
+| [x] 2026-11-02 | T-080 | Resume upload and text extraction | M | T-076 | PDF, DOCX, TXT/MD or pasted text becomes the active resume; proposed keywords are editable; unreadable files give a clear message |
+| [x] 2026-11-02 | T-081 | Resume fit score with reasons | M | T-080 | Every vacancy gets a 0..100 fit with matched and missing skills and years; recomputed when the resume changes and after each run; shown in the Inbox, the Pipeline and the drawer |
+| [x] 2026-11-02 | T-082 | Claude adapter (CLI and API key) behind an explicit opt-in | M | T-080 | Modes `cli` (`claude -p` under the owner's subscription) and `api` (ANTHROPIC_API_KEY); no OAuth token read or passed; nothing is sent before the owner enables AI in the app; consent can be revoked |
+| [x] 2026-11-02 | T-083 | Tailored resume and cover letter, edit before save, versions | M | T-082 | A draft is generated for one vacancy, edited, and only then stored as a numbered version; works without AI from the resume text |
+| [x] 2026-11-02 | T-084 | Application package and the apply page | M | T-083 | A package links chosen document versions to the vacancy, downloads as ZIP (DOCX, TXT, checklist), and opens the apply page; nothing is submitted by the app |
+| [x] 2026-11-02 | T-085 | Mark submitted: Applied in the pipeline | S | T-084 | "I submitted" moves the vacancy to Applied with the package in the history note; package and versions stay linked |
+| [x] 2026-11-02 | T-086 | Correspondence: job mail from IMAP, classified | M | T-076 | Mail in the configured folders is classified (confirmation, rejection, interview, test task, offer, recruiter message, LinkedIn notices); only job mail is kept; never marked or moved on the server |
+| [x] 2026-11-02 | T-087 | Link mail to applications and suggest a status | M | T-086, T-085 | Each job mail is linked to a vacancy with a reason; a status suggestion follows the transition table; accepting applies it, dismissing keeps the status |
+| [x] 2026-11-02 | T-088 | Owner's source list: terms check and docs/sources.md | M | T-077 | Every source from the owner's list has a verdict with the terms page and robots.txt result; sources that forbid automated access are blocked and not connected |
+| [x] 2026-11-02 | T-089 | Adapters for the allowed new sources | M | T-088 | Djinni RSS, Remote OK API (with attribution), Working Nomads API and Telegram posts forwarded to the owner's bot, each with fixture tests |
+| [x] 2026-11-02 | T-090 | Superhuman DESIGN.md and dark-first UI | M | T-081 | DESIGN.md copied with its licence; tokens and UI follow it; dark is the default theme; all shortcuts from docs/code-review.md still work |
+| [x] 2026-11-02 | T-091 | Full-cycle end-to-end test | M | T-087, T-089 | Playwright test with fake data, the fake AI adapter and a test letter: vacancy, fit, documents, package, Applied, reply, suggested status |
+| [ ] | T-092 | Backlog from the review | M | T-076 | Open findings of docs/code-review.md (body read deadline, board removal expiry, posted_at, Retry-After dates, token characters, list changes during a run, start-up sweep, palette, unsaved rules, component tests) |

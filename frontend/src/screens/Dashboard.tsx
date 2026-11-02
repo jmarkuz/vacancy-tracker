@@ -6,7 +6,7 @@ import { healthDetail, healthLabel } from "../domain/sources";
 import { formatDate } from "./columns";
 
 /** Dashboard (T-060): KPI cards that open a filtered list, top matches, funnel, applications per week, next actions. */
-export function Dashboard() {
+export function Dashboard({ dataVersion = 0 }: { dataVersion?: number }) {
   const [data, setData] = useState<Data | null>(null);
   const [sources, setSources] = useState<SourceStatus[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +20,7 @@ export function Dashboard() {
     });
     listSources(controller.signal).then(setSources).catch(() => undefined);
     return () => controller.abort();
-  }, []);
+  }, [dataVersion]);
 
   if (error) {
     return <div class="notice error" role="alert">{error}</div>;

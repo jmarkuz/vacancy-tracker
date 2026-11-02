@@ -92,11 +92,14 @@ test("the Inbox is triaged with the keyboard", async ({ page, request }) => {
 test("the board moves a card with its list and records the change", async ({ page, request }) => {
   await page.goto("/#/pipeline?layout=board");
   const saved = page.locator('section[data-column="Saved"]');
-  await expect(saved.getByRole("button", { name: "Smoke test engineer" })).toBeVisible();
+  await expect(saved.getByRole("button", { name: "Smoke test engineer", exact: true })).toBeVisible();
 
   await page.getByLabel("Move Smoke test engineer to").selectOption("Applied");
+  // Choosing alone changes nothing: the move needs the button (review 2026-11-02).
+  expect(await status(request, "Smoke test engineer")).toBe("Saved");
+  await page.getByRole("button", { name: "Move Smoke test engineer", exact: true }).click();
 
-  await expect(page.locator('section[data-column="Applied"]').getByRole("button", { name: "Smoke test engineer" })).toBeVisible();
+  await expect(page.locator('section[data-column="Applied"]').getByRole("button", { name: "Smoke test engineer", exact: true })).toBeVisible();
   expect(await status(request, "Smoke test engineer")).toBe("Applied");
   const list = (await (await request.get("/api/vacancies?size=50")).json()) as { items: { id: string; title: string }[] };
   const id = list.items.find((v) => v.title === "Smoke test engineer")!.id;
@@ -116,7 +119,8 @@ test("the command palette finds a vacancy and opens it", async ({ page }) => {
   await page.keyboard.press("Enter");
 
   await expect(page).toHaveURL(/#\/pipeline\?open=/);
-  await expect(page.getByRole("dialog").or(page.getByRole("complementary")).first()).toBeVisible();
+  // The drawer is a dialog named by the vacancy title; the sidebar is an aside too, so a looser query always passed.
+  await expect(page.getByRole("dialog", { name: "Smoke test engineer" })).toBeVisible();
 });
 
 test("every main screen loads", async ({ page }) => {

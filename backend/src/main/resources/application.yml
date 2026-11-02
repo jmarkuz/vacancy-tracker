@@ -20,3 +20,19 @@ management:
   endpoint:
     health:
       show-details: never
+
+# Sources from the owner's list (T-089, docs/sources.md "Owner's list"). Each one was checked against its terms and
+# robots.txt on the date recorded; a source that forbids automated reading is not here.
+app:
+  sources:
+    rss:
+      feeds:
+        # Djinni publishes this feed on its job list ("Jobs feed in RSS"); its terms have no clause against reading it.
+        # The feed accepts the list filters, for example ?primary_keyword=Java&employment=remote. It does not name the
+        # company, so its vacancies show "Djinni" as the company.
+        - id: djinni
+          enabled: ${APP_SOURCES_DJINNI_ENABLED:true}
+          url: ${APP_SOURCES_DJINNI_URL:https://djinni.co/jobs/rss/}
+          terms-checked-on: "2026-11-02"
+          terms-url: https://djinni.co/terms-of-use
+          company-name: Djinni
