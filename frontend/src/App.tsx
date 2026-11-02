@@ -11,6 +11,7 @@ import { Profiles } from "./screens/Profiles";
 import { Sources } from "./screens/Sources";
 import { Transfer } from "./screens/Transfer";
 import { ResumeScreen } from "./screens/ResumeScreen";
+import { PresetsScreen } from "./screens/PresetsScreen";
 import { Settings } from "./screens/Settings";
 import { MailScreen } from "./screens/MailScreen";
 import { getAuthStatus, logout, UNAUTHORIZED_EVENT } from "./api/auth";
@@ -26,6 +27,7 @@ const NAV: { id: Screen; label: string; short: string }[] = [
   { id: "pipeline", label: "Pipeline", short: "Pipeline" },
   { id: "mail", label: "Mail", short: "Mail" },
   { id: "resume", label: "Resume", short: "Resume" },
+  { id: "presets", label: "Presets", short: "Presets" },
   { id: "sources", label: "Sources & Runs", short: "Sources" },
   { id: "profiles", label: "Search profiles", short: "Profiles" },
   { id: "export", label: "Export & import", short: "Export" },
@@ -38,6 +40,7 @@ const SCREEN_INFO: Record<Screen, { title: string; task: string; description: st
   pipeline: { title: "Pipeline", task: "T-019 and T-022", description: "Table of all tracked vacancies." },
   mail: { title: "Mail", task: "T-086", description: "Answers of employers and job mail." },
   resume: { title: "Resume", task: "T-080", description: "Your resume and the keywords the fit score uses." },
+  presets: { title: "Presets", task: "T-093", description: "AI presets: goal, weights, prompts and base documents." },
   sources: { title: "Sources & Runs", task: "T-047", description: "Source health and recent collection runs." },
   profiles: { title: "Search profiles", task: "T-055", description: "Rule builder for search profiles." },
   export: { title: "Export & import", task: "T-079", description: "CSV, XLSX and JSON backup downloads and imports." },
@@ -156,6 +159,8 @@ export function App() {
             <Transfer />
           ) : screen === "resume" ? (
             <ResumeScreen />
+          ) : screen === "presets" ? (
+            <PresetsScreen params={params} />
           ) : screen === "settings" ? (
             <Settings />
           ) : screen === "mail" ? (
