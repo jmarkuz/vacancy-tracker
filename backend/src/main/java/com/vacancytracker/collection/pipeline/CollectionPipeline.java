@@ -174,7 +174,12 @@ public class CollectionPipeline {
                     allStored &= store(raw, stats, session);
                 }
                 if (allStored) {
-                    outcome.onStored().run();
+                    try {
+                        outcome.onStored().run();
+                    } catch (DataAccessException e) {
+                        // Not marked done, so the source offers the same items again; the de-duplication absorbs them.
+                        stats.errors++;
+                    }
                 }
             }
             return new AdapterResult(id, stats, outcome.warning());

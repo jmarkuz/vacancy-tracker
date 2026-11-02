@@ -60,7 +60,7 @@ public class VacancyImporter {
             row++;
             try {
                 BackupVacancy vacancy = mapper.treeToValue(item, BackupVacancy.class);
-                store(row, vacancy, report, false);
+                store(row, vacancy, report, null);
             } catch (JsonProcessingException e) {
                 report.fail(row, "record", "Not a valid vacancy object");
             } catch (IllegalArgumentException e) {
@@ -90,7 +90,7 @@ public class VacancyImporter {
         for (int i = 1; i < rows.size(); i++) {
             int row = i;
             try {
-                store(row, fromCsvRow(header, rows.get(i)), report, true);
+                store(row, fromCsvRow(header, rows.get(i)), report, java.util.Set.copyOf(header));
             } catch (IllegalArgumentException e) {
                 report.fail(row, "record", e.getMessage());
             }
@@ -98,7 +98,8 @@ public class VacancyImporter {
         return report.build();
     }
 
-    private void store(int row, BackupVacancy b, Report report, boolean csv) {
+    /** csvColumns is the header of a CSV import, or null for a JSON backup, which carries whole vacancies. */
+    private void store(int row, BackupVacancy b, Report report, java.util.Set<String> csvColumns) {
         VacancyState state;
         List<StatusEvent> history;
         try {
@@ -109,8 +110,8 @@ public class VacancyImporter {
             return;
         }
         try {
-            if (csv) {
-                service.importCsvState(state);
+            if (csvColumns != null) {
+                service.importCsvState(state, csvColumns);
             } else {
                 service.importState(state, history);
             }
@@ -213,7 +214,9 @@ public class VacancyImporter {
 
     /** Undoes the apostrophe the exporter puts before a cell that would otherwise be read as a formula. */
     private static String unneutralize(String cell) {
-        return cell.length() > 1 && cell.charAt(0) == '\'' && "=+-@\t\r".indexOf(cell.charAt(1)) >= 0 ? cell.substring(1) : cell;
+        int at = cell.startsWith("''") ? 2 : 1;
+        boolean neutralized = cell.length() > at && cell.charAt(0) == '\'' && "=+-@\t\r".indexOf(cell.charAt(at)) >= 0;
+        return neutralized ? cell.substring(1) : cell;
     }
 
     private static UUID csvUuid(String value) {

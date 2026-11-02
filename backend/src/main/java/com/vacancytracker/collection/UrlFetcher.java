@@ -8,7 +8,6 @@ import java.net.UnknownHostException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -69,7 +68,7 @@ public class UrlFetcher {
                     response.body().close();
                     throw new UrlFetchException("Source responded with HTTP " + status);
                 }
-                return readBounded(response.body());
+                return readBounded(response);
             } catch (IOException e) {
                 throw new UrlFetchException("Could not fetch the page");
             } catch (InterruptedException e) {
@@ -89,9 +88,9 @@ public class UrlFetcher {
     }
 
     /** Reads at most MAX_BYTES; more than that is cut, as the extractor needs only the head of a page. */
-    private static String readBounded(InputStream in) throws IOException {
-        try (in) {
-            return new String(in.readNBytes(MAX_BYTES), StandardCharsets.UTF_8);
+    private static String readBounded(HttpResponse<InputStream> response) throws IOException {
+        try (InputStream in = response.body()) {
+            return new String(in.readNBytes(MAX_BYTES), com.vacancytracker.collection.http.HttpFetcher.charsetOf(response.headers()));
         }
     }
 

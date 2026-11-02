@@ -83,6 +83,13 @@ class HttpFetcherTest extends AbstractIntegrationTest {
             ex.sendResponseHeaders(302, -1);
             ex.close();
         });
+        server.createContext("/latin2", ex -> {
+            ex.getResponseHeaders().add("Content-Type", "text/html; charset=windows-1250");
+            byte[] body = "Vývojář Příbram".getBytes(java.nio.charset.Charset.forName("windows-1250"));
+            ex.sendResponseHeaders(200, body.length);
+            ex.getResponseBody().write(body);
+            ex.close();
+        });
         server.createContext("/feed-plain", ex -> send(ex, 200, "plain"));
         server.createContext("/huge", ex -> send(ex, 200, "x".repeat(HttpFetcher.MAX_BODY_BYTES + 10)));
         server.start();
@@ -116,6 +123,11 @@ class HttpFetcherTest extends AbstractIntegrationTest {
         assertThat(fetcher().get(base + "/moved").body()).isEqualTo("plain");
         assertThatThrownBy(() -> fetcher().get(base + "/away"))
                 .isInstanceOf(UpstreamException.class).hasMessageContaining("another host");
+    }
+
+    @Test
+    void theCharsetOfTheAnswerIsHonoured() {
+        assertThat(fetcher().get(base + "/latin2").body()).isEqualTo("Vývojář Příbram");
     }
 
     @Test

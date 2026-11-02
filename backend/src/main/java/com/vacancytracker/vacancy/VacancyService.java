@@ -124,22 +124,35 @@ public class VacancyService {
      * already exists those are kept as they are and a changed status is appended to its history, not replacing it.
      */
     @Transactional
-    public void importCsvState(VacancyState row) {
+    public void importCsvState(VacancyState row, java.util.Set<String> columns) {
         var existing = repository.findById(row.id());
         if (existing.isEmpty()) {
             importState(row, List.of());
             return;
         }
         VacancyState old = existing.get();
-        VacancyState merged = new VacancyState(row.id(), row.title(), row.company(), row.url(), row.canonicalUrl(),
-                row.location(), row.country(), row.workMode(), old.description(), row.salaryMin(), row.salaryMax(),
-                row.currency(), row.salaryPeriod(), row.status(), row.priority(), row.notes(), row.contact(),
-                row.nextActionNote(), row.nextActionAt(), row.tags(), old.userEditedFields(), old.firstSeenAt(),
-                old.lastSeenAt(), old.isNew());
+        // A column the file does not have says nothing about the vacancy: its stored value stays.
+        boolean url = columns.contains("url");
+        VacancyStatus status = columns.contains("status") ? row.status() : old.status();
+        VacancyState merged = new VacancyState(row.id(), row.title(), row.company(),
+                url ? row.url() : old.url(), url ? row.canonicalUrl() : old.canonicalUrl(),
+                pick(columns, "location", row.location(), old.location()), pick(columns, "country", row.country(), old.country()),
+                pick(columns, "work_mode", row.workMode(), old.workMode()), old.description(),
+                pick(columns, "salary_min", row.salaryMin(), old.salaryMin()), pick(columns, "salary_max", row.salaryMax(), old.salaryMax()),
+                pick(columns, "currency", row.currency(), old.currency()), pick(columns, "salary_period", row.salaryPeriod(), old.salaryPeriod()),
+                status, pick(columns, "priority", row.priority(), old.priority()), pick(columns, "notes", row.notes(), old.notes()),
+                pick(columns, "contact", row.contact(), old.contact()), pick(columns, "next_action_note", row.nextActionNote(), old.nextActionNote()),
+                pick(columns, "next_action_at", row.nextActionAt(), old.nextActionAt()), pick(columns, "tags", row.tags(), old.tags()),
+                old.userEditedFields(), pick(columns, "first_seen_at", row.firstSeenAt(), old.firstSeenAt()),
+                pick(columns, "last_seen_at", row.lastSeenAt(), old.lastSeenAt()), old.isNew());
         repository.save(merged);
-        if (old.status() != row.status()) {
-            repository.appendStatusEvent(new StatusEvent(row.id(), old.status(), row.status(), clock.instant(), "imported from CSV"));
+        if (old.status() != status) {
+            repository.appendStatusEvent(new StatusEvent(row.id(), old.status(), status, clock.instant(), "imported from CSV"));
         }
+    }
+
+    private static <T> T pick(java.util.Set<String> columns, String column, T fromFile, T stored) {
+        return columns.contains(column) ? fromFile : stored;
     }
 
     @Transactional(readOnly = true)

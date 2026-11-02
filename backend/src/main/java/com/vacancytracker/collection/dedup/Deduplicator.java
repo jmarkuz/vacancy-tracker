@@ -108,6 +108,6 @@ public class Deduplicator {
             return "";
         }
         return text.toLowerCase(Locale.ROOT).replaceAll("\\(\\s*[a-z]\\s*/\\s*[a-z](\\s*/\\s*[a-z])?\\s*\\)", " ")
-                .replaceAll("[^\\p{L}\\p{N}]+", " ").trim();
+                .replaceAll("[^\\p{L}\\p{N}+#]+", " ").trim();
     }
 }

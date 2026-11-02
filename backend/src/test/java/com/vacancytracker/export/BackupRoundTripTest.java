@@ -81,21 +81,42 @@ class BackupRoundTripTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void aCsvWithFewColumnsLeavesTheOtherFieldsOfAnExistingVacancyAlone() throws Exception {
+        String id = JsonPath.read(mvc.perform(post("/api/vacancies").contentType(JSON)
+                .content("{\"title\":\"Role\",\"company\":\"Northwind\",\"url\":\"https://ex.com/r\"}"))
+                .andReturn().getResponse().getContentAsString(), "$.id");
+        mvc.perform(post("/api/vacancies/" + id + "/status").contentType(JSON).content("{\"status\":\"Saved\"}"));
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch("/api/vacancies/" + id)
+                .contentType(JSON).content("{\"notes\":\"keep\",\"tags\":[\"dream\"],\"priority\":1}"));
+
+        importCsvText("id,title,company\r\n" + id + ",Role renamed,Northwind\r\n");
+
+        mvc.perform(get("/api/vacancies/" + id))
+                .andExpect(jsonPath("$.title").value("Role renamed"))
+                .andExpect(jsonPath("$.status").value("Saved"))
+                .andExpect(jsonPath("$.notes").value("keep"))
+                .andExpect(jsonPath("$.tags[0]").value("dream"))
+                .andExpect(jsonPath("$.priority").value(1))
+                .andExpect(jsonPath("$.url").value("https://ex.com/r"));
+        mvc.perform(get("/api/vacancies/" + id + "/history")).andExpect(jsonPath("$.length()").value(1));
+    }
+
+    @Test
     void textThatLooksLikeAFormulaIsNeutralizedInCsvAndComesBackUnchanged() throws Exception {
         String id = JsonPath.read(mvc.perform(post("/api/vacancies").contentType(JSON)
-                .content("{\"title\":\"=HYPERLINK(\\\"http://x\\\")\",\"company\":\"+Acme\"}"))
+                .content("{\"title\":\"=HYPERLINK(\\\"http://x\\\")\",\"company\":\"'-Acme\"}"))
                 .andReturn().getResponse().getContentAsString(), "$.id");
 
         MvcResult started = mvc.perform(get("/api/export/vacancies.csv").param("columns", "id,title,company"))
                 .andExpect(request().asyncStarted()).andReturn();
         String csv = mvc.perform(asyncDispatch(started)).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
 
-        assertThat(csv).contains("'=HYPERLINK").contains("'+Acme");
+        assertThat(csv).contains("'=HYPERLINK").contains("''-Acme");
         jdbc.execute("TRUNCATE vacancy CASCADE");
         assertThat(importCsvText(csv).imported()).isEqualTo(1);
         mvc.perform(get("/api/vacancies/" + id))
                 .andExpect(jsonPath("$.title").value("=HYPERLINK(\"http://x\")"))
-                .andExpect(jsonPath("$.company").value("+Acme"));
+                .andExpect(jsonPath("$.company").value("'-Acme"));
     }
 
     @Test

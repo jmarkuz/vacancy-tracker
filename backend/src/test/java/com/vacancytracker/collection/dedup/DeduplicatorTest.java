@@ -101,6 +101,15 @@ class DeduplicatorTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void languagesThatDifferOnlyInPunctuationAreDifferentRoles() {
+        ingest.ingest(p("a", null, null, "C++ Developer", "Acme", "Berlin"), NOW);
+
+        assertThat(deduplicator.match(p("b", null, null, "C# Developer", "Acme", "Berlin"))).isEmpty();
+        assertThat(deduplicator.match(p("b", null, null, "C Developer", "Acme", "Berlin"))).isEmpty();
+        assertThat(deduplicator.match(p("b", null, null, "C++ Developer", "Acme", "Berlin"))).isPresent();
+    }
+
+    @Test
     void punctuationGenderSuffixAndPlaceDetailDoNotMakeADifferentVacancy() {
         ingest.ingest(p("a", null, null, "Data Engineer (m/f/d)", "Acme", "Berlin"), NOW);
 

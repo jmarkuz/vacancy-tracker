@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import { ApiError, getJson } from "../api/client";
 import type { PageResponse, Vacancy } from "../api/types";
 import { changeStatus } from "../api/vacancies";
-import { actionForKey, isTypingTarget, moveSelection, selectionAfterRemoval } from "../domain/triage";
+import { actionForKey, activatesOnKey, isTypingTarget, moveSelection, selectionAfterRemoval } from "../domain/triage";
 import { Toast } from "../components/Toast";
 import { setQuery } from "../router";
 import { formatDate } from "./columns";
@@ -28,6 +28,8 @@ export function Inbox({ params }: Props) {
   const [reload, setReload] = useState(0);
   const listRef = useRef<HTMLUListElement>(null);
   const triaging = useRef(new Set<string>());
+  const itemsRef = useRef<Vacancy[]>([]);
+  itemsRef.current = items;
   const openId = params.get("open");
 
   useEffect(() => {
@@ -66,8 +68,10 @@ export function Inbox({ params }: Props) {
       return;
     }
     triaging.current.delete(vacancy.id);
-    const remaining = items.filter((v) => v.id !== vacancy.id);
-    setItems((current) => current.filter((v) => v.id !== vacancy.id));
+    // The list as it is now: other rows may have been triaged while this request was in flight.
+    const remaining = itemsRef.current.filter((v) => v.id !== vacancy.id);
+    itemsRef.current = remaining;
+    setItems(remaining);
     setTotal((t) => Math.max(0, t - 1));
     setSelected(selectionAfterRemoval(index, remaining.length));
     setToast({ message: `${status}: ${vacancy.title}`, tone: "info" });
@@ -78,7 +82,7 @@ export function Inbox({ params }: Props) {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (openId || e.repeat || isTypingTarget(e.target)) {
+      if (openId || e.repeat || isTypingTarget(e.target) || activatesOnKey(e.target, e.key)) {
         return;
       }
       const action = actionForKey(e.key, { ctrl: e.ctrlKey, meta: e.metaKey, alt: e.altKey });

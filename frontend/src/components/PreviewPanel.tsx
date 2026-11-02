@@ -40,7 +40,7 @@ export function PreviewPanel({ draft, valid, profileId }: Props) {
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [draft, valid]);
+  }, [draft, valid, profileId]);
 
   return (
     <section class="editor-section preview-panel" aria-labelledby="preview-title" aria-busy={loading}>
