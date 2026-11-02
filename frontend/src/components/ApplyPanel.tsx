@@ -108,7 +108,7 @@ export function ApplyPanel({ vacancyId, vacancyUrl, docsVersion, onSubmitted }: 
       <div class="stack">
         <label>
           <span class="small">{KIND_LABEL.resume}</span>
-          <select class="input" value={resumeId} onChange={(e) => setResumeId((e.target as HTMLSelectElement).value)}>
+          <select class="input" aria-label="Resume version" value={resumeId} onChange={(e) => setResumeId((e.target as HTMLSelectElement).value)}>
             <option value="">Your uploaded resume as it is</option>
             {resumes.map((d) => (
               <option key={d.id} value={d.id}>
@@ -119,7 +119,7 @@ export function ApplyPanel({ vacancyId, vacancyUrl, docsVersion, onSubmitted }: 
         </label>
         <label>
           <span class="small">{KIND_LABEL.cover_letter}</span>
-          <select class="input" value={letterId} onChange={(e) => setLetterId((e.target as HTMLSelectElement).value)}>
+          <select class="input" aria-label="Cover letter version" value={letterId} onChange={(e) => setLetterId((e.target as HTMLSelectElement).value)}>
             <option value="">No cover letter</option>
             {letters.map((d) => (
               <option key={d.id} value={d.id}>

@@ -89,5 +89,5 @@ T-087,Link mail to applications and suggest a status,M6,M,"T-086,T-085",done
 T-088,Owner's source list terms check,M6,M,T-077,done
 T-089,Adapters for the allowed new sources,M6,M,T-088,done
 T-090,Superhuman DESIGN.md and dark-first UI,M6,M,T-081,done
-T-091,Full-cycle end-to-end test,M6,M,"T-087,T-089",todo
+T-091,Full-cycle end-to-end test,M6,M,"T-087,T-089",done
 T-092,Backlog from the review,M6,M,T-076,todo
