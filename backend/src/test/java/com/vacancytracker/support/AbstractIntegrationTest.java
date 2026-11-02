@@ -1,13 +1,10 @@
 package com.vacancytracker.support;
 
-import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.utility.DockerClientFactory;
 
 /**
  * Base class for integration tests (ADR-022). One PostgreSQL 16 container is started per test JVM
@@ -20,14 +17,8 @@ public abstract class AbstractIntegrationTest {
     @ServiceConnection
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16");
 
-    @BeforeAll
-    static void startContainerIfDockerIsAvailable() {
-        Assumptions.assumeTrue(
-                DockerClientFactory.instance().isDockerAvailable(),
-                "Skipping integration test: Docker is not available in this environment");
-        if (!POSTGRES.isRunning()) {
-            POSTGRES.start();
-        }
+    static {
+        POSTGRES.start();
     }
 
     @Autowired
