@@ -394,7 +394,7 @@ function NotesEditor({ value, disabled, onSave }: { value: string; disabled: boo
         aria-label="Notes"
       />
       <div class="drawer-row end">
-        <button class="btn primary" type="button" disabled={disabled || draft === value} onClick={() => onSave(draft)}>
+        <button class="btn primary" data-role="green" type="button" disabled={disabled || draft === value} onClick={() => onSave(draft)}>
           Save notes
         </button>
       </div>

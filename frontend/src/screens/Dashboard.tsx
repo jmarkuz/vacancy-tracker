@@ -6,6 +6,15 @@ import { healthDetail, healthLabel } from "../domain/sources";
 import { formatDate } from "./columns";
 
 /** Dashboard (T-060): KPI cards that open a filtered list, top matches, funnel, applications per week, next actions. */
+/** Beacon roles of the metrics: new work is blue, work in progress green, interviews purple, overdue amber. */
+const KPI_ROLE: Record<string, "blue" | "green" | "purple" | "amber"> = {
+  "new-today": "blue",
+  inbox: "blue",
+  active: "green",
+  interviews: "purple",
+  overdue: "amber",
+};
+
 export function Dashboard({ dataVersion = 0 }: { dataVersion?: number }) {
   const [data, setData] = useState<Data | null>(null);
   const [sources, setSources] = useState<SourceStatus[]>([]);
@@ -40,9 +49,9 @@ export function Dashboard({ dataVersion = 0 }: { dataVersion?: number }) {
 
       <div class="grid-kpi">
         {kpis(data, new Date()).map((k) => (
-          <a key={k.id} class="kpi" href={k.href} data-kpi={k.id}>
-            <div class="label">{k.label}</div>
+          <a key={k.id} class="kpi" href={k.href} data-kpi={k.id} data-role={KPI_ROLE[k.id] ?? "blue"}>
             <div class="value num">{k.value.toLocaleString("en-US")}</div>
+            <div class="label">{k.label}</div>
           </a>
         ))}
       </div>

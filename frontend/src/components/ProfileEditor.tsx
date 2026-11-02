@@ -142,7 +142,7 @@ export function ProfileEditor({ initial, profile, meta, sourceIds, onSaved, onCl
         {profile && <span class="muted num small">Version {profile.version}</span>}
         {dirty && <span class="muted small" role="status">Unsaved changes</span>}
         <button type="button" class="btn" onClick={onClose}>Close</button>
-        <button type="submit" class="btn primary" disabled={!canSave}>
+        <button type="submit" class="btn primary" data-role="amber" disabled={!canSave}>
           {saving ? "Saving…" : profile ? "Save as new version" : "Create profile"}
         </button>
       </div>

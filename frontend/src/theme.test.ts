@@ -1,27 +1,28 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { applyTheme, nextTheme, readTheme } from "./theme";
+import { applyTextSize, applyTheme, nextTheme, readTextSize, readTheme } from "./theme";
 
 afterEach(() => {
   vi.restoreAllMocks();
   document.documentElement.removeAttribute("data-theme");
+  document.documentElement.removeAttribute("data-text-size");
   window.localStorage.clear();
 });
 
 describe("theme", () => {
-  it("is dark when nothing was chosen", () => {
-    expect(readTheme()).toBe("dark");
+  it("is light when nothing was chosen (Beacon)", () => {
+    expect(readTheme()).toBe("light");
   });
 
-  it("cycles dark, light, system", () => {
-    expect(nextTheme("dark")).toBe("light");
-    expect(nextTheme("light")).toBe("system");
-    expect(nextTheme("system")).toBe("dark");
+  it("cycles light, dark, system", () => {
+    expect(nextTheme("light")).toBe("dark");
+    expect(nextTheme("dark")).toBe("system");
+    expect(nextTheme("system")).toBe("light");
   });
 
   it("stores and restores a manual choice", () => {
-    applyTheme("light");
-    expect(document.documentElement.getAttribute("data-theme")).toBe("light");
-    expect(readTheme()).toBe("light");
+    applyTheme("dark");
+    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+    expect(readTheme()).toBe("dark");
   });
 
   it("marks system explicitly so the tokens can follow the system preference", () => {
@@ -32,7 +33,7 @@ describe("theme", () => {
 
   it("ignores unknown stored values", () => {
     window.localStorage.setItem("vt-theme", "neon");
-    expect(readTheme()).toBe("dark");
+    expect(readTheme()).toBe("light");
   });
 
   it("still applies the theme when storage is blocked", () => {
@@ -42,8 +43,25 @@ describe("theme", () => {
     vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
       throw new Error("blocked");
     });
-    expect(() => applyTheme("light")).not.toThrow();
-    expect(document.documentElement.getAttribute("data-theme")).toBe("light");
-    expect(readTheme()).toBe("dark");
+    expect(() => applyTheme("dark")).not.toThrow();
+    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+    expect(readTheme()).toBe("light");
+  });
+});
+
+describe("text size", () => {
+  it("is 18 px by default and can be raised to 20 or 22 px", () => {
+    expect(readTextSize()).toBe("18");
+    applyTextSize("22");
+    expect(document.documentElement.getAttribute("data-text-size")).toBe("22");
+    expect(readTextSize()).toBe("22");
+    applyTextSize("18");
+    expect(document.documentElement.hasAttribute("data-text-size")).toBe(false);
+    expect(readTextSize()).toBe("18");
+  });
+
+  it("ignores unknown stored sizes", () => {
+    window.localStorage.setItem("vt-text-size", "40");
+    expect(readTextSize()).toBe("18");
   });
 });

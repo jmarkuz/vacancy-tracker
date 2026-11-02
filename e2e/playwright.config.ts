@@ -27,5 +27,6 @@ export default defineConfig({
     { name: "full-cycle", testMatch: /full-cycle\.spec\.ts/, dependencies: ["smoke"] },
     { name: "m7", testMatch: /m7-presets\.spec\.ts/, dependencies: ["full-cycle"] },
     { name: "inbox-filter", testMatch: /inbox-filter\.spec\.ts/, dependencies: ["m7"] },
+    { name: "beacon", testMatch: /beacon\.spec\.ts/, dependencies: ["inbox-filter"] },
   ],
 });

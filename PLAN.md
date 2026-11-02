@@ -166,3 +166,4 @@ Specification: [docs/specs/M7-ai-presets.md](docs/specs/M7-ai-presets.md) (owner
 | Done | ID | Title | Est | Depends on | Acceptance criteria |
 |---|---|---|---|---|---|
 | [x] 2026-11-03 | T-100 | Inbox filter by words | S | T-048 | Inbox narrows to New vacancies whose title or description has the words (all or any), minus excluded words, filtered on the server; kept in the address; "/" focuses it; an empty result offers to clear; keyboard triage unchanged |
+| [x] 2026-11-03 | T-101 | Beacon design | M | T-090 | Tokens, roles, typography, logo and favicon from the Beacon package; light first with dark and system; text size 18/20/22 px in Settings; header and colored sidebar with skip link; Inbox with the selected vacancy beside the list and keyboard tabs; skill match as "N of M skills"; unknown as "Not specified"; contrast test of the tokens; browser test of the Inbox, roles, theme, size and 640 px |

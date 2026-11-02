@@ -4,7 +4,7 @@ A personal, self-hosted job search tool for a single user. It collects vacancies
 
 The code contains no roles, technologies, countries or salary thresholds. Everything is defined by you as data in search profiles.
 
-Status: every planned task is done except a Jooble adapter (T-036), which is blocked until Jooble provides a key and its API documentation, and the backlog of the 2026-11-02 review (T-092). Milestone M6 (2026-11-02) added the full application cycle: resume and fit, AI-adapted documents behind an explicit opt-in, application packages, mail tracking, new sources and a dark-first design. Milestone M7 (2026-11-02) added AI presets: base documents that AI adapts instead of writing new ones, an Employer match and a Goal match before and after, a resume PDF of at most two pages, and a fact check before saving. It runs on your own computer or on a VPS. See [PLAN.md](PLAN.md) for the full list and [CHANGELOG.md](CHANGELOG.md) for what changed when.
+Status: every planned task is done except a Jooble adapter (T-036), which is blocked until Jooble provides a key and its API documentation, and the backlog of the 2026-11-02 review (T-092). Milestone M6 (2026-11-02) added the full application cycle: resume and fit, AI-adapted documents behind an explicit opt-in, application packages, mail tracking, new sources and a design refresh. Milestone M7 (2026-11-02) added AI presets: base documents that AI adapts instead of writing new ones, an Employer match and a Goal match before and after, a resume PDF of at most two pages, and a fact check before saving. It runs on your own computer or on a VPS. See [PLAN.md](PLAN.md) for the full list and [CHANGELOG.md](CHANGELOG.md) for what changed when.
 
 ## How it works
 
@@ -34,7 +34,7 @@ Status: every planned task is done except a Jooble adapter (T-036), which is blo
 - Full-text search and Ctrl/Cmd+K command palette
 - Export to CSV (UTF-8 with BOM), XLSX and full JSON backup; import with per-row error reports (a CSV import merges into existing vacancies and keeps the fields you edited by hand)
 - Optional Telegram digest after a run (disabled by default)
-- Dark-first design inspired by third-party (see design file), with light and system themes; keyboard-first screens
+- Beacon design (design/README.md): calm, high-contrast, light first with a dark theme, 18 px text that can be raised to 22 px, four color roles with one meaning each, keyboard-first screens
 
 ## Sources
 
@@ -83,7 +83,7 @@ README.md                      this file
 PLAN.md                        development plan and progress (source of truth)
 tasks.csv                      the same tasks for GitHub Projects or Jira
 CHANGELOG.md                   entries per completed task
-design file                      design language (MIT; how it is used: design/README.md)
+design file                      the earlier design language (MIT); now Beacon, see design/README.md
 docs/
   research.md                  comparable solutions and what we borrow
   sources.md                   sources, terms, limits, adapter capabilities
@@ -103,6 +103,7 @@ ops/
   backup/                      backup script and its Docker test
 design/
   tokens.css                   design tokens (light and dark)
+  the design package/   Beacon brand guide, tokens, logos and mockups
   dashboard.html               static clickable mockup with fake data
   README.md                    design rationale, states, keyboard shortcuts
 ```

@@ -144,7 +144,7 @@ export function PresetsScreen({ params }: { params: URLSearchParams }) {
     }, "Saved the preset.");
 
   return (
-    <section aria-labelledby="presets-title" class="stack">
+    <section aria-labelledby="presets-title" class="stack" data-role="purple">
       <div class="toolbar">
         <h1 id="presets-title">Presets</h1>
         <span class="grow" />
@@ -297,7 +297,7 @@ export function PresetsScreen({ params }: { params: URLSearchParams }) {
         </TextField>
 
         <div class="drawer-row end">
-          <button class="btn primary" type="button" disabled={busy || !dirty || weightIssue !== null} onClick={save}>
+          <button class="btn primary" data-role="purple" type="button" disabled={busy || !dirty || weightIssue !== null} onClick={save}>
             Save preset
           </button>
         </div>
@@ -321,7 +321,7 @@ export function PresetsScreen({ params }: { params: URLSearchParams }) {
           }}>
           <FileButton label="Upload base resume" busy={busy}
             onFile={(file) => run(async () => applySaved(await uploadBaseResume(selected.id, file), ["baseResume"]), `Read ${file.name}.`)} />
-          <button class="btn primary" type="button" disabled={busy || !baseResumeChanged || !form.baseResume.trim()}
+          <button class="btn primary" data-role="purple" type="button" disabled={busy || !baseResumeChanged || !form.baseResume.trim()}
             onClick={() => run(async () => applySaved(await pasteBaseResume(selected.id, form.baseResume), ["baseResume"]), "Saved the base resume.")}>
             Save base resume
           </button>
