@@ -29,6 +29,15 @@ Index:
 - ADR-024 Frontend test tooling and accepted dev-only advisories
 - ADR-025 missingValuePolicy penalize means a weight penalty
 - ADR-026 Automatic inbox hiding and its limits
+- ADR-027 to ADR-038: see the records below (profile import, company lists, mail, Telegram, backup, token, logs, HTML and feed adapters, review follow-ups)
+- ADR-039 Review 2026-11-02: host check, row locks, manual vacancies, web links, keyboard commits
+- ADR-040 Resume and the fit score
+- ADR-041 Claude adapter and the AI opt-in
+- ADR-042 Tailored documents, versions and application packages
+- ADR-043 Correspondence: job mail, links to applications, status suggestions
+- ADR-044 Visa sponsorship from the posting text
+- ADR-045 New sources from the owner's list
+- ADR-046 Superhuman-inspired design, dark first
 
 ---
 
@@ -576,3 +585,120 @@ Status: Accepted (T-073)
 - **Later in the same day, the items first left open were closed:** Jobicy is spaced one hour from the last call (`CallBudget.tryAcquireSpaced`), not per clock hour; a match session reloads the profiles when one is saved meanwhile (`SearchProfileService.generation`); the funnel and the weekly count ignore a stage that a bulk undo took back; a search for `node.js` also matches the whole token; the alert parser takes company and place only from a block that holds one posting's link; a redirect target is fetched without validators and none are stored.
 - **After the next review:** spaced calls take turns under an advisory lock; the funnel orders an undo entry after the change it took back when both have the same time; the alert parser, in a block shared by several postings, takes only the text between a posting's link and the next one; the recalculation poller waits about 20 seconds for a job before saying none is running.
 - **Still not changed:** a search for `c#` matches by the prefix `c`; a vacancy already scored by a run that read the old profile just before a save is corrected by the recalculation that the save starts.
+
+## ADR-039 Review 2026-11-02: host check, row locks, manual vacancies, web links, keyboard commits
+
+Status: Accepted (T-076). Findings and their state: [code-review.md](code-review.md).
+
+**Context.** An independent review of the whole code base and a clean build on current tools (Docker Engine 29, Node 26) found a way for any web page to read the local API, data lost to races between background jobs and the user, and keyboard paths that changed statuses by accident.
+
+**Decision.**
+- **Host check.** `HostFilter` answers every request (pages, API, Actuator; the check does not depend on the path, so no path spelling can pass around it) only for loopback host names (`localhost`, `127.0.0.1`, `[::1]`) and the names in `app.allowed-hosts` (`APP_ALLOWED_HOSTS`; `docker-compose.vps.yml` sets it to `DOMAIN`). DNS rebinding makes a hostile page same-origin with the app, so the Origin check alone (ADR-038) cannot stop it; the Host header still carries the hostile name. A request without a Host header (HTTP/1.0, tests) is judged by the server name.
+- **Row locks.** Every read-modify-write of a vacancy reads it with `SELECT … FOR UPDATE`: user edits and status changes, bulk changes, ingest, the inbox rule and expiry. They serialise per row, so a background job can no longer write back a status or note the user changed after the job read the row. Column-scoped updates were the alternative; the lock keeps the aggregate model of ADR-003 and costs only waiting on the same row.
+- **Manual vacancies.** Creating or importing a vacancy by hand writes a first history entry, from nothing to New, noted "added by hand". It is not automatic, so the inbox rule (ADR-026) never hides the vacancy, also after a source starts listing it. The "no source row" test of ADR-038 stays as a second guard.
+- **Web links only.** A posting link is stored only when it is an http or https address with a host (`CanonicalUrl.webLink`). Sources drop other links, manual creation answers 422, an import row is rejected with the field `url`. The UI also opens only http(s) links (`safeLink`), for rows stored before this change.
+- **Salary edits in CSV.** A CSV row that changes the salary marks `salary` as edited, like a description (ADR-012).
+- **Same-board openings.** Fuzzy de-duplication (ADR-013) skips a candidate the same adapter already lists under another id: one board's ids are distinct openings.
+- **Next action.** A PATCH sets the next-action date and note independently.
+- **Keyboard commits.** Selects that change data (status in the drawer and on the board, priority) only choose; a button applies. Screens reload their data after a Refresh instead of being re-mounted, so drafts and selections survive. The Inbox selection is a vacancy id read through refs. Shortcuts fall back to the physical key (`e.code`) when the layout types non-Latin letters.
+- **Build.** Testcontainers 1.21.4 (Docker 29 needs it), the SPA-serving auth test no longer needs a UI build, and Vitest workers on Node 22+ run with `--no-experimental-webstorage`.
+
+**Consequences.** A background job may wait a few milliseconds on a row the user is saving. Rows stored earlier with a non-web link keep it in the database but the UI does not open it. Open findings are in T-092.
+
+## ADR-044 Visa sponsorship from the posting text
+
+Status: Accepted (T-078). Gap G7 of [gap-analysis.md](gap-analysis.md).
+
+**Context.** `vacancy.visa_sponsorship` existed since V1 and profiles could already name the field, but nothing ever filled it, so every rule on it fell to its missing-value policy. JobMetasearch makes sponsorship a headline filter.
+
+**Decision.**
+- `VisaSponsorship.detect(title, description)` reads the posting's own words: **false** for a refusal ("unable to sponsor", "no visa sponsorship", "must already have the right to work", German, Ukrainian and Russian equivalents), **true** for an offer ("visa sponsorship available", "we sponsor work visas", "visa support", "relocation and visa", German, Polish, Ukrainian and Russian equivalents), **null** otherwise. A refusal wins over an offer in the same text ("sponsorship is not available, but visa support for family members").
+- It is a derived fact like the description: set when a vacancy is discovered, when automation refreshes the description, and when the user edits it. A Java migration (V12) fills it once for the vacancies stored before.
+- Profiles read it as the `visaSponsorship` fact; views filter it as a yes/no field (`equals true|false`, `exists`, `not_exists`). Unknown is never true or false.
+- The phrase lists are language data, not a list of jobs, countries or technologies, so the rule "no domain data in the code" (README) holds, as for country names (ADR-036).
+
+**Consequences.** Postings in other languages or with unusual wording stay unknown; a profile decides how to treat unknown. A wrong "false" is possible when a posting mentions the right to work for another reason; the drawer shows the value so the user can see it.
+
+## ADR-045 New sources from the owner's list
+
+Status: Accepted (T-088, T-089). The checks are in [sources.md](sources.md), section "Owner's list".
+
+**Context.** The owner listed 65 channels and sites (Telegram, Facebook, LinkedIn, job boards). The README's Compliance section forbids scraping sites that prohibit it, logging in to the owner's accounts, CAPTCHA bypass and proxy rotation.
+
+**Decision.**
+- A source is connected only when an official API or feed exists and neither its terms nor `robots.txt` forbid reading it: **Djinni** (RSS, shipped as a configured feed), **Remote OK** and **Working Nomads** (public JSON APIs, new adapters `remoteok` and `workingnomads`). Both APIs return a window of current jobs, so their vacancies never expire automatically (ADR-037). Remote OK requires a link back: each vacancy keeps the Remote OK page as its link and the source is named.
+- Where the terms forbid automated access, or contradict an invitation on a developer page (DOU, Jobgether, Jobico), the source is **blocked** until the owner has the site's consent in writing; the record says whom to ask. A server that refuses non-browser clients (Golang Projects) is protection and is not worked around.
+- **Telegram**: no reading of channels or groups, neither through `t.me/s/` previews (Telegram's terms forbid scraping) nor by signing in as the owner. Instead `telegram-forward` reads the owner's own bot with `getUpdates`: the owner forwards posts in the official app, which Telegram's Bot Developer Terms allow as data "submitted directly and voluntarily". Only messages from the owner's chat are used; the offset is stored after the vacancies are stored. The forwarded post's channel becomes the link (`t.me/<channel>/<id>`) and the company unless the text names one ("Компанія: …").
+- **Facebook** groups and pages and **LinkedIn** groups are blocked. LinkedIn job alerts by email remain (`email-linkedin`), and LinkedIn mail about applications is handled by the correspondence reader (ADR-043).
+- Email alerts of other sites are noted per site; a parser is written once a real alert mail is available as a fixture, as for the existing ones (ADR-030).
+
+**Consequences.** Coverage of Ukrainian boards depends on Djinni and on what the owner forwards; DOU needs a consent first. The Telegram route needs one action per post from the owner, which is also what keeps it compliant.
+
+## ADR-040 Resume and the fit score
+
+Status: Accepted (T-080, T-081). Gaps G1 and G2 of [gap-analysis.md](gap-analysis.md).
+
+**Context.** The full cycle starts with knowing how well a vacancy fits the owner. Profiles (ADR-008) score against rules the owner writes, not against the resume. JobMetasearch's core feature is "upload your resume once" and a match per job. The README forbids technologies and roles in the code.
+
+**Decision.**
+- **A new module, `application`,** for the resume, the fit, AI documents, packages and correspondence. It may use `vacancy`, `matching`, `collection` and `common`; nothing but `web` uses it (ArchitectureTest), and it has the same 80% line-coverage gate as the other core modules.
+- **The resume** is uploaded as PDF (Apache PDFBox 3.0.8, approved by the owner on 2026-11-02), DOCX (Apache POI, already present), TXT or Markdown, or pasted; up to 5 MB. The format is decided by the file's bytes, not the browser's claim. A scanned PDF without text is refused with an explanation (no OCR). One resume is active; the original file is kept for download.
+- **Keywords, not a dictionary.** Keywords are proposed from the text: the items under a "Skills"-like heading, then terms recognised by their shape (C#, Node.js, CI/CD, PostgreSQL, AWS, S3) or as capitalised words inside an enumeration but not at its start. The owner edits the list; that list is what the score uses. The only built-in words are common words, months and countries to leave out, as for country detection (ADR-036).
+- **The fit** (0..100) is deterministic and explained. The vacancy "asks" for its skill-like terms plus every resume keyword it mentions; coverage is the share the resume has; score = 85 × coverage, +15 when a keyword is in the title, -15 when the vacancy asks for more years than the resume shows (years from merged date ranges or "N years"). Reasons: matched skills, missing skills, title, years, little text. Stored per vacancy for a resume revision; any change of the resume or its keywords raises the revision.
+- **Freshness.** A resume change and the end of every collection run start a background pass over stale fits; reading a fit computes it first when it is stale, so the Inbox, the Pipeline and the drawer never show a fit older than the resume. A fit is also stale when the vacancy's title or description changed since it was scored: each fit stores an MD5 of the text it read (V18, compared in SQL with PostgreSQL's `md5` of the same text).
+- The fit is separate from the profile score: profiles filter and rank by the owner's rules, the fit says how the resume compares. Neither changes a status.
+
+**Consequences.** Shape-based terms also catch some non-skills (a city in a list, an all-caps word); the owner prunes the resume keywords, and the missing list is advice, not a verdict. Synonyms are not merged (k8s and Kubernetes are two terms).
+
+## ADR-041 Claude adapter and the AI opt-in
+
+Status: Accepted (T-082). Gaps G3 and G4 of [gap-analysis.md](gap-analysis.md).
+
+**Context.** The owner wants resumes and cover letters adapted by Claude, through either the official `claude -p` CLI under their subscription or an API key, without the app ever extracting or passing the subscription's OAuth token. ADR-008 kept AI out of scoring; the brief allows no data to third parties except what the owner turns on. AI must be off by default and need an explicit opt-in before a resume or a letter reaches Claude.
+
+**Decision.**
+- One interface, `AiClient`, with three implementations chosen by `app.ai.provider` (`off` by default): **`cli`** runs the official CLI in print mode with no tools (`--tools ""`), no MCP servers (`--strict-mcp-config`), no slash commands, no saved session, only the settings of an empty temporary folder (`--setting-sources project`, so the owner's own hooks and plugins do not run), our own system prompt, and the prompt on standard input. The CLI authenticates itself; the app removes `ANTHROPIC_API_KEY` and `ANTHROPIC_AUTH_TOKEN` from its environment so the subscription pays and no key reaches it. **`api`** uses the official Anthropic Java SDK (3.3.0, approved by the owner) with `ANTHROPIC_API_KEY`, model `claude-opus-5-5`, effort set explicitly (`medium`), and the server-side refusal fallback (`fallbacks: "default"`, beta `server-side-fallback-2026-07-01`); a remaining refusal is reported, never shown as a document; a cut answer is marked. **`fake`** answers from the prompt itself, for tests and the end-to-end test.
+- **Consent.** `AiService` is the only door. It refuses (HTTP 409, nothing sent) unless the provider is configured **and** the owner has switched AI on in Settings after reading the notice; the consent is stored per provider (`ai_consent`, V15), so switching from `cli` to `api` asks again, and it can be withdrawn at any time.
+- **What is sent:** only on Generate, the resume text, the chosen vacancy and the owner's instructions. Mail is never sent to Claude. Classification of mail stays rule-based (ADR-043).
+- Prompts keep the rules in the system prompt and the data in tags; the vacancy text is marked as data and instructions inside it are to be ignored (it comes from the internet).
+
+**Consequences.** `cli` works only where Claude Code is installed and signed in (running the jar on the owner's computer), not in the Docker image; `api` works everywhere but costs per request. The CLI's answer format can change between versions; the adapter reads plain text only. The fake provider must never be set for real use; Settings shows it by name.
+
+## ADR-042 Tailored documents, versions and application packages
+
+Status: Accepted (T-083; packages in T-084, T-085).
+
+**Decision.**
+- A generated text is a **draft**: it is returned to the browser and never stored. The owner reads it, edits it and saves it; each save is the next **version** of that kind (resume or cover letter) for that vacancy (`tailored_document`, V15). Versions are never changed or deleted, so what was sent stays known. `origin` records whether a version started from an AI draft; provider and model are kept only then.
+- Without AI the same editor starts from the resume text (or the last version) or a cover-letter template, so the flow does not depend on AI.
+- Downloads: DOCX (plain, ATS-friendly: headings, bullets and bold only), Markdown or text; file names carry the kind, version and company.
+- **Packages.** Preparing an application fixes which versions go with it (or the uploaded resume file as it is) and the page where it is submitted (`application_package`, V16; an http(s) link only, by default the vacancy's own). Without a tailored version the package keeps its own copy of the resume as it was at that moment (V18), so replacing the resume later does not change what an application was sent with; a pasted resume is copied as its text and goes into the ZIP as `resume.docx` and `resume.txt`. The ZIP holds the documents as DOCX plus Markdown or text, the vacancy and a checklist. The UI downloads it and opens the page in a new tab; **the app never fills in or submits a form** (the README's rule against logging in to job sites holds).
+- **"I submitted"** marks the package submitted (once; repeating it changes nothing) and moves the vacancy to Applied through the shortest chain of allowed transitions (`StatusPath`; New goes through Applied directly, a dismissed vacancy through New), with the package reference and the versions in the history note. A vacancy already past Applied keeps its status. The package and its versions stay linked to the application.
+
+## ADR-043 Correspondence: job mail, links to applications, status suggestions
+
+Status: Accepted (T-086, T-087). Gap G6 of [gap-analysis.md](gap-analysis.md).
+
+**Context.** After applying, the owner follows answers in their mailbox: confirmations, rejections, interview invitations, test tasks, offers, and LinkedIn's notices about applications and messages. The IMAP reader (ADR-029) read one alert folder; answers arrive elsewhere (usually INBOX).
+
+**Decision.**
+- The existing reader gets `readFolderDeferred(folder, keyPrefix, handler)`: the same read-only connection and limits for other folders (`app.mail.replies.folders`, default `INBOX`), always read-only, with its own processed keys (prefix `reply:`), so one message can serve the alert adapters and the correspondence reader. A scheduled pass runs every 15 minutes when IMAP is configured; "Check mail now" runs one at once; an `.eml` file can be imported by hand.
+- **Classification is rule-based** (`MailClassifier`), in English, Ukrainian, Russian, Polish and German: rejection, offer, test task, interview, application viewed, application received, recruiter message, job alert, other job mail, or not about jobs. Rejection is checked first ("thank you for applying … unfortunately" is a rejection); an alert subject is checked before everything. **Mail is never sent to an AI.**
+- **Only job mail is stored** (`correspondence`, V17): sender, display name, subject, date, the first 600 characters of the text, the category, the link and the suggestion. Mail that is not about jobs is skipped and not kept. Job alerts are left to the alert sources (ADR-030).
+- **Linking** (`MailLinker`) scores each vacancy the owner has acted on (not the untouched Inbox, not dismissed, hidden or expired ones): the company name in the subject or the sender's name (+4) or in the text (+3), the sender's domain matching the company or its posting (+3), the vacancy title in the mail (+2), and +1 when the owner applied. Legal forms ("Inc.", "ТОВ") and punctuation are ignored; public mail domains never count. The best candidate with at least 3 points wins and the evidence is stored as the reason; otherwise the mail stays unlinked and the owner can link it.
+- **Suggestions**: a rejection suggests Rejected (from Applied on); an offer, a test task or an interview suggests that status when it is ahead of the current one (an interview after a test task counts); a confirmation suggests Applied from New or Saved. Nothing changes until the owner accepts; accepting moves through the allowed transitions (`StatusPath`) with the subject in the history note; dismissing keeps the status.
+
+**Consequences.** Wording outside the phrase lists falls back to "job mail" without a suggestion. Linking can miss a mail from an agency or an ATS address that names neither the company nor the title; the owner links it by hand. Reading INBOX means the app sees all mail in it: only job mail is kept, and the reader never changes the mailbox.
+
+## ADR-046 Superhuman-inspired design, dark first
+
+Status: Accepted (T-090).
+
+**Context.** The owner asked for the Superhuman theme from VoltAgent/awesome-design-md, copied into the project as DESIGN.md, with the UI updated and dark as the main theme, keeping every keyboard scenario.
+
+**Decision.**
+- `DESIGN.md` at the repository root is the unchanged file from `design-md/superhuman/` (MIT, VoltAgent), with a source and licence section added at the end. It analyses a marketing site, so the app takes its palette, type and shapes, not its page layouts: deep indigo-navy surfaces, a pale violet accent, the deep teal as the success colour, warm off-grey ink, hairline borders, Inter variable at 460/540, 8px buttons, 6px inputs, 12px cards, 16px dialogs. No logo, portrait or Superhuman name appears in the app.
+- **Dark is the default**: the tokens' `:root` holds the dark values, `data-theme="light"` and `data-theme="system"` (light only when the system prefers it) override them, the page starts with `data-theme="dark"` (no flash), and a stored choice wins. The toggle cycles dark, light, system.
+- The keyboard inventory in [code-review.md](code-review.md) is the regression list; none was removed. The design README now states the real board and rule-builder keys (Alt+arrows), the Move buttons and the layout-independent letters. The selected Inbox row and palette option keep an outline in Windows High Contrast (`forced-colors`).
+
+**Consequences.** Light-theme users see a change of accent (navy instead of indigo). The Phase 0 mockup keeps its layout with the new tokens.

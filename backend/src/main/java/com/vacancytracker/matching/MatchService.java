@@ -100,7 +100,7 @@ public class MatchService {
     }
 
     private List<VacancyMatch> matchWith(List<SearchProfile> enabled, CompanyLists companyLists, UUID vacancyId) {
-        Vacancy vacancy = Vacancy.restore(vacancies.findById(vacancyId)
+        Vacancy vacancy = Vacancy.restore(vacancies.findByIdForUpdate(vacancyId)
                 .orElseThrow(() -> new NotFoundException("Vacancy not found: " + vacancyId)));
         List<String> adapters = vacancies.findSourceAdapters(vacancyId);
         Map<String, Object> facts = VacancyFacts.of(vacancy, adapters);

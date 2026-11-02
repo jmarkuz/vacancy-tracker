@@ -14,7 +14,7 @@ interface ToastState {
 }
 
 /** Sources & Runs (T-047): health of every source, the last run per source, and a refresh of one source. */
-export function Sources() {
+export function Sources({ dataVersion = 0 }: { dataVersion?: number }) {
   const [sources, setSources] = useState<SourceStatus[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -34,8 +34,9 @@ export function Sources() {
 
   useEffect(() => {
     load();
-    return () => streamRef.current?.close();
-  }, []);
+  }, [dataVersion]);
+
+  useEffect(() => () => streamRef.current?.close(), []);
 
   const refresh = async (id: string) => {
     setToast(null);

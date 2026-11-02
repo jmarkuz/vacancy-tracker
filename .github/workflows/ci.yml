@@ -48,7 +48,8 @@ jobs:
 
   smoke:
     # The Playwright smoke test (T-074): the packaged app with its UI, on an empty PostgreSQL, driven in a browser.
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest is now 26.04, where Playwright 1.55.1 cannot install Chromium.
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:16
@@ -93,6 +94,8 @@ jobs:
           echo "the app did not start"; cat app.log; exit 1
         env:
           APP_RATES_REFRESH_ON_STARTUP: "false"
+          # The full-cycle browser test uses the fake AI provider: nothing is sent to Claude in CI.
+          APP_AI_PROVIDER: fake
           SPRING_DATASOURCE_URL: jdbc:postgresql://127.0.0.1:5432/vacancy_tracker
           SPRING_DATASOURCE_USERNAME: vacancy
           SPRING_DATASOURCE_PASSWORD: ci-only-password

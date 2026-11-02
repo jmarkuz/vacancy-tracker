@@ -51,7 +51,7 @@ public class BulkStatusService {
         List<Changed> changed = new ArrayList<>();
         List<Skipped> skipped = new ArrayList<>();
         for (UUID id : unique) {
-            Optional<VacancyState> found = repository.findById(id);
+            Optional<VacancyState> found = repository.findByIdForUpdate(id);
             if (found.isEmpty()) {
                 skipped.add(new Skipped(id, "Not found"));
                 continue;
@@ -86,7 +86,7 @@ public class BulkStatusService {
             }
             VacancyStatus previous = VacancyStatus.fromLabel(item.status());
             VacancyStatus expected = VacancyStatus.fromLabel(item.expected());
-            Optional<VacancyState> found = repository.findById(item.id());
+            Optional<VacancyState> found = repository.findByIdForUpdate(item.id());
             if (found.isEmpty()) {
                 skipped.add(new Skipped(item.id(), "Not found"));
                 continue;

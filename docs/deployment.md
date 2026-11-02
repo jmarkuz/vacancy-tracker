@@ -33,6 +33,23 @@ curl -s http://127.0.0.1:8080/actuator/health        # {"status":"UP"}
 
 Four containers' worth of work happens in three: `postgres` (data), `app` (UI, API, collection) and `backup` (daily database dump, see [operations.md](operations.md)).
 
+### Optional settings for the full application cycle (M6)
+
+Set these in `.env` (or as environment variables when you run the jar). All are off or empty unless you set them.
+
+| Setting | What it does |
+|---|---|
+| `APP_AI_PROVIDER` | `off` (default), `cli` or `api`. Even when set, AI stays off until you switch it on in **Settings** (ADR-041). |
+| `APP_AI_CLI_COMMAND`, `APP_AI_CLI_MODEL` | For `cli`: the Claude Code command (default `claude`) and an optional model alias (`sonnet`, `opus`). The CLI must be installed and signed in **on the machine that runs the app**, so `cli` works when you run the jar directly (`java -jar backend/target/vacancy-tracker-0.1.0-SNAPSHOT.jar`), not inside the Docker image. |
+| `ANTHROPIC_API_KEY`, `APP_AI_API_MODEL` | For `api`: your Claude API key, and the model (default `claude-opus-5-5`). Works in Docker too. |
+| `APP_MAIL_IMAP_ENABLED`, `APP_MAIL_IMAP_HOST`, `APP_MAIL_IMAP_USERNAME`, `APP_MAIL_IMAP_PASSWORD` | Your mailbox over IMAP (an app password, not your main password). Read-only. |
+| `APP_MAIL_IMAP_FOLDER` | The folder with job alert emails (default `Job alerts`). |
+| `APP_MAIL_REPLIES_FOLDERS` | Folders where employers' answers and LinkedIn mail arrive, comma-separated (default `INBOX`). Only job-related mail is kept. |
+| `APP_SOURCES_DJINNI_ENABLED`, `APP_SOURCES_DJINNI_URL` | The Djinni feed (on by default); add the list filters you use, for example `https://djinni.co/jobs/rss/?primary_keyword=Java&employment=remote`. |
+| `APP_SOURCES_REMOTEOK_ENABLED`, `APP_SOURCES_WORKINGNOMADS_ENABLED` | The Remote OK and Working Nomads APIs (on by default). |
+| `APP_SOURCES_TELEGRAM_FORWARD_ENABLED` | Collect the posts you forward to your own Telegram bot. Uses the digest's `APP_NOTIFICATIONS_TELEGRAM_BOT_TOKEN` and `..._CHAT_ID` unless `APP_SOURCES_TELEGRAM_FORWARD_BOT_TOKEN` and `..._OWNER_CHAT_ID` are set. Create the bot with @BotFather, send it any message once, and forward vacancy posts to it. Runs at least daily: Telegram keeps a bot's messages for 24 hours. |
+| `APP_ALLOWED_HOSTS` | Extra host names the app answers to besides `localhost` and `127.0.0.1` (the VPS compose file sets it to `DOMAIN`). |
+
 ## Run on a VPS with HTTPS
 
 ### 1. Prepare the server

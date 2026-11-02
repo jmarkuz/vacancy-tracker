@@ -4,7 +4,7 @@ A personal, self-hosted job search tool for a single user. It collects vacancies
 
 The code contains no roles, technologies, countries or salary thresholds. Everything is defined by you as data in search profiles.
 
-Status: every planned task is done except a Jooble adapter (T-036), which is blocked until Jooble provides a key and its API documentation. It runs on your own computer or on a VPS. See [PLAN.md](PLAN.md) for the full list and [CHANGELOG.md](CHANGELOG.md) for what changed when.
+Status: every planned task is done except a Jooble adapter (T-036), which is blocked until Jooble provides a key and its API documentation, and the backlog of the 2026-11-02 review (T-092). Milestone M6 (2026-11-02) added the full application cycle: resume and fit, AI-adapted documents behind an explicit opt-in, application packages, mail tracking, new sources and a dark-first design. It runs on your own computer or on a VPS. See [PLAN.md](PLAN.md) for the full list and [CHANGELOG.md](CHANGELOG.md) for what changed when.
 
 ## How it works
 
@@ -16,6 +16,10 @@ Status: every planned task is done except a Jooble adapter (T-036), which is blo
 
 ## Features
 
+- Resume upload (PDF, DOCX, TXT, Markdown or pasted) and a fit score 0..100 for every vacancy with the reasons: matched and missing skills, title, years
+- Resume and cover letter adapted to one vacancy: a draft from Claude (off by default, explicit opt-in; the official CLI under your subscription or an API key) or your own text, edited before it is saved as a numbered version, downloadable as DOCX
+- Application package: the chosen versions as a ZIP with a checklist, the application page opened for you (you submit the form yourself), and "I submitted" moves the vacancy to Applied with the versions in its history
+- Mail tracking: answers of employers and LinkedIn notices from your mailbox (read-only), linked to the application with the reason, with a suggested status change you accept or dismiss
 - Automatic and on-demand collection ("Refresh" button with live per-source progress)
 - Inbox with keyboard triage (J/K, S, X, O) and score badges with reasons
 - Pipeline as a table or a Kanban board, with status history, follow-up dates and bulk actions with Undo
@@ -26,7 +30,7 @@ Status: every planned task is done except a Jooble adapter (T-036), which is blo
 - Full-text search and Ctrl/Cmd+K command palette
 - Export to CSV (UTF-8 with BOM), XLSX and full JSON backup; import with per-row error reports (a CSV import merges into existing vacancies and keeps the fields you edited by hand)
 - Optional Telegram digest after a run (disabled by default)
-- Light and dark theme, keyboard-first screens
+- Dark-first design inspired by Superhuman (see DESIGN.md), with light and system themes; keyboard-first screens
 
 ## Sources
 
@@ -34,8 +38,9 @@ Each source is an adapter that is switched on and configured in `.env` (see `.en
 
 | Kind | Sources |
 |---|---|
-| Official public APIs | Greenhouse, Lever, Ashby (company job boards you configure), Arbeitnow, Remotive, Himalayas, Jobicy, Adzuna (free key) |
-| Feeds | Any RSS or Atom feed you configure, after you have checked its terms |
+| Official public APIs | Greenhouse, Lever, Ashby (company job boards you configure), Arbeitnow, Remotive, Himalayas, Jobicy, Remote OK, Working Nomads, Adzuna (free key) |
+| Feeds | Djinni (shipped), and any RSS or Atom feed you configure after you have checked its terms |
+| Telegram | Posts you forward to your own bot; the tool never reads channels itself (Telegram's terms forbid it) |
 | Your job alert emails | LinkedIn, Jobs.cz, StartupJobs, Indeed. The tool reads alert emails from a mailbox folder you choose over IMAP; it never logs in to the job sites |
 | Generic HTML | Only sites you configure with the terms recorded and `robots.txt` checked (off by default) |
 
@@ -44,10 +49,13 @@ Each source's terms, limits and status are recorded in [docs/sources.md](docs/so
 ## Security
 
 - The app runs on `127.0.0.1` by default. On a VPS it sits behind Caddy with HTTPS and an access token; after five wrong tokens from one address that address is blocked for ten minutes.
-- Writes from another site are refused, so a web page open in your browser cannot start a run or import data.
-- Secrets (database password, access token, source keys, IMAP and Telegram credentials) come only from `.env`. They are masked in logs.
+- Writes from another site are refused, so a web page open in your browser cannot start a run or import data. The app answers only to `localhost`, `127.0.0.1` and the host names in `APP_ALLOWED_HOSTS` (the VPS domain), so a hostile page cannot reach a local instance through DNS rebinding.
+- Links from sources and imports are stored and opened only when they are `http` or `https` addresses.
+- Secrets (database password, access token, source keys, the Anthropic API key, IMAP and Telegram credentials) come only from `.env`. They are masked in logs.
 - Importing a profile or vacancies from a URL refuses private and local addresses unless you allow them.
-- Nothing is sent to third parties except to the sources themselves. Telegram is opt-in.
+- **AI is off by default.** With `APP_AI_PROVIDER` unset nothing can reach Claude. When it is set to `cli` (the official Claude Code CLI under your own subscription) or `api` (`ANTHROPIC_API_KEY`), still nothing is sent until you switch AI on in Settings after reading what is sent; you can switch it off at any time. Even then text leaves only when you press Generate: your resume, the vacancy you chose and your instructions. Mail and the rest of your data are never sent to Claude. The app never reads, copies or passes the CLI's OAuth token: the CLI signs in by itself, runs without tools, MCP servers or your own settings, and does not receive your API key.
+- Mail: the IMAP reader only reads, never deletes, moves or sends. Of the folders it reads, only job-related mail is stored (sender, subject, date and the first part of the text); everything else is skipped and not kept.
+- Nothing is sent to third parties except to the sources themselves. Telegram (digest and forwarded posts) and AI are opt-in.
 
 See [docs/deployment.md](docs/deployment.md) for the details.
 
@@ -71,6 +79,7 @@ README.md                      this file
 PLAN.md                        development plan and progress (source of truth)
 tasks.csv                      the same tasks for GitHub Projects or Jira
 CHANGELOG.md                   entries per completed task
+DESIGN.md                      design language (Superhuman-inspired, MIT; how it is used: design/README.md)
 docs/
   research.md                  comparable solutions and what we borrow
   sources.md                   sources, terms, limits, adapter capabilities
@@ -79,10 +88,13 @@ docs/
   search-profiles.md           profile and criterion schema, score formula
   deployment.md                run locally, run on a VPS with HTTPS
   operations.md                backups and restore
+  code-review.md               review of 2026-11-02: findings and their state
+  gap-analysis.md              comparison with JobMetasearch and the gaps closed
   examples/
     search-profile.example.yml neutral example, never loaded automatically
 e2e/
   tests/smoke.spec.ts          Playwright smoke test (run: cd e2e && npm ci && npm run test:local)
+  tests/full-cycle.spec.ts     Playwright test of the whole application cycle (fake AI, a test letter)
 ops/
   backup/                      backup script and its Docker test
 design/
@@ -95,11 +107,11 @@ Also in the repository: `backend/` (Java 21, Spring Boot, Maven), `frontend/` (V
 
 ## Tech stack
 
-- Backend: Java 21, Spring Boot 3.5, Maven, PostgreSQL 16, Flyway, plain SQL through `JdbcClient`, Jsoup, Rome (RSS and Atom), Jakarta Mail (IMAP), Apache POI (XLSX), Actuator; Checkstyle, JaCoCo (80% line gate for the core modules) and ArchUnit in every build; Testcontainers for integration tests
+- Backend: Java 21, Spring Boot 3.5, Maven, PostgreSQL 16, Flyway, plain SQL through `JdbcClient`, Jsoup, Rome (RSS and Atom), Jakarta Mail (IMAP), Apache POI (XLSX and DOCX), Apache PDFBox (PDF resumes), the Anthropic Java SDK (optional AI), Actuator; Checkstyle, JaCoCo (80% line gate for the core modules) and ArchUnit in every build; Testcontainers for integration tests
 - Modules (backend): `vacancy`, `collection`, `matching`, `export`, `notification`, `web`, `common`; their allowed dependencies are checked by ArchUnit
 - Frontend: Vite, TypeScript (strict), Preact, no UI library; Vitest for the logic; built into static assets served by the backend
 - End-to-end: a Playwright smoke test in `e2e/`, run against the built jar in a local Chrome
-- Decisions: 38 recorded architecture decisions in [docs/decisions.md](docs/decisions.md)
+- Decisions: 46 recorded architecture decisions in [docs/decisions.md](docs/decisions.md)
 - Deployment: Docker Compose (`app`, `postgres`, `backup`, and `caddy` on a VPS); secrets only in `.env`
 
 ## Tests
@@ -107,7 +119,7 @@ Also in the repository: `backend/` (Java 21, Spring Boot, Maven), `frontend/` (V
 ```sh
 cd backend && mvn verify                   # unit and integration tests (needs Docker), style, coverage gate, architecture
 cd frontend && npm ci && npm test          # logic tests; `npm run typecheck` for types
-cd e2e && npm ci && npm run test:local     # browser smoke test; needs the built jar, Docker and Chrome
+cd e2e && npm ci && npm run test:local     # browser tests (smoke, then the full application cycle with the fake AI and a test letter); need the built jar, Docker and Chrome
 ```
 
 ## Running it

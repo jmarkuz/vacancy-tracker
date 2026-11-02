@@ -10,9 +10,12 @@ export const GO_TO: Command[] = [
   { id: "inbox", label: "Inbox", href: "#/inbox" },
   { id: "pipeline", label: "Pipeline", href: "#/pipeline" },
   { id: "board", label: "Pipeline board", href: "#/pipeline?layout=board" },
+  { id: "mail", label: "Mail", href: "#/mail" },
+  { id: "resume", label: "Resume", href: "#/resume" },
   { id: "sources", label: "Sources & Runs", href: "#/sources" },
   { id: "profiles", label: "Search profiles", href: "#/profiles" },
-  { id: "export", label: "Export", href: "#/export" },
+  { id: "export", label: "Export & import", href: "#/export" },
+  { id: "settings", label: "Settings", href: "#/settings" },
 ];
 
 /** Screens whose name contains every typed word. With no text, all of them. */
@@ -38,8 +41,9 @@ export function splitSnippet(snippet: string): Part[] {
 }
 
 /** Whether a key press is the palette shortcut: Ctrl+K, or Cmd+K on a Mac. */
-export function isPaletteShortcut(e: { key: string; ctrlKey: boolean; metaKey: boolean; altKey: boolean; shiftKey: boolean }): boolean {
-  return e.key.toLowerCase() === "k" && (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey;
+/** `code` covers layouts where the K key types another letter (Ukrainian "л"). */
+export function isPaletteShortcut(e: { key: string; code?: string; ctrlKey: boolean; metaKey: boolean; altKey: boolean; shiftKey: boolean }): boolean {
+  return (e.key.toLowerCase() === "k" || e.code === "KeyK") && (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey;
 }
 
 /** Moves the highlighted row by delta, wrapping around. -1 for nothing highlighted yet. */
