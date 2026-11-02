@@ -150,10 +150,26 @@ class HtmlSiteAdapterTest extends AdapterContractTest {
     void robotsTxtIsReadFirstAndADisallowedPageIsNeverRequested() {
         routes.put("/robots.txt", new TestHttp.Route(200, "User-agent: *\nDisallow: /jobs\n"));
 
-        FetchOutcome outcome = adapter(site("blocked", base + "/jobs")).fetch();
-
-        assertThat(outcome.postings()).isEmpty();
+        assertThatThrownBy(() -> adapter(site("blocked", base + "/jobs")).fetch())
+                .isInstanceOf(UpstreamException.class).hasMessageContaining("robots.txt does not allow");
         assertThat(requested).containsExactly("/robots.txt");
+    }
+
+    @Test
+    void oneSiteFailingWhileAnotherIsReadGivesTheResultAWarning() {
+        routes.put("/broken", new TestHttp.Route(500, ""));
+        FetchOutcome outcome = adapter(site("ok", base + "/jobs"), site("down", base + "/broken")).fetch();
+
+        assertThat(outcome.postings()).hasSize(2);
+        assertThat(outcome.warning()).contains("1 of 2 sites could not be read").contains("down");
+    }
+
+    @Test
+    void aRedirectIsNotFollowedBecauseRobotsWasCheckedForTheConfiguredAddressOnly() {
+        routes.put("/old", new TestHttp.Route(301, ""));
+
+        assertThatThrownBy(() -> adapter(site("moved", base + "/old")).fetch())
+                .isInstanceOf(UpstreamException.class).hasMessageContaining("HTTP 301");
     }
 
     @Test
@@ -188,9 +204,7 @@ class HtmlSiteAdapterTest extends AdapterContractTest {
         routes.put("/jobs?page=2", new TestHttp.Route(200, PAGE.replace("/x", "/y")));
         HtmlSite paged = new HtmlSite("paged", true, base + "/jobs?page={page}", 3, "2026-11-01", "https://x.test/terms", "div.j", "a.t", "", "", "", "");
 
-        FetchOutcome outcome = adapter(paged).fetch();
-
-        assertThat(outcome).isNotNull();
+        assertThatThrownBy(() -> adapter(paged).fetch()).isInstanceOf(UpstreamException.class);
         assertThat(requested).contains("/jobs?page=1").doesNotContain("/jobs?page=2");
     }
 

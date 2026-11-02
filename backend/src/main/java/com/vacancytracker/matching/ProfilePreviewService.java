@@ -57,6 +57,12 @@ public class ProfilePreviewService {
     /** Throws ProfileValidationException when the draft is not valid. Never writes. */
     @Transactional(readOnly = true)
     public Preview preview(ProfileInput draft) {
+        return preview(draft, null);
+    }
+
+    /** profileId is the stored profile the draft would replace, so its own allow and block entries apply as they will after saving. */
+    @Transactional(readOnly = true)
+    public Preview preview(ProfileInput draft, UUID profileId) {
         ProfileInput profile = validator.validate(draft);
         SearchProfile asProfile = new SearchProfile(null, profile.name(), profile.enabled(), profile.sources(),
                 profile.scheduleOverride(), profile.thresholds(), profile.criteria(), 0, null);
@@ -88,7 +94,7 @@ public class ProfilePreviewService {
                 Vacancy vacancy = Vacancy.restore(state);
                 RuleResult result = engine.evaluate(profile.criteria(), VacancyFacts.of(vacancy, sources));
                 ScoreOutcome outcome = Scorer.score(profile.criteria(), result,
-                        companyLists.verdict(null, vacancy.getCompany()), allowlistBonus);
+                        companyLists.verdict(profileId, vacancy.getCompany()), allowlistBonus);
                 if (outcome.hidden()) {
                     filteredOut++;
                     keep(filtered, sample(vacancy, "filtered-out", outcome), FILTERED_SAMPLES);

@@ -81,11 +81,12 @@ public class RssAdapter implements SourceAdapter {
         if (read == 0 && failed > 0) {
             throw new UpstreamException("No RSS feed could be read. " + firstError);
         }
-        return FetchOutcome.of(postings);
+        FetchOutcome outcome = FetchOutcome.of(postings);
+        return failed > 0 ? outcome.withWarning(failed + " of " + (read + failed) + " feeds could not be read. " + firstError) : outcome;
     }
 
     private List<RawPosting> readFeed(RssFeed feed) {
-        FetchResult result = fetcher.get(feed.url());
+        FetchResult result = fetcher.getUnconditional(feed.url());
         if (result.notModified()) {
             return List.of();
         }

@@ -57,7 +57,7 @@ public class GreenhouseAdapter implements SourceAdapter {
         List<RawPosting> all = new ArrayList<>();
         boolean allUnchanged = !boards.isEmpty();
         for (String board : boards) {
-            FetchResult result = fetcher.get(baseUrl + "/v1/boards/" + board + "/jobs?content=true");
+            FetchResult result = fetcher.getUnconditional(baseUrl + "/v1/boards/" + board + "/jobs?content=true");
             if (result.notModified()) {
                 continue;
             }

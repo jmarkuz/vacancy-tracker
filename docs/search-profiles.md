@@ -79,6 +79,8 @@ Criterion {
 | `exists` | any | Field has a non-empty value |
 | `not_exists` | any | Field is empty or absent |
 
+A `regex` in a saved view or filter runs in the database (PostgreSQL `~*`), a `regex` in a profile runs in the application (Java). Plain patterns behave the same; lookbehind, named groups and possessive quantifiers are Java-only, and `\b` is written `\y` in PostgreSQL, so keep view regexes simple.
+
 Type checks happen at save time: an operator that does not apply to a field is rejected by the API with a field-level error.
 
 ### 2.3 Modes

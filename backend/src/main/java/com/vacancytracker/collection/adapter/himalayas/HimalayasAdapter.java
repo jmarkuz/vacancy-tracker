@@ -68,7 +68,7 @@ public class HimalayasAdapter implements SourceAdapter {
         for (int page = 1; page <= maxPages; page++) {
             String url = baseUrl + "/jobs/api?limit=20"
                     + (cursor == null ? "" : "&cursor=" + URLEncoder.encode(cursor, StandardCharsets.UTF_8));
-            FetchResult result = fetcher.get(url, headers);
+            FetchResult result = fetcher.getUnconditional(url, headers);
             if (result.notModified()) {
                 break;
             }

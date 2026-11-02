@@ -37,6 +37,9 @@ class ProfilePreviewServiceTest extends AbstractIntegrationTest {
     private VacancyRepository vacancies;
 
     @Autowired
+    private CompanyListService companyLists;
+
+    @Autowired
     private ObjectMapper mapper;
 
     @Autowired
@@ -123,6 +126,17 @@ class ProfilePreviewServiceTest extends AbstractIntegrationTest {
         assertThat(count("SELECT count(*) FROM search_profile")).isZero();
         assertThat(template.queryForObject("SELECT status FROM vacancy WHERE id = ?", String.class, id)).isEqualTo("New");
         assertThat(template.queryForObject("SELECT match_score FROM vacancy WHERE id = ?", Integer.class, id)).isNull();
+    }
+
+    @Test
+    void theProfilesOwnBlocklistIsAppliedWhenItsIdIsGiven() {
+        vacancy("Java Developer", "arbeitnow");
+        ProfileInput input = draft(List.of("all"), 0, c("java", "title", "contains_any", "[\"java\"]", "prefer", 5));
+        SearchProfile saved = profiles.create(input);
+        companyLists.add("Acme", "blocklist", saved.id());
+
+        assertThat(previews.preview(input).filteredOut()).as("a new profile has no lists of its own").isZero();
+        assertThat(previews.preview(input, saved.id()).filteredOut()).isEqualTo(1);
     }
 
     @Test

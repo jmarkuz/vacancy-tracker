@@ -48,11 +48,15 @@ public class Deduplicator {
     }
 
     private Optional<Match> fuzzy(NormalizedPosting posting) {
-        String key = key(posting.title(), posting.location());
+        String title = words(posting.title());
+        String location = words(posting.location());
         Candidate best = null;
         double bestScore = 0;
         for (Candidate candidate : vacancies.findByCompany(posting.company(), CANDIDATE_LIMIT)) {
-            double score = similarity.apply(key, key(candidate.title(), candidate.location()));
+            if (!sameLocation(location, words(candidate.location()))) {
+                continue;
+            }
+            double score = titleScore(title, words(candidate.title()));
             if (score > bestScore) {
                 bestScore = score;
                 best = candidate;
@@ -61,9 +65,49 @@ public class Deduplicator {
         return bestScore >= FUZZY_THRESHOLD ? Optional.of(new Match(best.id(), Rule.FUZZY_KEY)) : Optional.empty();
     }
 
-    static String key(String title, String location) {
-        String t = title == null ? "" : title;
-        String l = location == null ? "" : location;
-        return (t + " | " + l).replaceAll("\\s+", " ").trim().toLowerCase(Locale.ROOT);
+    /** Two places agree when either is unknown, they are equal, or one is the other with more detail ("Berlin" / "Berlin Germany"). */
+    static boolean sameLocation(String a, String b) {
+        return a.isEmpty() || b.isEmpty() || a.equals(b) || (" " + a + " ").contains(" " + b + " ") || (" " + b + " ").contains(" " + a + " ");
+    }
+
+    /**
+     * 1.0 for the same title once punctuation and "(m/f/d)" are ignored. Otherwise the titles must have the same words
+     * except one that differs by a typo (at most two edits, six letters or more); "Engineer I" / "Engineer II" or
+     * "(Java)" / "(Go)" are different roles and score 0. Jaro-Winkler alone scores those pairs above 0.93.
+     */
+    double titleScore(String a, String b) {
+        if (a.equals(b)) {
+            return 1.0;
+        }
+        String[] x = a.split(" ");
+        String[] y = b.split(" ");
+        if (x.length != y.length) {
+            return 0;
+        }
+        int differing = 0;
+        for (int i = 0; i < x.length; i++) {
+            if (!x[i].equals(y[i])) {
+                differing++;
+                boolean typo = x[i].length() >= 6 && y[i].length() >= 6 && !x[i].matches(".*\\d.*") && !y[i].matches(".*\\d.*")
+                        && similarity.apply(x[i], y[i]) >= FUZZY_THRESHOLD && editDistanceAtMostTwo(x[i], y[i]);
+                if (!typo) {
+                    return 0;
+                }
+            }
+        }
+        return differing == 1 ? FUZZY_THRESHOLD : 0;
+    }
+
+    private static boolean editDistanceAtMostTwo(String a, String b) {
+        return new org.apache.commons.text.similarity.LevenshteinDistance(2).apply(a, b) >= 0;
+    }
+
+    /** Lower case, "(m/f/d)" style suffixes removed, anything but letters and digits becomes a single space. */
+    static String words(String text) {
+        if (text == null) {
+            return "";
+        }
+        return text.toLowerCase(Locale.ROOT).replaceAll("\\(\\s*[a-z]\\s*/\\s*[a-z](\\s*/\\s*[a-z])?\\s*\\)", " ")
+                .replaceAll("[^\\p{L}\\p{N}]+", " ").trim();
     }
 }

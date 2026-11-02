@@ -72,8 +72,9 @@ public class ProfileController {
      * Reads only. An invalid draft is a 422 with the problems by path.
      */
     @PostMapping("/preview")
-    public ProfilePreviewService.Preview preview(@RequestBody JsonNode body) {
-        return preview.preview(parser.parse(body));
+    public ProfilePreviewService.Preview preview(@RequestBody JsonNode body,
+                                                 @org.springframework.web.bind.annotation.RequestParam(required = false) java.util.UUID profileId) {
+        return preview.preview(parser.parse(body), profileId);
     }
 
     public record ValidationResult(boolean valid, ProfileInput profile, Map<String, String> errors) {

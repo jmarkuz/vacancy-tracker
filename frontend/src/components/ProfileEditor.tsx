@@ -231,7 +231,7 @@ export function ProfileEditor({ initial, profile, meta, sourceIds, onSaved, onCl
         )}
       </section>
 
-      <PreviewPanel draft={draft} valid={validity === "valid"} />
+      <PreviewPanel draft={draft} valid={validity === "valid"} profileId={profile?.id ?? null} />
 
       <p class="muted small" role="status" aria-live="polite">
         {validity === "checking" ? "Checking…" : validity === "valid" ? "The profile is valid." : validity === "invalid" ? "Fix the marked fields to save." : "Could not check the profile right now."}

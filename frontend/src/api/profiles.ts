@@ -143,8 +143,10 @@ export interface Preview {
 }
 
 /** Dry run against the stored vacancies; nothing is written. */
-export async function previewProfile(input: ProfileInput, signal?: AbortSignal): Promise<Preview> {
-  const response = await fetch("/api/profiles/preview", {
+/** profileId is the stored profile being edited, so its own company lists count; omit it for a new profile. */
+export async function previewProfile(input: ProfileInput, signal?: AbortSignal, profileId?: string): Promise<Preview> {
+  const query = profileId ? `?profileId=${encodeURIComponent(profileId)}` : "";
+  const response = await fetch(`/api/profiles/preview${query}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify(input),

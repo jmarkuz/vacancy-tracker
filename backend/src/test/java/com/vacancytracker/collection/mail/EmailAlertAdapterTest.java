@@ -102,8 +102,13 @@ class EmailAlertAdapterTest extends AdapterContractTest {
         assertThat(p.company()).isEqualTo("Northwind Labs");
         assertThat(p.location()).isEqualTo("Prague, Czechia");
         assertThat(p.postedAt()).isNotNull();
-        assertThat(processed.known(java.util.List.of("<li1@x>", "<other@x>"))).hasSize(2);
+        assertThat(processed.known(java.util.List.of("<li1@x>", "<other@x>")))
+                .as("nothing is marked until the pipeline has stored the vacancies").isEmpty();
+        assertThat(adapter.fetch().postings()).as("so a failed store offers the mails again").hasSize(2);
 
+        first.onStored().run();
+
+        assertThat(processed.known(java.util.List.of("<li1@x>", "<other@x>"))).hasSize(2);
         assertThat(adapter.fetch().postings()).isEmpty();
     }
 
@@ -159,7 +164,9 @@ class EmailAlertAdapterTest extends AdapterContractTest {
 
         java.util.Map<String, java.util.List<RawPosting>> byAdapter = new java.util.LinkedHashMap<>();
         for (SourceAdapter adapter : adapters) {
-            byAdapter.put(adapter.id(), adapter.fetch().postings());
+            FetchOutcome outcome = adapter.fetch();
+            byAdapter.put(adapter.id(), outcome.postings());
+            outcome.onStored().run();
         }
 
         assertThat(byAdapter.get("email-linkedin")).hasSize(2);

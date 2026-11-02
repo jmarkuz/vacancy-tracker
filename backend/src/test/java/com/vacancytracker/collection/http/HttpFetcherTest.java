@@ -73,6 +73,18 @@ class HttpFetcherTest extends AbstractIntegrationTest {
             hits.incrementAndGet();
             send(ex, 404, "nope");
         });
+        server.createContext("/moved", ex -> {
+            ex.getResponseHeaders().add("Location", "/feed-plain");
+            ex.sendResponseHeaders(301, -1);
+            ex.close();
+        });
+        server.createContext("/away", ex -> {
+            ex.getResponseHeaders().add("Location", "http://localhost:" + server.getAddress().getPort() + "/feed-plain");
+            ex.sendResponseHeaders(302, -1);
+            ex.close();
+        });
+        server.createContext("/feed-plain", ex -> send(ex, 200, "plain"));
+        server.createContext("/huge", ex -> send(ex, 200, "x".repeat(HttpFetcher.MAX_BODY_BYTES + 10)));
         server.start();
         base = "http://127.0.0.1:" + server.getAddress().getPort();
     }
@@ -97,6 +109,24 @@ class HttpFetcherTest extends AbstractIntegrationTest {
         assertThat(first.etag()).isEqualTo("\"v1\"");
         assertThat(second.notModified()).isTrue();
         assertThat(ifNoneMatch).containsExactly("\"v1\"");
+    }
+
+    @Test
+    void aRedirectOnTheSameHostIsFollowedButNotToAnotherHost() {
+        assertThat(fetcher().get(base + "/moved").body()).isEqualTo("plain");
+        assertThatThrownBy(() -> fetcher().get(base + "/away"))
+                .isInstanceOf(UpstreamException.class).hasMessageContaining("another host");
+    }
+
+    @Test
+    void aRedirectCanBeLeftUnfollowed() {
+        assertThat(fetcher().getUnconditionalWithoutRedirects(base + "/moved").status()).isEqualTo(301);
+    }
+
+    @Test
+    void anAnswerOverTheSizeCapIsRefusedNotCut() {
+        assertThatThrownBy(() -> fetcher().get(base + "/huge"))
+                .isInstanceOf(UpstreamException.class).hasMessageContaining("larger than");
     }
 
     @Test

@@ -168,24 +168,36 @@ public class CollectionPipeline {
             if (outcome.unchanged()) {
                 vacancies.touchAdapter(id, now);
             } else {
+                boolean allStored = true;
                 for (RawPosting raw : outcome.postings()) {
                     stats.fetched++;
-                    store(raw, stats, session);
+                    allStored &= store(raw, stats, session);
+                }
+                if (allStored) {
+                    outcome.onStored().run();
                 }
             }
-            return new AdapterResult(id, stats, null);
+            return new AdapterResult(id, stats, outcome.warning());
         } catch (UpstreamException e) {
-            health.recordFailure(id, e.getMessage());
-            stats.errors++;
-            return new AdapterResult(id, stats, e.getMessage());
+            return failed(id, stats, e.getMessage());
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            // A misconfigured source (a bad header value, an unusable setting) must not stop the other sources.
+            return failed(id, stats, "The source could not be read: " + e.getClass().getSimpleName());
         }
     }
 
-    private void store(RawPosting raw, RunRepository.SourceStats stats, MatchService.MatchSession session) {
+    private AdapterResult failed(String id, RunRepository.SourceStats stats, String message) {
+        health.recordFailure(id, message);
+        stats.errors++;
+        return new AdapterResult(id, stats, message);
+    }
+
+    /** False when the posting could not be written. A posting that is merely not valid is counted but is not retried. */
+    private boolean store(RawPosting raw, RunRepository.SourceStats stats, MatchService.MatchSession session) {
         Optional<NormalizedPosting> normalized = Normalizer.normalize(raw);
         if (normalized.isEmpty()) {
             stats.errors++;
-            return;
+            return true;
         }
         try {
             IngestService.Ingested ingested = ingest.ingest(normalized.get(), clock.instant());
@@ -196,8 +208,10 @@ public class CollectionPipeline {
                 default -> { }
             }
             session.match(ingested.vacancyId());
+            return true;
         } catch (DataAccessException | IllegalArgumentException e) {
             stats.errors++;
+            return false;
         }
     }
 }

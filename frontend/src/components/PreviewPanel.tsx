@@ -6,10 +6,12 @@ interface Props {
   draft: ProfileInput;
   /** Only a valid draft can be previewed. */
   valid: boolean;
+  /** The stored profile being edited, so its own company lists are applied; null for a new one. */
+  profileId?: string | null;
 }
 
 /** Live preview (T-056): how many existing vacancies the draft would match, with samples and their reasons. */
-export function PreviewPanel({ draft, valid }: Props) {
+export function PreviewPanel({ draft, valid, profileId }: Props) {
   const [preview, setPreview] = useState<Preview | null>(null);
   const [failed, setFailed] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -21,7 +23,7 @@ export function PreviewPanel({ draft, valid }: Props) {
     setLoading(true);
     const controller = new AbortController();
     const timer = window.setTimeout(() => {
-      previewProfile(draft, controller.signal)
+      previewProfile(draft, controller.signal, profileId ?? undefined)
         .then((p) => {
           setPreview(p);
           setFailed(false);
