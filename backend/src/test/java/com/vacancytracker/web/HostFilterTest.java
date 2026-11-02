@@ -21,6 +21,11 @@ class HostFilterTest extends AbstractIntegrationTest {
     @Test
     void aRebindingPageCannotReadTheApi() throws Exception {
         mvc.perform(get("/api/export/backup.json").header("Host", "evil.example:8080")).andExpect(status().isForbidden());
+        // Paths the router may read as /api/ are refused too, because the check does not depend on the path.
+        mvc.perform(get("/API/export/backup.json").header("Host", "evil.example")).andExpect(status().isForbidden());
+        mvc.perform(get("/api;x=1/export/backup.json").header("Host", "evil.example")).andExpect(status().isForbidden());
+        mvc.perform(get("/actuator/health").header("Host", "evil.example")).andExpect(status().isForbidden());
+        mvc.perform(get("/actuator/health").header("Host", "127.0.0.1:8080")).andExpect(status().isOk());
         mvc.perform(get("/api/vacancies").header("Host", "127.0.0.1:8080")).andExpect(status().isOk());
         mvc.perform(get("/api/vacancies").header("Host", "localhost")).andExpect(status().isOk());
     }
