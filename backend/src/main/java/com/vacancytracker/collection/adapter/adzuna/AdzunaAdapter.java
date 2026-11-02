@@ -82,6 +82,14 @@ public class AdzunaAdapter implements SourceAdapter {
         return ID;
     }
 
+    /**
+     * Country codes Adzuna's public documentation lists for the search endpoint. The official page does not
+     * render a machine-readable list (docs/sources.md), so this is the set the API is known to serve; a code
+     * outside it is refused before any request, which also keeps the value safe to place in the URL path.
+     */
+    static final Set<String> SUPPORTED_COUNTRIES = Set.of("at", "au", "be", "br", "ca", "ch", "de", "es", "fr",
+            "gb", "in", "it", "mx", "nl", "nz", "pl", "sg", "us", "za");
+
     @Override
     public Set<String> serverSideFields() {
         return Set.of("keywords", "location", "country");
@@ -91,6 +99,11 @@ public class AdzunaAdapter implements SourceAdapter {
     public FetchOutcome fetch() {
         if (appId.isEmpty() || appKey.isEmpty() || countries.isEmpty()) {
             return FetchOutcome.noChange();
+        }
+        for (String country : countries) {
+            if (!SUPPORTED_COUNTRIES.contains(country)) {
+                throw new UpstreamException("Adzuna country '" + country + "' is not one of the supported codes");
+            }
         }
         List<RawPosting> all = new ArrayList<>();
         for (String country : countries) {

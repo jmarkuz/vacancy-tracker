@@ -97,6 +97,19 @@ class AdzunaContractTest extends AdapterContractTest {
     }
 
     @Test
+    void anUnknownCountryCodeIsRefusedBeforeAnyRequest() {
+        HttpFetcher fetcher = new HttpFetcher(cache, new RetryPolicy(2, 1, 2, new Random(1)),
+                new DomainRateLimiter(0, clock, ms -> { }), ms -> { });
+        var adapter = new AdzunaAdapter(fetcher, mapper, TestHttp.base(healthy), "id1", "key1",
+                List.of("gb", "../x"), "gb=GBP", "", 1);
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(adapter::fetch)
+                .isInstanceOf(com.vacancytracker.collection.http.UpstreamException.class)
+                .hasMessageContaining("'../x'");
+        assertThat(template.queryForObject("SELECT count(*) FROM http_cache", Integer.class)).isZero();
+    }
+
+    @Test
     void withoutKeysOrCountriesThereIsNothingToDo() {
         HttpServer any = healthy;
         var outcome = adapter(any, "", "", "gb=GBP").fetch();

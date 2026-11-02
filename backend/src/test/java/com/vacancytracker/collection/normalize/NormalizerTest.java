@@ -18,6 +18,14 @@ class NormalizerTest {
     }
 
     @Test
+    void detectsTheCountryOnlyWhenTheLocationNamesOne() {
+        assertThat(Normalizer.normalize(raw("Dev", "Acme", "Berlin, Germany", null, null, null, null, null, null))
+                .orElseThrow().country()).isEqualTo("DE");
+        assertThat(Normalizer.normalize(raw("Dev", "Acme", "Remote", null, null, null, null, null, null))
+                .orElseThrow().country()).isNull();
+    }
+
+    @Test
     void cleansHtmlAndCollapsesWhitespace() {
         NormalizedPosting n = Normalizer.normalize(raw("  Backend   Engineer ", " Acme ", " Berlin ", null,
                 "<p>Build <b>APIs</b>\n\n  daily.</p><ul><li>Java</li></ul>", null, null, null, null)).orElseThrow();

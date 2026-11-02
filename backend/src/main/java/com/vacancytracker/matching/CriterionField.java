@@ -20,10 +20,12 @@ public enum CriterionField {
     WORK_MODE("workMode", Kind.TEXT, List.of("work_mode")),
     STATUS("status", Kind.STATUS, List.of("status")),
     PRIORITY("priority", Kind.NUMBER, List.of("priority")),
+    SCORE("score", Kind.NUMBER, List.of("match_score")),
     SALARY("salary", Kind.SALARY, List.of("salary_min", "salary_max")),
     TAGS("tags", Kind.TAGS, List.of("tags")),
     SOURCE("source", Kind.SOURCE, List.of()),
     FIRST_SEEN_AT("firstSeenAt", Kind.DATE, List.of("first_seen_at")),
+    POSTED_AT("postedAt", Kind.DATE, List.of("posted_at")),
     LAST_SEEN_AT("lastSeenAt", Kind.DATE, List.of("last_seen_at")),
     NEXT_ACTION_AT("nextActionAt", Kind.DATE, List.of("next_action_at"));
 

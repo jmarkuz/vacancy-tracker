@@ -40,13 +40,13 @@ Phase 0 ended with an approval request to the owner. Approved 2026-11-01.
 | [x] 2026-11-01 | T-011 | Maven bootstrap: Java 21, Spring Boot 3.x, package skeleton, JaCoCo, lint | S | T-010 | `mvn verify` green with a smoke test; packages from architecture.md exist |
 | [x] 2026-11-01 | T-012 | docker compose with PostgreSQL 16 and `.env.example` | S | T-011 | `docker compose up` starts app and db; `/actuator/health` is UP |
 | [x] 2026-11-01 | T-013 | Flyway baseline schema: vacancy, vacancy_source, status_event, saved_view | M | T-011 | Migration applies on Testcontainers PostgreSQL 16; matches ERD |
-| [ ] | T-014 | Vacancy domain and status machine | M | T-011 | Allowed transitions tested; terminal states enforced; every change produces a StatusEvent |
+| [x] 2026-11-02 | T-014 | Vacancy domain and status machine | M | T-011 | Allowed transitions tested; terminal states enforced; every change produces a StatusEvent |
 | [x] 2026-11-01 | T-015 | Vacancy REST API: create, read, update, list with paging | M | T-013, T-014 | Endpoints work; invalid input returns 422 with field errors; integration test |
-| [ ] | T-016 | Upsert rules and userEditedFields | M | T-014 | Unit tests prove automation never changes status, notes, tags, priority, statusHistory, nextAction*, contact; edited fields are recorded |
+| [x] 2026-11-02 | T-016 | Upsert rules and userEditedFields | M | T-014 | Unit tests prove automation never changes status, notes, tags, priority, statusHistory, nextAction*, contact; edited fields are recorded |
 | [x] 2026-11-01 | T-017 | Canonical URL utility | S | T-011 | Strips utm_* and tracking parameters; lowercases host; unit tests |
 | [x] 2026-11-01 | T-018 | Frontend bootstrap: Vite, TypeScript, Preact, app shell, tokens | M | T-011, T-007 | `npm run build` output is served by Spring at `/`; layout works at 360 px width with 16 px gutter |
 | [x] 2026-11-01 | T-019 | Pipeline table: sorting, column selection, sticky header, keyset paging | M | T-015, T-018 | 2000+ rows scroll smoothly; sort is stable; column choice persists in URL or view |
-| [ ] | T-020 | Criterion model and filter evaluation for views | M | T-015 | Criteria translate to SQL for status, source, country, workMode, score, dates; URL state round-trips |
+| [x] 2026-11-02 | T-020 | Criterion model and filter evaluation for views | M | T-015 | Criteria translate to SQL for status, source, country, workMode, score, dates; URL state round-trips |
 | [x] 2026-11-01 | T-021 | Filter chips and saved views | M | T-019, T-020 | Filters stored in URL; a saved view can be reopened and edited |
 | [x] 2026-11-01 | T-022 | Vacancy drawer: view, edit, status change, notes | M | T-015, T-018 | Status change creates StatusEvent; edited fields are marked and protected from upsert |
 | [x] 2026-11-01 | T-023 | Manual add by URL with JSON-LD JobPosting | M | T-017, T-015 | Fixture pages parsed; fallback to a manual form when no JSON-LD |
@@ -62,17 +62,17 @@ Phase 0 ended with an approval request to the owner. Approved 2026-11-01.
 | [x] 2026-11-01 | T-028 | HTTP client: User-Agent, timeouts, per-domain rate limit, ETag, If-Modified-Since | M | T-011 | WireMock tests: headers sent; 304 handled; per-domain limit enforced |
 | [x] 2026-11-01 | T-029 | Retries with backoff, Retry-After, circuit breaker, SourceState | M | T-028 | 429 and 5xx retried with backoff; breaker opens after 5 failures and recovers half-open |
 | [x] 2026-11-01 | T-030 | Adapter SPI, capability declaration, WireMock fixture harness | S | T-028 | Contract test every adapter must pass |
-| [ ] | T-031 | Adapter: ats-greenhouse | M | T-027, T-030 | Fixture-based tests; criteria-to-request translation tested |
-| [ ] | T-032 | Adapter: ats-lever | S | T-027, T-030 | As T-031 |
-| [ ] | T-033 | Adapter: ats-ashby | S | T-027, T-030 | As T-031 |
-| [ ] | T-034 | Adapter: arbeitnow | M | T-027, T-030 | As T-031; visa filter translated when criterion exists |
-| [ ] | T-035 | Adapter: adzuna | M | T-027, T-030 | Key from `.env`; country validated against documented list; key never appears in logs |
+| [x] 2026-11-02 | T-031 | Adapter: ats-greenhouse | M | T-027, T-030 | Fixture-based tests; criteria-to-request translation tested |
+| [x] 2026-11-02 | T-032 | Adapter: ats-lever | S | T-027, T-030 | As T-031 |
+| [x] 2026-11-02 | T-033 | Adapter: ats-ashby | S | T-027, T-030 | As T-031 |
+| [x] 2026-11-02 | T-034 | Adapter: arbeitnow | M | T-027, T-030 | As T-031; visa filter translated when criterion exists |
+| [x] 2026-11-02 | T-035 | Adapter: adzuna | M | T-027, T-030 | Key from `.env`; country validated against documented list; key never appears in logs |
 | [ ] | T-036 | Adapter: jooble | M | T-027, T-030 | POST body built; key masked in logs and errors |
 | [x] 2026-11-01 | T-037 | Adapter: remotive with daily quota and attribution | S | T-027, T-030 | At most 4 calls per day enforced; attribution stored with each vacancy |
 | [x] 2026-11-01 | T-038 | Adapter: himalayas | S | T-027, T-030 | Pagination with limit 20; 429 handled |
 | [x] 2026-11-01 | T-039 | Adapter: jobicy | S | T-027, T-030 | `count` parameter used; fixtures tested |
-| [ ] | T-040 | Generic RSS/Atom adapter (Rome) | M | T-030 | Fixture feed parsed; HTML in items sanitized |
-| [ ] | T-041 | Normalization: HTML cleanup, salary parsing, workMode, country, seniority | M | T-017 | Unit tests for edge cases: missing salary, period words, currency symbols |
+| [x] 2026-11-02 | T-040 | Generic RSS/Atom adapter (Rome) | M | T-030 | Fixture feed parsed; HTML in items sanitized |
+| [x] 2026-11-02 | T-041 | Normalization: HTML cleanup, salary parsing, workMode, country, seniority | M | T-017 | Unit tests for edge cases: missing salary, period words, currency symbols |
 | [x] 2026-11-01 | T-042 | Dedup: canonical URL, externalId, fuzzy company+title+location | M | T-016, T-041 | Tests for each rule in order; duplicates add VacancySource rows |
 | [x] 2026-11-01 | T-043 | Collection pipeline orchestration and RunSourceStat | M | T-029, T-041, T-042 | A failing adapter does not stop others; per-source stats stored |
 | [x] 2026-11-01 | T-044 | Run lock, cron scheduler, graceful shutdown | M | T-043 | Concurrent trigger returns the active run; shutdown finishes or marks run interrupted |

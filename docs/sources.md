@@ -74,6 +74,14 @@ Limits: at most 200 cards per page, 5 pages per site, one request per second per
 |---|---|---|---|---|---|
 | (none) | | | | | |
 
+### Feeds (RSS and Atom)
+
+Source `rss` (T-040, ADR-036) reads feeds listed under `app.sources.rss.feeds`: `id`, `enabled`, `url`, `terms-checked-on`, `terms-url`, and an optional `company-name`. Like the HTML adapter it requests nothing for a feed that is disabled or has no recorded terms check, and none is shipped. Write the check in the table below before adding the feed. One feed that fails does not stop the others. Items without a title or an http(s) link are dropped; the item text is reduced to plain text.
+
+| Feed | Terms page read | Date | What the terms say about automated reading | Config id |
+|---|---|---|---|---|
+| (none) | | | | |
+
 ## Reference data: exchange rates
 
 | Source | Used by | Official page | Auth | Limits | Terms | Status |

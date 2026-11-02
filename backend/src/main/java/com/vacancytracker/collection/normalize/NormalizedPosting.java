@@ -3,7 +3,7 @@ package com.vacancytracker.collection.normalize;
 import java.math.BigDecimal;
 import java.time.Instant;
 
-/** A posting after cleanup: plain text, canonical URL, validated salary, detected work mode. */
+/** A posting after cleanup: plain text, canonical URL, validated salary, detected country and work mode. */
 public record NormalizedPosting(
         String adapter,
         String externalId,
@@ -12,6 +12,7 @@ public record NormalizedPosting(
         String title,
         String company,
         String location,
+        String country,
         String workMode,
         String description,
         BigDecimal salaryMin,
