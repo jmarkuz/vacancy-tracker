@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { actionForKey, isTypingTarget, moveSelection, selectionAfterRemoval } from "./triage";
+import { actionForKey, activatesOnKey, isTypingTarget, moveSelection, selectionAfterRemoval } from "./triage";
 
 const none = { ctrl: false, meta: false, alt: false };
 
@@ -46,18 +46,27 @@ describe("selectionAfterRemoval", () => {
 });
 
 describe("isTypingTarget", () => {
-  it("is true for form fields, buttons, links and dialogs only", () => {
+  it("is true for form fields and dialogs only", () => {
     expect(isTypingTarget(document.createElement("input"))).toBe(true);
     expect(isTypingTarget(document.createElement("textarea"))).toBe(true);
     expect(isTypingTarget(document.createElement("select"))).toBe(true);
     expect(isTypingTarget(document.createElement("div"))).toBe(false);
-    expect(isTypingTarget(document.createElement("button"))).toBe(true);
-    expect(isTypingTarget(document.createElement("a"))).toBe(true);
+    expect(isTypingTarget(document.createElement("button"))).toBe(false);
     const dialog = document.createElement("div");
     dialog.setAttribute("role", "dialog");
     const inside = document.createElement("span");
     dialog.appendChild(inside);
     expect(isTypingTarget(inside)).toBe(true);
     expect(isTypingTarget(null)).toBe(false);
+  });
+});
+
+describe("activatesOnKey", () => {
+  it("is true only for Enter or Space on a button or link", () => {
+    expect(activatesOnKey(document.createElement("button"), "Enter")).toBe(true);
+    expect(activatesOnKey(document.createElement("a"), " ")).toBe(true);
+    expect(activatesOnKey(document.createElement("a"), "j")).toBe(false);
+    expect(activatesOnKey(document.createElement("div"), "Enter")).toBe(false);
+    expect(activatesOnKey(null, "Enter")).toBe(false);
   });
 });

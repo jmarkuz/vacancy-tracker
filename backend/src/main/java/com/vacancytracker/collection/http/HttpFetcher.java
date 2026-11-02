@@ -118,6 +118,7 @@ public class HttpFetcher {
                 return fetch(next.toString(), conditional ? next.toString() : cacheKey, headers, conditional, redirectsLeft - 1);
             }
             if (status == 304 && known.isPresent()) {
+                closeQuietly(response);
                 return FetchResult.unchanged();
             }
             if (status == 429 || status / 100 == 5) {
@@ -149,6 +150,9 @@ public class HttpFetcher {
             throw new UpstreamException("The source redirected to an address that is not valid");
         }
         requireHttp(next);
+        if ("https".equalsIgnoreCase(from.getScheme()) && !"https".equalsIgnoreCase(next.getScheme())) {
+            throw new UpstreamException("The source redirected from https to http, which is not followed");
+        }
         if (next.getHost() == null || !next.getHost().equalsIgnoreCase(from.getHost())) {
             throw new UpstreamException("The source redirected to another host, which is not followed");
         }
@@ -164,13 +168,27 @@ public class HttpFetcher {
     }
 
     /** Reads at most MAX_BODY_BYTES; a larger answer is refused, not cut, so a half document is never parsed. */
+    /** The charset of the Content-Type header; UTF-8 when it is missing or unknown. Pages in windows-1250 stay readable. */
+    public static java.nio.charset.Charset charsetOf(java.net.http.HttpHeaders headers) {
+        String type = headers.firstValue("Content-Type").orElse("");
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("(?i)charset\\s*=\\s*\"?([A-Za-z0-9_.:-]+)").matcher(type);
+        if (m.find()) {
+            try {
+                return java.nio.charset.Charset.forName(m.group(1));
+            } catch (IllegalArgumentException e) {
+                return java.nio.charset.StandardCharsets.UTF_8;
+            }
+        }
+        return java.nio.charset.StandardCharsets.UTF_8;
+    }
+
     private static String readBounded(HttpResponse<java.io.InputStream> response) {
         try (java.io.InputStream in = response.body()) {
             byte[] bytes = in.readNBytes(MAX_BODY_BYTES + 1);
             if (bytes.length > MAX_BODY_BYTES) {
                 throw new UpstreamException("The answer is larger than " + MAX_BODY_BYTES / (1024 * 1024) + " MB");
             }
-            return new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
+            return new String(bytes, charsetOf(response.headers()));
         } catch (IOException e) {
             throw new UpstreamException("Network error while reading the answer");
         }

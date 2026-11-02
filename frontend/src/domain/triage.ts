@@ -35,10 +35,7 @@ export function selectionAfterRemoval(index: number, newLength: number): number 
   return Math.min(index, newLength - 1);
 }
 
-/**
- * True when a shortcut should leave the key alone: form fields, controls that act on Enter or Space (buttons,
- * links), and anything inside a dialog.
- */
+/** True when typing should not trigger shortcuts: form fields, or anything inside a dialog. */
 export function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) {
     return false;
@@ -48,9 +45,15 @@ export function isTypingTarget(target: EventTarget | null): boolean {
     tag === "INPUT" ||
     tag === "TEXTAREA" ||
     tag === "SELECT" ||
-    tag === "BUTTON" ||
-    tag === "A" ||
     target.isContentEditable === true ||
     target.closest("[role='dialog']") !== null
   );
+}
+
+/** A focused button or link uses Enter and Space itself; a shortcut must not take those keys from it. */
+export function activatesOnKey(target: EventTarget | null, key: string): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+  return (key === "Enter" || key === " ") && (target.tagName === "BUTTON" || target.tagName === "A");
 }
