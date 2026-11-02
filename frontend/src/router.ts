@@ -1,6 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 
-export const SCREENS = ["dashboard", "inbox", "pipeline", "resume", "sources", "profiles", "export"] as const;
+export const SCREENS = ["dashboard", "inbox", "pipeline", "resume", "sources", "profiles", "export", "settings"] as const;
 export type Screen = (typeof SCREENS)[number];
 
 export interface Route {

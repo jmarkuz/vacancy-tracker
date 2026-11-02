@@ -78,6 +78,12 @@
             <version>5.4.1</version>
         </dependency>
         <dependency>
+            <!-- Claude API for the api mode of the AI adapter (T-082); approved by the owner on 2026-11-02. -->
+            <groupId>com.anthropic</groupId>
+            <artifactId>anthropic-java</artifactId>
+            <version>3.3.0</version>
+        </dependency>
+        <dependency>
             <!-- Text of PDF resumes (T-080); approved by the owner on 2026-11-02. -->
             <groupId>org.apache.pdfbox</groupId>
             <artifactId>pdfbox</artifactId>

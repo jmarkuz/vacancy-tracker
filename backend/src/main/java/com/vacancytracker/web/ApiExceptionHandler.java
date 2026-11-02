@@ -64,6 +64,17 @@ public class ApiExceptionHandler {
         return detail;
     }
 
+    /** AI is off or not configured: nothing was sent (ADR-041). */
+    @ExceptionHandler(com.vacancytracker.application.ai.AiUnavailableException.class)
+    ProblemDetail aiUnavailable(com.vacancytracker.application.ai.AiUnavailableException e) {
+        return problem(HttpStatus.CONFLICT, "AI is off", e.getMessage());
+    }
+
+    @ExceptionHandler(com.vacancytracker.application.ai.AiFailedException.class)
+    ProblemDetail aiFailed(com.vacancytracker.application.ai.AiFailedException e) {
+        return problem(HttpStatus.BAD_GATEWAY, "Claude gave no usable answer", e.getMessage());
+    }
+
     @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
     ProblemDetail unreadable(org.springframework.http.converter.HttpMessageNotReadableException e) {
         return problem(HttpStatus.BAD_REQUEST, "Malformed request body", "The request body is not valid JSON.");

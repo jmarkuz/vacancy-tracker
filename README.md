@@ -17,6 +17,7 @@ Status: every planned task is done except a Jooble adapter (T-036), which is blo
 ## Features
 
 - Resume upload (PDF, DOCX, TXT, Markdown or pasted) and a fit score 0..100 for every vacancy with the reasons: matched and missing skills, title, years
+- Resume and cover letter adapted to one vacancy: a draft from Claude (off by default, explicit opt-in; the official CLI under your subscription or an API key) or your own text, edited before it is saved as a numbered version, downloadable as DOCX
 - Automatic and on-demand collection ("Refresh" button with live per-source progress)
 - Inbox with keyboard triage (J/K, S, X, O) and score badges with reasons
 - Pipeline as a table or a Kanban board, with status history, follow-up dates and bulk actions with Undo
@@ -46,10 +47,13 @@ Each source's terms, limits and status are recorded in [docs/sources.md](docs/so
 ## Security
 
 - The app runs on `127.0.0.1` by default. On a VPS it sits behind Caddy with HTTPS and an access token; after five wrong tokens from one address that address is blocked for ten minutes.
-- Writes from another site are refused, so a web page open in your browser cannot start a run or import data.
-- Secrets (database password, access token, source keys, IMAP and Telegram credentials) come only from `.env`. They are masked in logs.
+- Writes from another site are refused, so a web page open in your browser cannot start a run or import data. The app answers only to `localhost`, `127.0.0.1` and the host names in `APP_ALLOWED_HOSTS` (the VPS domain), so a hostile page cannot reach a local instance through DNS rebinding.
+- Links from sources and imports are stored and opened only when they are `http` or `https` addresses.
+- Secrets (database password, access token, source keys, the Anthropic API key, IMAP and Telegram credentials) come only from `.env`. They are masked in logs.
 - Importing a profile or vacancies from a URL refuses private and local addresses unless you allow them.
-- Nothing is sent to third parties except to the sources themselves. Telegram is opt-in.
+- **AI is off by default.** With `APP_AI_PROVIDER` unset nothing can reach Claude. When it is set to `cli` (the official Claude Code CLI under your own subscription) or `api` (`ANTHROPIC_API_KEY`), still nothing is sent until you switch AI on in Settings after reading what is sent; you can switch it off at any time. Even then text leaves only when you press Generate: your resume, the vacancy you chose and your instructions. Mail and the rest of your data are never sent to Claude. The app never reads, copies or passes the CLI's OAuth token: the CLI signs in by itself, runs without tools, MCP servers or your own settings, and does not receive your API key.
+- Mail: the IMAP reader only reads, never deletes, moves or sends. Of the folders it reads, only job-related mail is stored (sender, subject, date and the first part of the text); everything else is skipped and not kept.
+- Nothing is sent to third parties except to the sources themselves. Telegram (digest and forwarded posts) and AI are opt-in.
 
 See [docs/deployment.md](docs/deployment.md) for the details.
 

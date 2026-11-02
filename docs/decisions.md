@@ -649,3 +649,26 @@ Status: Accepted (T-080, T-081). Gaps G1 and G2 of [gap-analysis.md](gap-analysi
 - The fit is separate from the profile score: profiles filter and rank by the owner's rules, the fit says how the resume compares. Neither changes a status.
 
 **Consequences.** Shape-based terms also catch some non-skills (a city in a list, an all-caps word); the owner prunes the resume keywords, and the missing list is advice, not a verdict. Synonyms are not merged (k8s and Kubernetes are two terms).
+
+## ADR-041 Claude adapter and the AI opt-in
+
+Status: Accepted (T-082). Gaps G3 and G4 of [gap-analysis.md](gap-analysis.md).
+
+**Context.** The owner wants resumes and cover letters adapted by Claude, through either the official `claude -p` CLI under their subscription or an API key, without the app ever extracting or passing the subscription's OAuth token. ADR-008 kept AI out of scoring; the brief allows no data to third parties except what the owner turns on. AI must be off by default and need an explicit opt-in before a resume or a letter reaches Claude.
+
+**Decision.**
+- One interface, `AiClient`, with three implementations chosen by `app.ai.provider` (`off` by default): **`cli`** runs the official CLI in print mode with no tools (`--tools ""`), no MCP servers (`--strict-mcp-config`), no slash commands, no saved session, only the settings of an empty temporary folder (`--setting-sources project`, so the owner's own hooks and plugins do not run), our own system prompt, and the prompt on standard input. The CLI authenticates itself; the app removes `ANTHROPIC_API_KEY` and `ANTHROPIC_AUTH_TOKEN` from its environment so the subscription pays and no key reaches it. **`api`** uses the official Anthropic Java SDK (3.3.0, approved by the owner) with `ANTHROPIC_API_KEY`, model `claude-opus-5-5`, effort set explicitly (`medium`), and the server-side refusal fallback (`fallbacks: "default"`, beta `server-side-fallback-2026-07-01`); a remaining refusal is reported, never shown as a document; a cut answer is marked. **`fake`** answers from the prompt itself, for tests and the end-to-end test.
+- **Consent.** `AiService` is the only door. It refuses (HTTP 409, nothing sent) unless the provider is configured **and** the owner has switched AI on in Settings after reading the notice; the consent is stored per provider (`ai_consent`, V15), so switching from `cli` to `api` asks again, and it can be withdrawn at any time.
+- **What is sent:** only on Generate, the resume text, the chosen vacancy and the owner's instructions. Mail is never sent to Claude. Classification of mail stays rule-based (ADR-043).
+- Prompts keep the rules in the system prompt and the data in tags; the vacancy text is marked as data and instructions inside it are to be ignored (it comes from the internet).
+
+**Consequences.** `cli` works only where Claude Code is installed and signed in (running the jar on the owner's computer), not in the Docker image; `api` works everywhere but costs per request. The CLI's answer format can change between versions; the adapter reads plain text only. The fake provider must never be set for real use; Settings shows it by name.
+
+## ADR-042 Tailored documents, versions and application packages
+
+Status: Accepted (T-083; packages in T-084, T-085).
+
+**Decision.**
+- A generated text is a **draft**: it is returned to the browser and never stored. The owner reads it, edits it and saves it; each save is the next **version** of that kind (resume or cover letter) for that vacancy (`tailored_document`, V15). Versions are never changed or deleted, so what was sent stays known. `origin` records whether a version started from an AI draft; provider and model are kept only then.
+- Without AI the same editor starts from the resume text (or the last version) or a cover-letter template, so the flow does not depend on AI.
+- Downloads: DOCX (plain, ATS-friendly: headings, bullets and bold only), Markdown or text; file names carry the kind, version and company.
