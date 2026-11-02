@@ -177,26 +177,26 @@ public final class ResumePdf {
             StringBuilder line = new StringBuilder();
             for (String word : text.split(" +")) {
                 String candidate = line.isEmpty() ? word : line + " " + word;
-                if (width(font, size, candidate) <= max || line.isEmpty() && width(font, size, word) <= max) {
+                if (width(font, size, candidate) <= max) {
                     line.setLength(0);
                     line.append(candidate);
-                } else if (line.isEmpty()) {
-                    // A single word wider than the column is broken where it overflows.
-                    String rest = word;
-                    while (width(font, size, rest) > max) {
-                        int cut = rest.length() - 1;
-                        while (cut > 1 && width(font, size, rest.substring(0, cut)) > max) {
-                            cut--;
-                        }
-                        lines.add(rest.substring(0, cut));
-                        rest = rest.substring(cut);
-                    }
-                    line.append(rest);
-                } else {
+                    continue;
+                }
+                if (!line.isEmpty()) {
                     lines.add(line.toString());
                     line.setLength(0);
-                    line.append(word);
                 }
+                // A word wider than the column (a long link) is broken where it overflows, wherever it stands.
+                String rest = word;
+                while (width(font, size, rest) > max) {
+                    int cut = rest.length() - 1;
+                    while (cut > 1 && width(font, size, rest.substring(0, cut)) > max) {
+                        cut--;
+                    }
+                    lines.add(rest.substring(0, cut));
+                    rest = rest.substring(cut);
+                }
+                line.append(rest);
             }
             if (!line.isEmpty() || lines.isEmpty()) {
                 lines.add(line.toString());

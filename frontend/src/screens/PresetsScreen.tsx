@@ -76,7 +76,17 @@ export function PresetsScreen({ params }: { params: URLSearchParams }) {
   }, []);
 
   // A fresh form whenever another preset is chosen or the chosen one comes back from the server.
-  useEffect(() => setForm(selected ? formOf(selected) : null), [selected?.id, selected?.updatedAt]);
+  // A fresh form only when another preset is chosen. After a save only the saved fields are taken from the server,
+  // so unsaved edits elsewhere on the screen survive.
+  useEffect(() => setForm(selected ? formOf(selected) : null), [selected?.id]);
+
+  /** Stores the preset the server returned and copies the given fields of it into the form. */
+  const applySaved = (p: Preset, fields: (keyof Form)[]) => {
+    replace(p);
+    const fresh = formOf(p);
+    setForm((current) => current && Object.assign({ ...current }, Object.fromEntries(fields.map((k) => [k, fresh[k]]))));
+  };
+  const PRESET_FIELDS: (keyof Form)[] = ["name", "mainGoal", "weights", "resumePrompt", "coverLetterPrompt", "baseCoverLetter"];
 
   const replace = (p: Preset) => setPresets((list) => (list.some((x) => x.id === p.id) ? list.map((x) => (x.id === p.id ? p : x)) : [...list, p]));
 
@@ -130,7 +140,7 @@ export function PresetsScreen({ params }: { params: URLSearchParams }) {
   const save = () =>
     run(async () => {
       const p = await updatePreset(selected.id, { ...changed, ...(weightsChanged ? { weights: form.weights } : {}) });
-      replace(p);
+      applySaved(p, PRESET_FIELDS);
     }, "Saved the preset.");
 
   return (
@@ -283,7 +293,7 @@ export function PresetsScreen({ params }: { params: URLSearchParams }) {
           note={selected.baseCoverLetterFileName ? `From ${selected.baseCoverLetterFileName}.` : undefined}
           onChange={(baseCoverLetter) => set({ baseCoverLetter })}>
           <FileButton label="Upload base cover letter" busy={busy}
-            onFile={(file) => run(async () => replace(await uploadBaseCoverLetter(selected.id, file)), `Read ${file.name}.`)} />
+            onFile={(file) => run(async () => applySaved(await uploadBaseCoverLetter(selected.id, file), ["baseCoverLetter"]), `Read ${file.name}.`)} />
         </TextField>
 
         <div class="drawer-row end">
@@ -306,13 +316,13 @@ export function PresetsScreen({ params }: { params: URLSearchParams }) {
         <TextField label="Base resume text" value={form.baseResume} fallback={defaults.baseResume} rows={16} onChange={(baseResume) => set({ baseResume })}
           onReset={() => {
             if (window.confirm(selected.isDefault ? "Put the template back? Your resume will no longer be the active resume." : "Put the template back?")) {
-              run(async () => replace(await resetBaseResume(selected.id)), "The base resume is the default template again.");
+              run(async () => applySaved(await resetBaseResume(selected.id), ["baseResume"]), "The base resume is the default template again.");
             }
           }}>
           <FileButton label="Upload base resume" busy={busy}
-            onFile={(file) => run(async () => replace(await uploadBaseResume(selected.id, file)), `Read ${file.name}.`)} />
+            onFile={(file) => run(async () => applySaved(await uploadBaseResume(selected.id, file), ["baseResume"]), `Read ${file.name}.`)} />
           <button class="btn primary" type="button" disabled={busy || !baseResumeChanged || !form.baseResume.trim()}
-            onClick={() => run(async () => replace(await pasteBaseResume(selected.id, form.baseResume)), "Saved the base resume.")}>
+            onClick={() => run(async () => applySaved(await pasteBaseResume(selected.id, form.baseResume), ["baseResume"]), "Saved the base resume.")}>
             Save base resume
           </button>
         </TextField>

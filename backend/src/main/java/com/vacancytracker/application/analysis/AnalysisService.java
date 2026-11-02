@@ -279,8 +279,14 @@ public class AnalysisService {
                 found ? cut(dealBreaker.path("explanation").asText("").strip(), 400) : null);
     }
 
+    /** The hash of every vacancy field the prompts send (see Prompts.vacancy): a change to any of them makes results stale. */
     static String textHash(Vacancy v) {
-        return hash((v.getTitle() == null ? "" : v.getTitle()) + "\n" + (v.getDescription() == null ? "" : v.getDescription()));
+        return hash(String.join("\n", nullToEmpty(v.getTitle()), nullToEmpty(v.getCompany()), nullToEmpty(v.getLocation()),
+                nullToEmpty(v.getDescription())));
+    }
+
+    private static String nullToEmpty(String text) {
+        return text == null ? "" : text;
     }
 
     static String hash(String text) {

@@ -176,8 +176,16 @@ public class PackageService {
                         .orElseThrow(() -> new NotFoundException("This package has no resume copy; prepare a new package."));
                 if (PASTED_RESUME.equals(copy.fileName())) {
                     String text = new String(copy.bytes(), StandardCharsets.UTF_8);
-                    resumeFile = "resume.pdf";
-                    put(zip, resumeFile, copy.pdf());
+                    // A package prepared before V22 has no PDF: make it from the kept text when it fits two pages.
+                    byte[] pdf = copy.pdf();
+                    if (pdf == null) {
+                        ResumePdf.Rendered rendered = ResumePdf.render(text);
+                        pdf = rendered.pages() <= ResumePdf.MAX_PAGES ? rendered.bytes() : null;
+                    }
+                    resumeFile = pdf == null ? "resume.docx" : "resume.pdf";
+                    if (pdf != null) {
+                        put(zip, resumeFile, pdf);
+                    }
                     put(zip, "resume.docx", DocxWriter.write(text));
                     put(zip, PASTED_RESUME, copy.bytes());
                 } else {

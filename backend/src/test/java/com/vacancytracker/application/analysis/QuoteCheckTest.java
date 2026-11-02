@@ -43,6 +43,10 @@ class QuoteCheckTest {
                 .isEqualTo(QuoteCheck.Place.EVIDENCE);
         assertThat(QuoteCheck.place("Jane Doe\n\nSkills\nJava, Kafka\n\nAcme Bank, 2019 - 2025", "Kafka"))
                 .isEqualTo(QuoteCheck.Place.SKILLS_ONLY);
+        // A quote over a line break inside Skills is still only Skills; one that reaches into experience is proof.
+        assertThat(QuoteCheck.place("## Experience\n- Built APIs.\n\n## Skills\nJava,\nKafka", "Java, Kafka")).isEqualTo(QuoteCheck.Place.SKILLS_ONLY);
+        assertThat(QuoteCheck.place("## Experience\n- Moved billing to\nKafka streams.\n\n## Skills\nJava", "billing to Kafka"))
+                .isEqualTo(QuoteCheck.Place.EVIDENCE);
         // One skill per line under a Markdown Skills heading: still Skills, not a new section.
         assertThat(QuoteCheck.place("## Experience\n- Built APIs.\n\n## Skills\nKafka\nJava", "Kafka")).isEqualTo(QuoteCheck.Place.SKILLS_ONLY);
     }

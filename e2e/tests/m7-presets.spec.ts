@@ -115,7 +115,16 @@ test("both matches show, generation lifts the Employer match, the fact check war
   await expect(drawer.getByText("Not in your base draft.")).toBeVisible();
   await expect(drawer.locator(".facts-list")).toContainText("Kubernetes");
   await expect(drawer.getByRole("button", { name: "Save as version 1" })).toBeDisabled();
-  await drawer.getByLabel("These facts are true and I can back them up in an interview").check();
+  const confirm = drawer.getByLabel("These facts are true and I can back them up in an interview");
+  await confirm.check();
+  await expect(drawer.getByRole("button", { name: "Save as version 1" })).toBeEnabled();
+  // An edit after the confirmation needs a new check and a new confirmation.
+  const resumeText = drawer.getByLabel("Resume text");
+  await resumeText.fill((await resumeText.inputValue()).replace("by 40%", "by 45%"));
+  await expect(drawer.getByRole("button", { name: "Save as version 1" })).toBeDisabled();
+  await expect(drawer.locator(".facts-list")).toContainText("45%");
+  await expect(confirm).not.toBeChecked();
+  await confirm.check();
   await drawer.getByRole("button", { name: "Save as version 1" }).click();
   await expect(resumeCard.getByRole("link", { name: "PDF (1 page)" })).toBeVisible();
 
