@@ -79,8 +79,9 @@ public class TelegramForwardAdapter implements SourceAdapter {
             return FetchOutcome.noChange();
         }
         long offset = storedOffset();
-        // The token is part of the address; HttpFetcher and the log masking never print it (ADR-034).
-        FetchResult result = fetcher.getOnce(baseUrl + "/bot" + token + "/getUpdates?timeout=0&limit=100"
+        // The token is part of the address: it is fetched without validators, so the address is never stored as a cache
+        // key, and the log masking hides it (ADR-034).
+        FetchResult result = fetcher.getUnconditionalOnce(baseUrl + "/bot" + token + "/getUpdates?timeout=0&limit=100"
                 + "&allowed_updates=%5B%22message%22%5D" + (offset > 0 ? "&offset=" + offset : ""));
         if (!result.ok()) {
             throw new UpstreamException("Telegram responded HTTP " + result.status());
