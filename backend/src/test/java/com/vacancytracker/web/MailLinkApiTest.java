@@ -110,4 +110,21 @@ class MailLinkApiTest extends AbstractIntegrationTest {
 
         assertThat(vacancyOf(id)).isNull();
     }
+
+    @Test
+    void theSameMailImportedTwiceIsStoredOnce() throws Exception {
+        String first = importMail("jane@recruiting.example", "dup", "Hello");
+        String eml = "From: Jane <jane@recruiting.example>\r\nTo: owner@test.example\r\nSubject: Hello\r\n"
+                + "Date: Tue, 03 Nov 2026 10:00:00 +0000\r\nMessage-ID: <dup@x.example>\r\n"
+                + "Content-Type: text/plain; charset=UTF-8\r\n\r\nHello, I am a recruiter and we have a job position for your resume and CV.\r\n";
+
+        String again = mvc.perform(post("/api/mail/import").contentType("message/rfc822").content(eml.getBytes(StandardCharsets.UTF_8)))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+
+        assertThat(JsonPath.<Boolean>read(again, "$.stored")).isFalse();
+        assertThat(JsonPath.<String>read(again, "$.reason")).isEqualTo("already stored");
+        assertThat(JsonPath.<String>read(again, "$.correspondence.id")).isEqualTo(first);
+        String all = mvc.perform(get("/api/mail")).andReturn().getResponse().getContentAsString();
+        assertThat(JsonPath.<java.util.List<Object>>read(all, "$[?(@.mailKey == 'reply:<dup@x.example>')]")).hasSize(1);
+    }
 }
