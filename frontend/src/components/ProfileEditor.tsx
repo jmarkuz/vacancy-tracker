@@ -14,6 +14,7 @@ import {
   moveRule,
   newRule,
   profileErrors,
+  profileWarnings,
   removeRule,
   rowErrors,
   sameInput,
@@ -216,6 +217,9 @@ export function ProfileEditor({ initial, profile, meta, sourceIds, onSaved, onCl
           <span class="muted small keyboard-hint">Alt+↑ / Alt+↓ moves the focused rule</span>
           <button type="button" class="btn" onClick={addRule}>Add rule</button>
         </div>
+        {profileWarnings(draft.criteria).map((w) => (
+          <div class="notice warn" role="status" key={w}>{w}</div>
+        ))}
         {draft.criteria.length === 0 ? (
           <p class="muted">No rules yet. A profile without rules scores every vacancy 0 and filters nothing.</p>
         ) : (

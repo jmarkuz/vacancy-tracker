@@ -197,3 +197,19 @@ export function importProblems(errors: Record<string, string>): string[] {
   const lines = Object.entries(errors).map(([path, message]) => `${path}: ${message}`);
   return lines.length > 0 ? lines : ["The file is not a valid profile."];
 }
+
+const ROLE_FIELDS = ["title", "keywords", "description"];
+
+/**
+ * Advice that does not block saving. A profile with rules but none that asks about the role (title, keywords or
+ * description) scores every vacancy on other things alone, such as the country, so unrelated jobs get a high score.
+ */
+export function profileWarnings(rules: Criterion[]): string[] {
+  if (rules.length === 0) {
+    return [];
+  }
+  const asksAboutRole = rules.some((r) => ROLE_FIELDS.includes(r.field) && (r.mode === "require" || r.mode === "prefer"));
+  return asksAboutRole
+    ? []
+    : ["No rule asks about the role. Add a Require or Prefer rule on Title, Keywords or Description, or unrelated vacancies in the right country or work mode will score high."];
+}
