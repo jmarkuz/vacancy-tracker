@@ -9,10 +9,13 @@ interface Props {
   showVacancyLink?: boolean;
   /** Called after a suggestion was accepted or dismissed. */
   onChanged: (message: string) => void;
+  /** With these, each mail gets a checkbox (the Mail screen deletes the chosen ones). */
+  selected?: ReadonlySet<string>;
+  onToggle?: (id: string) => void;
 }
 
 /** Job mail with its category, the application it belongs to and the suggested status, to accept or dismiss. */
-export function MailList({ items, showVacancyLink = false, onChanged }: Props) {
+export function MailList({ items, showVacancyLink = false, onChanged, selected, onToggle }: Props) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,6 +51,14 @@ export function MailList({ items, showVacancyLink = false, onChanged }: Props) {
         {items.map((m) => (
           <li key={m.id} class={`mail-item${m.suggestionState === "pending" ? " pending" : ""}`}>
             <div class="mail-head">
+              {selected && onToggle && (
+                <input
+                  type="checkbox"
+                  aria-label={`Select ${m.subject ?? "mail"}`}
+                  checked={selected.has(m.id)}
+                  onChange={() => onToggle(m.id)}
+                />
+              )}
               <span class={`mail-category cat-${m.category}`}>{CATEGORY_LABEL[m.category] ?? m.category}</span>
               <strong class="mail-subject">{m.subject ?? "(no subject)"}</strong>
               <span class="muted small num">{formatDate(m.receivedAt)}</span>

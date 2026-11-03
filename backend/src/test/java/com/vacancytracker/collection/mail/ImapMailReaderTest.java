@@ -120,6 +120,27 @@ class ImapMailReaderTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void onlyMailInsideTheAgeWindowIsListedAndRead() throws Exception {
+        deliver(message("a@x.test", "Recent", "Body", null, "<recent@x>"));
+        var inbox = MAIL.getManagers().getImapHostManager().getFolder(MAIL.getManagers().getUserManager().getUser(USER), "INBOX");
+        long day = 24L * 60 * 60 * 1000;
+        inbox.appendMessage(message("a@x.test", "Old", "Body", null, "<old@x>"), new Flags(), new java.util.Date(System.currentTimeMillis() - 30 * day));
+        inbox.appendMessage(message("a@x.test", "Older", "Body", null, "<older@x>"), new Flags(), new java.util.Date(System.currentTimeMillis() - 90 * day));
+        Collector collector = new Collector();
+
+        ReadResult windowed = new ImapMailReader(true, "127.0.0.1", MAIL.getImap().getPort(), false, USER, PASSWORD, "INBOX", false, 50, 14, processed)
+                .readNew(collector);
+
+        assertThat(windowed.seen()).isEqualTo(1);
+        assertThat(collector.seen).extracting(MailMessage::subject).containsExactly("Recent");
+
+        Collector everything = new Collector();
+        ReadResult unlimited = new ImapMailReader(true, "127.0.0.1", MAIL.getImap().getPort(), false, USER, PASSWORD, "INBOX", false, 50, 0, processed)
+                .readNew(everything);
+        assertThat(unlimited.seen()).isEqualTo(3);
+    }
+
+    @Test
     void aMessageSettledFromItsEnvelopeIsNeverDownloadedAndDoesNotUseUpTheAllowance() throws Exception {
         deliver(message("a@other.test", "Not mine", "Body A", null, "<o1@x>"));
         deliver(message("b@nobody.test", "Nobody's", "Body B", null, "<o2@x>"));

@@ -192,6 +192,22 @@ public class CorrespondenceService {
         return repository.list(vacancyId, pendingOnly, 200);
     }
 
+    /**
+     * Removes stored mails from this app only: the mailbox is not touched. A mail read from the mailbox is not stored
+     * again, because its key stays marked as handled.
+     */
+    public int delete(List<UUID> ids) {
+        return repository.deleteAll(ids == null ? List.of() : ids.stream().distinct().toList());
+    }
+
+    /** Removes the stored mails older than this many days. */
+    public int deleteOlderThan(int days) {
+        if (days < 1) {
+            throw new IllegalArgumentException("days must be at least 1");
+        }
+        return repository.deleteBefore(clock.instant().minus(java.time.Duration.ofDays(days)));
+    }
+
     public Correspondence get(UUID id) {
         return repository.find(id).orElseThrow(() -> new NotFoundException("Mail not found: " + id));
     }

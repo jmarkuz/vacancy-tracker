@@ -66,6 +66,33 @@ public class MailController {
         return mail.relink(id, request.vacancyId());
     }
 
+    /** Deletes the chosen stored mails from the app. The mailbox is not touched. */
+    @PostMapping("/api/mail/delete")
+    public DeleteResponse delete(@RequestBody DeleteRequest request) {
+        if (request == null || request.ids() == null || request.ids().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Choose at least one mail.");
+        }
+        return new DeleteResponse(mail.delete(request.ids()));
+    }
+
+    /** Deletes the stored mails older than the given number of days. */
+    @PostMapping("/api/mail/delete-old")
+    public DeleteResponse deleteOld(@RequestBody DeleteOldRequest request) {
+        if (request == null || request.days() < 1) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Give a number of days of at least 1.");
+        }
+        return new DeleteResponse(mail.deleteOlderThan(request.days()));
+    }
+
+    public record DeleteRequest(List<UUID> ids) {
+    }
+
+    public record DeleteOldRequest(int days) {
+    }
+
+    public record DeleteResponse(int deleted) {
+    }
+
     public record RelinkRequest(UUID vacancyId) {
     }
 

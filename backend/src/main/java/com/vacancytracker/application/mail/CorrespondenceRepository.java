@@ -6,6 +6,7 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -73,6 +74,20 @@ class CorrespondenceRepository {
             query = query.param("v", vacancyId);
         }
         return query.query(CorrespondenceRepository::map).list();
+    }
+
+    /** Removes the stored mails with these ids; answers how many existed. */
+    int deleteAll(Collection<UUID> ids) {
+        if (ids.isEmpty()) {
+            return 0;
+        }
+        return jdbc.sql("DELETE FROM correspondence WHERE id IN (:ids)").param("ids", ids).update();
+    }
+
+    /** Removes the stored mails received (or, with no date, stored) before the cutoff; answers how many. */
+    int deleteBefore(Instant cutoff) {
+        return jdbc.sql("DELETE FROM correspondence WHERE COALESCE(received_at, created_at) < :cutoff")
+                .param("cutoff", utc(cutoff)).update();
     }
 
     long pendingCount() {
