@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -40,6 +41,13 @@ public class MailController {
     @GetMapping("/api/mail/applications")
     public List<CorrespondenceService.ApplicationOption> applications() {
         return mail.applications();
+    }
+
+    /** Starts reading the mailbox in the background; 202 when it started, 409 when one is already running. */
+    @PostMapping("/api/mail/sync/start")
+    public ResponseEntity<CorrespondenceService.SyncStart> startSync() {
+        CorrespondenceService.SyncStart start = mail.startSync();
+        return ResponseEntity.status(start.started() ? HttpStatus.ACCEPTED : HttpStatus.CONFLICT).body(start);
     }
 
     @PostMapping("/api/mail/sync")

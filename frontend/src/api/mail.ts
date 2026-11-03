@@ -24,6 +24,10 @@ export interface MailStatus {
   pending: number;
   lastSync: string | null;
   lastError: string | null;
+  /** True while a read of the mailbox runs (started here or by the schedule). */
+  syncing: boolean;
+  /** What the last read did; null before the first one. */
+  lastResult: SyncResult | null;
 }
 
 export interface SyncResult {
@@ -60,6 +64,14 @@ export const listMail = (opts: { vacancyId?: string; pending?: boolean } = {}, s
 };
 
 export const syncMail = () => requestJson<SyncResult>("POST", "/api/mail/sync");
+
+export interface SyncStart {
+  started: boolean;
+  reason: string | null;
+}
+
+/** Starts reading the mailbox in the background and answers at once; the status says when it is done. */
+export const startMailSync = () => requestJson<SyncStart>("POST", "/api/mail/sync/start");
 
 export const importEml = (file: File) =>
   requestJson<{ stored: boolean; reason: string; correspondence: Mail | null }>("POST", "/api/mail/import", file, "message/rfc822");
