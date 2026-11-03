@@ -6,6 +6,15 @@ The code contains no roles, technologies, countries or salary thresholds. Everyt
 
 Status: every planned task is done except a Jooble adapter (T-036), which is blocked until Jooble provides a key and its API documentation, and the backlog of the 2026-11-02 review (T-092). Milestone M6 (2026-11-02) added the full application cycle: resume and fit, AI-adapted documents behind an explicit opt-in, application packages, mail tracking, new sources and a design refresh. Milestone M7 (2026-11-02) added AI presets: base documents that AI adapts instead of writing new ones, an Employer match and a Goal match before and after, a resume PDF of at most two pages, and a fact check before saving. It runs on your own computer or on a VPS. See [PLAN.md](PLAN.md) for the full list and [CHANGELOG.md](CHANGELOG.md) for what changed when.
 
+## Screenshots
+
+The Beacon design in its graphite (monochrome) variant, light and dark. Source images are in [`design/vacancy-tracker-beacon-monochrome-v2`](design/vacancy-tracker-beacon-monochrome-v2).
+
+| Light | Dark |
+|---|---|
+| ![Dashboard, light theme](design/vacancy-tracker-beacon-monochrome-v2/graphite-light-dashboard.png)<br>**Dashboard**: counts, top matches, applications per week and next actions | ![Dashboard, dark theme](design/vacancy-tracker-beacon-monochrome-v2/graphite-dark-dashboard.png)<br>**Dashboard** in the dark theme |
+| ![Inbox, light theme](design/vacancy-tracker-beacon-monochrome-v2/graphite-light-inbox.png)<br>**Inbox**: keyboard triage with the selected vacancy beside the list | ![Pipeline, dark theme](design/vacancy-tracker-beacon-monochrome-v2/graphite-dark-pipeline.png)<br>**Pipeline**: the table with filters, statuses and bulk selection |
+
 ## How it works
 
 1. **Collect.** Sources run on a schedule (or when you press Refresh). Each source is isolated: one failing source does not stop the others, and a run always ends with a summary.
