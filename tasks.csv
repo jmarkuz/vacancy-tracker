@@ -91,3 +91,12 @@ T-089,Adapters for the allowed new sources,M6,M,T-088,done
 T-090,Superhuman DESIGN.md and dark-first UI,M6,M,T-081,done
 T-091,Full-cycle end-to-end test,M6,M,"T-087,T-089",done
 T-092,Backlog from the review,M6,M,T-076,todo
+T-093,Presets: model and screen,M7,M,T-083,done
+T-094,Generation from the base draft,M7,M,T-093,done
+T-095,Employer match and Goal match,M7,M,T-094,done
+T-096,"Progress bars, before and after",M7,S,T-095,done
+T-097,"Resume PDF, two pages at most",M7,M,T-094,done
+T-098,Fact check,M7,S,T-094,done
+T-099,Finish: tests and documents,M7,M,"T-093,T-094,T-095,T-096,T-097,T-098",done
+T-100,Inbox filter by words,Requests,S,T-048,done
+T-101,Beacon design,Requests,M,T-090,done

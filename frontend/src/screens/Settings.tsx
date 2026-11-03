@@ -2,6 +2,7 @@ import { useEffect, useState } from "preact/hooks";
 import { type AiStatus, disableAi, enableAi, getAiStatus } from "../api/ai";
 import { ApiError } from "../api/client";
 import { formatDate } from "./columns";
+import { applyTextSize, readTextSize, TEXT_SIZES, type TextSize, type Theme } from "../theme";
 
 const PROVIDER_LABEL: Record<string, string> = {
   off: "Not configured",
@@ -12,9 +13,11 @@ const PROVIDER_LABEL: Record<string, string> = {
 
 /**
  * Settings (T-082): the AI opt-in. AI is off by default; nothing is sent to Claude before the owner reads the notice,
- * ticks the box and switches it on. Switching it off takes effect at once.
+ * ticks the box and switches it on. Switching it off takes effect at once. Appearance (Beacon, T-101): the theme and
+ * the base text size (18, 20 or 22 px), kept in this browser.
  */
-export function Settings() {
+export function Settings({ theme, onTheme }: { theme: Theme; onTheme: (theme: Theme) => void }) {
+  const [textSize, setTextSize] = useState<TextSize>(readTextSize);
   const [status, setStatus] = useState<AiStatus | null>(null);
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,6 +59,38 @@ export function Settings() {
         </div>
       )}
 
+      <div class="panel stack" data-role="amber">
+        <h2>Appearance</h2>
+        <fieldset class="choice-group">
+          <legend>Theme</legend>
+          {(["light", "dark", "system"] as Theme[]).map((t) => (
+            <label key={t} class="choice">
+              <input type="radio" name="theme" value={t} checked={theme === t} onChange={() => onTheme(t)} />{" "}
+              {t === "light" ? "Light" : t === "dark" ? "Dark" : "Follow the system"}
+            </label>
+          ))}
+        </fieldset>
+        <fieldset class="choice-group">
+          <legend>Text size</legend>
+          {TEXT_SIZES.map((size) => (
+            <label key={size} class="choice">
+              <input
+                type="radio"
+                name="text-size"
+                value={size}
+                checked={textSize === size}
+                onChange={() => {
+                  setTextSize(size);
+                  applyTextSize(size);
+                }}
+              />{" "}
+              {size} px{size === "18" ? " (standard)" : ""}
+            </label>
+          ))}
+        </fieldset>
+        <p class="muted small">Every screen follows these at once. Your browser's own zoom works too, up to 200%.</p>
+      </div>
+
       <div class="panel stack">
         <h2>AI assistance (Claude)</h2>
         {!status && <p class="muted">Loading…</p>}
@@ -84,7 +119,7 @@ export function Settings() {
                   have read this and agree that my resume and the vacancies I choose are sent to Claude when I press Generate.
                 </label>
                 <div>
-                  <button class="btn primary" type="button" disabled={!agreed || busy} onClick={() => change(enableAi)}>
+                  <button class="btn primary" data-role="purple" type="button" disabled={!agreed || busy} onClick={() => change(enableAi)}>
                     Switch AI on
                   </button>
                 </div>

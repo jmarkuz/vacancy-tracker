@@ -133,7 +133,7 @@ export function ApplyPanel({ vacancyId, vacancyUrl, docsVersion, onSubmitted }: 
           <input class="input" type="url" value={applyUrl} placeholder="https://" onInput={(e) => setApplyUrl((e.target as HTMLInputElement).value)} />
         </label>
         <div class="drawer-row end">
-          <button class="btn primary" type="button" disabled={busy} onClick={prepare}>
+          <button class="btn primary" data-role="green" type="button" disabled={busy} onClick={prepare}>
             Prepare package and open the page
           </button>
         </div>
@@ -158,7 +158,7 @@ export function ApplyPanel({ vacancyId, vacancyUrl, docsVersion, onSubmitted }: 
           </span>
           <input class="input" value={note} placeholder="Note (optional)" aria-label="Note about the submission" maxLength={1000}
             onInput={(e) => setNote((e.target as HTMLInputElement).value)} />
-          <button class="btn primary" type="button" disabled={busy} onClick={() => submitted(open)}>
+          <button class="btn primary" data-role="green" type="button" disabled={busy} onClick={() => submitted(open)}>
             I submitted
           </button>
         </div>

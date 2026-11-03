@@ -10,6 +10,10 @@ const doc = (kind: TailoredDocument["kind"], version: number): TailoredDocument 
   origin: "manual",
   provider: null,
   model: null,
+  snapshotId: null,
+  pdfPages: null,
+  factFindings: null,
+  factsConfirmed: false,
   createdAt: "2026-11-02T10:00:00Z",
 });
 

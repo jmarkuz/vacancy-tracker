@@ -153,7 +153,7 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
           <button type="button" class="chip" aria-pressed={board} onClick={() => setQuery({ layout: "board" })}>Board</button>
         </div>
         {!board && <ColumnPicker selected={visible} />}
-        <button type="button" class="btn primary" aria-expanded={adding} onClick={() => setAdding((a) => !a)}>
+        <button type="button" class="btn primary" data-role="green" aria-expanded={adding} onClick={() => setAdding((a) => !a)}>
           Add vacancy
         </button>
       </div>
@@ -216,7 +216,7 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
                 <option value="">Change status to…</option>
                 {options.map((o) => <option key={o.status} value={o.status}>{optionLabel(o)}</option>)}
               </select>
-              <button type="button" class="btn primary" disabled={!target} onClick={applyBulk}>Apply</button>
+              <button type="button" class="btn primary" data-role="green" disabled={!target} onClick={applyBulk}>Apply</button>
               <button type="button" class="btn" onClick={() => setSelected([])}>Clear selection</button>
             </div>
           )}

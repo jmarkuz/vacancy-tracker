@@ -5,7 +5,7 @@ import { changeStatus, getHistory, getVacancy, patchVacancy, type StatusEvent } 
 import type { Vacancy } from "../api/types";
 import { allowedNext } from "../domain/statuses";
 import { safeLink } from "../domain/links";
-import { FitPanel } from "../components/FitPanel";
+import { AnalysisPanel } from "../components/AnalysisPanel";
 import { DocumentsPanel } from "../components/DocumentsPanel";
 import { ApplyPanel } from "../components/ApplyPanel";
 import { VacancyMailPanel } from "../components/VacancyMailPanel";
@@ -52,6 +52,8 @@ export function VacancyDrawer({ id, onClose, onChange }: Props) {
   const [saving, setSaving] = useState(false);
   // Grows when a document version is saved, so the Apply section offers it.
   const [docsVersion, setDocsVersion] = useState(0);
+  // The preset of the documents and of the Goal match; null until the documents panel picks the default one.
+  const [presetId, setPresetId] = useState<string | null>(null);
   const panelRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -200,12 +202,14 @@ export function VacancyDrawer({ id, onClose, onChange }: Props) {
               </dl>
             </section>
 
-            <FitPanel vacancyId={vacancy.id} />
+            <AnalysisPanel vacancyId={vacancy.id} presetId={presetId} docsVersion={docsVersion} />
 
             <DocumentsPanel
               vacancyId={vacancy.id}
               title={vacancy.title}
               company={vacancy.company}
+              presetId={presetId}
+              onPresetChange={setPresetId}
               onSaved={() => setDocsVersion((n) => n + 1)}
             />
 
@@ -390,7 +394,7 @@ function NotesEditor({ value, disabled, onSave }: { value: string; disabled: boo
         aria-label="Notes"
       />
       <div class="drawer-row end">
-        <button class="btn primary" type="button" disabled={disabled || draft === value} onClick={() => onSave(draft)}>
+        <button class="btn primary" data-role="green" type="button" disabled={disabled || draft === value} onClick={() => onSave(draft)}>
           Save notes
         </button>
       </div>

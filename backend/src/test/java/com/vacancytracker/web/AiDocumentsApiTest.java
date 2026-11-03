@@ -3,6 +3,7 @@ package com.vacancytracker.web;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -46,8 +47,13 @@ class AiDocumentsApiTest extends AbstractIntegrationTest {
                 .andReturn().getResponse().getContentAsString(), "$.id");
     }
 
+    /** Fills the default preset so both documents can be generated: goal, base cover letter and base resume. */
     private void resume() throws Exception {
         mvc.perform(post("/api/resume/text").contentType(JSON).content("{\"text\":\"Skills: Java, Kafka\"}")).andExpect(status().isOk());
+        String preset = JsonPath.read(mvc.perform(get("/api/presets")).andReturn().getResponse().getContentAsString(), "$[0].id");
+        mvc.perform(patch("/api/presets/" + preset).contentType(JSON)
+                        .content("{\"mainGoal\":\"Backend roles.\",\"baseCoverLetter\":\"Dear Hiring Manager,\\n\\nI build payment systems.\"}"))
+                .andExpect(status().isOk());
     }
 
     private String draft(String kind) throws Exception {
@@ -70,7 +76,8 @@ class AiDocumentsApiTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("Switch it on in Settings")));
 
         mvc.perform(post("/api/ai/consent")).andExpect(jsonPath("$.enabled").value(true));
-        assertThat(JsonPath.<String>read(draft("resume"), "$.content")).startsWith("# Tailored resume for Backend Engineer at Acme Pay");
+        // The fake adapts the base resume; it already names every skill of this vacancy, so nothing is added.
+        assertThat(JsonPath.<String>read(draft("resume"), "$.content")).isEqualTo("Skills: Java, Kafka");
 
         mvc.perform(delete("/api/ai/consent")).andExpect(jsonPath("$.enabled").value(false));
         mvc.perform(post("/api/vacancies/" + vacancy + "/documents/draft").contentType(JSON).content("{\"kind\":\"cover_letter\"}"))
@@ -82,11 +89,13 @@ class AiDocumentsApiTest extends AbstractIntegrationTest {
         mvc.perform(post("/api/ai/consent"));
         mvc.perform(post("/api/vacancies/" + vacancy + "/documents/draft").contentType(JSON).content("{\"kind\":\"resume\"}"))
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.detail").value("Upload your resume first: the draft is written from it."));
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("is not ready for AI")))
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("Presets screen")));
         resume();
 
         String letter = draft("cover_letter");
-        assertThat(JsonPath.<String>read(letter, "$.content")).startsWith("Dear Acme Pay team");
+        assertThat(JsonPath.<String>read(letter, "$.content"))
+                .isEqualTo("Dear Hiring Manager,\n\nI am applying for the Backend Engineer role at Acme Pay.\n\nI build payment systems.");
         mvc.perform(get("/api/vacancies/" + vacancy + "/documents")).andExpect(jsonPath("$.length()").value(0));
 
         mvc.perform(post("/api/vacancies/" + vacancy + "/documents").contentType(JSON)

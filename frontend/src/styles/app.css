@@ -11,6 +11,11 @@ body {
   min-height: 100%;
 }
 
+/* The base text size (18 px, or 20 / 22 px from Settings) drives every rem size, so the whole page scales. */
+html {
+  font-size: var(--text-base);
+}
+
 body {
   background: var(--color-bg);
   color: var(--color-text);
@@ -18,7 +23,24 @@ body {
   font-size: var(--font-size-md);
   line-height: var(--line-height-base);
   font-weight: var(--font-weight-regular);
-  -webkit-font-smoothing: antialiased;
+}
+
+h1 {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+}
+
+h2 {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+
+h3 {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
 }
 
 a {
@@ -26,14 +48,30 @@ a {
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 2px;
+  outline: var(--focus-width) solid var(--color-focus);
+  outline-offset: var(--focus-offset);
   border-radius: 4px;
 }
 
 .num {
-  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
+}
+
+/* "Skip to content": hidden until it has the focus. */
+.skip-link {
+  position: absolute;
+  left: var(--space-3);
+  top: -100px;
+  z-index: 50;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+}
+
+.skip-link:focus {
+  top: var(--space-3);
 }
 
 .muted {
@@ -44,48 +82,116 @@ a {
   color: var(--color-text-subtle);
 }
 
+/* Beacon shell: a header across the top (logo, search, refresh, theme), the sections on the left, the content. */
 .app {
   display: grid;
-  grid-template-columns: var(--sidebar-width) 1fr;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
   min-height: 100vh;
 }
 
+.app > .header {
+  grid-column: 1 / -1;
+}
+
 .sidebar {
+  position: sticky;
+  top: var(--header-height);
+  align-self: start;
+  max-height: calc(100vh - var(--header-height));
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
-  padding: var(--space-4) var(--space-3);
+  gap: var(--space-2);
+  padding: var(--space-5) var(--space-3);
   border-right: var(--border-width) solid var(--color-border);
   background: var(--color-bg-subtle);
 }
 
 .logo {
-  padding: var(--space-2) var(--space-3) var(--space-4);
-  font-weight: var(--font-weight-semibold);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  text-decoration: none;
+  white-space: nowrap;
 }
 
-.nav-item {
-  display: block;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-sm);
+.logo-mark {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  color: var(--color-logo);
+}
+
+.nav-group {
+  margin: var(--space-3) var(--space-3) 0;
   color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+}
+
+/* Each item has its role's marker; the current one is filled with that role (aria-current, never color alone). */
+.nav-item {
+  display: flex;
+  align-items: center;
+  min-height: var(--control-height);
+  padding: var(--space-2) var(--space-3);
+  border-left: var(--selection-bar) solid var(--role);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
   text-decoration: none;
   transition: background var(--duration-fast) var(--ease-out);
 }
 
 .nav-item:hover {
   background: var(--color-bg-muted);
-  color: var(--color-text);
 }
 
 .nav-item[aria-current="page"] {
-  background: var(--color-accent-subtle);
-  color: var(--color-accent);
-  font-weight: var(--font-weight-medium);
+  background: var(--role);
+  color: var(--color-on-role);
+  font-weight: var(--font-weight-bold);
 }
 
-.theme-toggle {
-  margin-top: auto;
+/* The default role is blue; data-role on an element (or an ancestor) chooses another. :where() keeps it weakest. */
+:where(.btn, .tab, .nav-item, .eyebrow, .metric-callout) {
+  --role: var(--role-blue);
+  --role-hover: var(--role-blue-hover);
+  --role-soft: var(--role-blue-soft);
+}
+
+[data-role="blue"] {
+  --role: var(--role-blue);
+  --role-hover: var(--role-blue-hover);
+  --role-soft: var(--role-blue-soft);
+}
+
+[data-role="green"] {
+  --role: var(--role-green);
+  --role-hover: var(--role-green-hover);
+  --role-soft: var(--role-green-soft);
+}
+
+[data-role="purple"] {
+  --role: var(--role-purple);
+  --role-hover: var(--role-purple-hover);
+  --role-soft: var(--role-purple-soft);
+}
+
+[data-role="amber"] {
+  --role: var(--role-amber);
+  --role-hover: var(--role-amber-hover);
+  --role-soft: var(--role-amber-soft);
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
 .main {
@@ -99,17 +205,21 @@ a {
   top: 0;
   z-index: 5;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-3);
-  height: var(--header-height);
-  padding: 0 var(--space-6);
+  min-height: var(--header-height);
+  padding: var(--space-2) var(--space-6);
   border-bottom: var(--border-width) solid var(--color-border);
-  background: var(--color-bg);
+  background: var(--color-surface);
+}
+
+.content:focus {
+  outline: none;
 }
 
 .header-title {
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-semibold);
 }
 
 .content {
@@ -135,87 +245,92 @@ a {
   margin: var(--space-2) 0 0;
 }
 
+/*
+ * Buttons: at least 44 px high. A primary button is filled with its role (green to save, purple for AI, amber for
+ * sources and settings, blue otherwise); a secondary one is a surface with the role's text and border. A disabled
+ * button keeps readable text on a neutral surface (no transparency) and its reason is written next to it.
+ */
 .btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border: var(--border-width) solid var(--color-border-strong);
+  min-height: var(--control-height);
+  padding: var(--space-2) var(--space-4);
+  border: var(--border-width) solid var(--role);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   font: inherit;
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--role);
+  text-align: center;
   transition: background var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out);
   cursor: pointer;
 }
 
+.btn:hover:not(:disabled) {
+  background: var(--role-soft);
+}
+
 .btn.primary {
-  border-color: var(--color-accent);
-  background: var(--color-accent);
-  color: var(--color-text-on-accent);
+  border-color: var(--role);
+  background: var(--role);
+  color: var(--color-on-role);
+}
+
+.btn.primary:hover:not(:disabled) {
+  border-color: var(--role-hover);
+  background: var(--role-hover);
 }
 
 .btn.ghost {
   border-color: transparent;
   background: transparent;
+  color: var(--color-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
-.btn:disabled {
-  opacity: 0.5;
-  cursor: default;
+.btn:disabled,
+.btn.primary:disabled {
+  border-color: var(--color-border);
+  background: var(--color-bg-muted);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
 }
 
-.mobile-nav {
-  display: none;
-}
-
-/* Phone width: bottom navigation, 16px gutter, no horizontal page scroll. */
-@media (max-width: 760px) {
+/* Below 1000 px the sections wrap above the content and every action stays in the flow of the page. */
+@media (max-width: 1000px) {
   .app {
     grid-template-columns: 1fr;
-  }
-
-  .sidebar {
-    display: none;
+    grid-template-rows: auto auto 1fr;
   }
 
   .header {
-    padding: 0 var(--gutter-mobile);
+    position: static;
+    padding: var(--space-2) var(--gutter-mobile);
+  }
+
+  .sidebar {
+    position: static;
+    max-height: none;
+    padding: var(--space-3) var(--gutter-mobile);
+    border-right: 0;
+    border-bottom: var(--border-width) solid var(--color-border);
+  }
+
+  .nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .nav-group {
+    display: none;
   }
 
   .content {
     padding: var(--gutter-mobile);
-    padding-bottom: 96px;
-  }
-
-  .mobile-nav {
-    position: fixed;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    z-index: 15;
-    display: flex;
-    justify-content: space-between;
-    gap: var(--space-1);
-    overflow-x: auto;
-    padding: var(--space-2) var(--gutter-mobile);
-    border-top: var(--border-width) solid var(--color-border);
-    background: var(--color-bg);
-  }
-
-  .mobile-nav a {
-    padding: var(--space-1) var(--space-2);
-    color: var(--color-text-muted);
-    font-size: var(--font-size-xs);
-    text-decoration: none;
-    white-space: nowrap;
-  }
-
-  .mobile-nav a[aria-current="page"] {
-    color: var(--color-accent);
-    font-weight: var(--font-weight-medium);
   }
 }
 
@@ -233,17 +348,18 @@ a {
   align-items: center;
   gap: 6px;
   padding: 2px var(--space-2);
-  border: var(--border-width) solid var(--color-border);
+  border: var(--border-width) solid currentColor;
   border-radius: var(--radius-pill);
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
   white-space: nowrap;
 }
 
 .badge::before {
   content: "";
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: currentColor;
 }
@@ -392,6 +508,7 @@ tbody tr:hover {
 }
 
 .notice.error {
+  border: var(--border-width) solid var(--color-danger);
   background: var(--color-danger-subtle);
   color: var(--color-danger);
 }
@@ -565,14 +682,19 @@ tbody tr:hover {
 }
 
 .input {
+  min-height: var(--control-height);
   padding: var(--space-2) var(--space-3);
-  border: var(--border-width) solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-input);
   background: var(--color-surface);
   color: var(--color-text);
   font: inherit;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-md);
   min-width: 0;
+}
+
+.input[aria-invalid="true"] {
+  border: 2px solid var(--color-danger);
 }
 
 .textarea {
@@ -808,7 +930,7 @@ kbd {
 
 .inbox-row.selected {
   background: var(--color-accent-subtle);
-  box-shadow: inset 3px 0 0 var(--color-accent);
+  box-shadow: inset var(--selection-bar) 0 0 var(--color-accent);
 }
 
 /* Windows High Contrast drops backgrounds and shadows: the selected row keeps a real outline (review U10). */
@@ -1093,29 +1215,32 @@ tr.editing {
   margin-bottom: var(--space-6);
 }
 
+/* Metric cards (Beacon): the number large in the metric's role, its words under it, a bar in the role below. */
 .kpi {
   display: block;
   padding: var(--space-4);
   border: var(--border-width) solid var(--color-border);
+  border-bottom: var(--selection-bar) solid var(--role, var(--role-blue));
   border-radius: var(--radius-md);
   background: var(--color-surface);
   color: inherit;
   text-decoration: none;
 }
 
-.kpi:hover,
-.kpi:focus-visible {
-  border-color: var(--color-accent-border);
+.kpi:hover {
+  background: var(--role-soft, var(--color-bg-muted));
 }
 
 .kpi .label {
   font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
+  color: var(--color-text);
 }
 
 .kpi .value {
-  margin-top: var(--space-1);
-  font-size: var(--font-size-2xl);
+  color: var(--role, var(--color-text));
+  font-size: var(--font-size-metric);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
 }
 
 .panels {
@@ -1162,7 +1287,7 @@ tr.editing {
 
 .funnel-row {
   display: grid;
-  grid-template-columns: 90px 1fr 40px;
+  grid-template-columns: 7.5rem 1fr 3rem;
   gap: var(--space-2);
   align-items: center;
   margin-top: var(--space-1);
@@ -1177,7 +1302,11 @@ tr.editing {
   fill: var(--color-bg-subtle);
 }
 
-.funnel-bar,
+/* The funnel moves applications forward: green bars on one shared scale, each with its value as text. */
+.funnel-bar {
+  fill: var(--role-green);
+}
+
 .week-bar {
   fill: var(--color-accent);
 }
@@ -1436,8 +1565,9 @@ label.inline {
   cursor: pointer;
 }
 
-/* Fit to the resume (T-081): number plus tier, never color alone. */
+/* Fit to the resume (T-081): "N of M skills" in the purple role (Beacon), the words carry the meaning. */
 .fit-badge {
+  color: var(--role-purple);
   display: inline-flex;
   gap: var(--space-1);
   align-items: baseline;
@@ -1609,4 +1739,324 @@ label.inline {
   .card-mover {
     flex-wrap: wrap;
   }
+}
+
+/* M7: presets, job analysis and tailored documents */
+.warn-text {
+  color: var(--color-warning);
+}
+
+.prewrap {
+  margin: var(--space-2) 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.doc-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--space-3);
+}
+
+.doc-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+/* Base vs tailored: the + and − marks carry the meaning; colour only repeats it. */
+.diff {
+  max-height: 18rem;
+  margin: 0;
+  padding: var(--space-2);
+  overflow: auto;
+  list-style: none;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--font-size-xs);
+  white-space: pre-wrap;
+}
+
+.diff-mark {
+  display: inline-block;
+  width: 1.5ch;
+  font-weight: 600;
+}
+
+.diff-added {
+  background: var(--color-success-subtle);
+}
+
+.diff-removed {
+  background: var(--color-danger-subtle);
+  text-decoration: line-through;
+}
+
+/* Employer match: the status is a word; colour only repeats it. */
+.requirements {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.req-status {
+  display: inline-block;
+  min-width: 5.5em;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-sm, 4px);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-align: center;
+}
+
+.req-covered .req-status {
+  background: var(--color-success-subtle);
+  color: var(--color-success);
+}
+
+.req-partial .req-status {
+  background: var(--color-warning-subtle);
+  color: var(--color-warning);
+}
+
+.req-missing .req-status {
+  background: var(--color-danger-subtle);
+  color: var(--color-danger);
+}
+
+/* Match bars (T-096): the number and the level word carry the meaning. */
+.match-bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.match-bar-head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-weight: 540;
+}
+
+.match-track {
+  height: 0.6rem;
+  overflow: hidden;
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: 999px;
+  background: var(--color-bg-muted);
+}
+
+.match-track:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.match-fill {
+  height: 100%;
+  background: var(--color-accent);
+}
+
+.match-high .match-fill {
+  background: var(--color-success);
+}
+
+.match-low .match-fill {
+  background: var(--color-warning);
+}
+
+.comparison {
+  padding: var(--space-2);
+  border-left: 3px solid var(--color-accent-border);
+  background: var(--color-bg-subtle);
+}
+
+.comparison p {
+  margin: var(--space-1) 0 0;
+}
+
+/* Fact check (T-098) */
+.notice.warn {
+  border-color: var(--color-warning);
+  background: var(--color-warning-subtle);
+}
+
+.facts-list {
+  margin: var(--space-1) 0;
+  padding-left: var(--space-4);
+}
+
+.fact-kind {
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Inbox filter (T-100) */
+.inbox-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.inbox-filter .grow {
+  flex: 1 1 18rem;
+}
+
+/* Beacon components (T-101, ADR-052) */
+.btn.block {
+  width: 100%;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--role);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.plain-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Inbox: the list and, beside it, the selected vacancy; below 1000 px the details come first. */
+.inbox-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--inspector-width);
+  gap: var(--layout-gap);
+  align-items: start;
+}
+
+.inbox-layout .inbox-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: 4.5rem;
+}
+
+.inbox-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.inspector {
+  position: sticky;
+  top: calc(var(--header-height) + var(--space-5));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+}
+
+.inspector-title {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.inspector-company {
+  margin: 0;
+}
+
+@media (max-width: 1000px) {
+  .inbox-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .inspector {
+    position: static;
+    order: -1;
+  }
+
+  .inbox-list {
+    max-height: none;
+  }
+}
+
+/* Tabs: the selected one is filled with its role and named by aria-selected; others are outlined. */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.tab {
+  min-height: var(--control-height);
+  padding: var(--space-2) var(--space-4);
+  border: var(--border-width) solid var(--role);
+  border-bottom-width: 3px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--role);
+  font: inherit;
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.tab[aria-selected="true"] {
+  background: var(--role);
+  color: var(--color-on-role);
+}
+
+.tab-panel {
+  padding-top: var(--space-1);
+}
+
+/* A large number in a role, with its words (metrics and the skill match). */
+.metric-callout {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--role-soft);
+  color: var(--color-text);
+}
+
+.metric-value {
+  color: var(--role);
+  font-size: var(--font-size-metric);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+}
+
+/* Radio choices with 44 px targets (Settings) */
+.choice-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.choice-group legend {
+  width: 100%;
+  margin-bottom: var(--space-1);
+  font-weight: var(--font-weight-semibold);
+}
+
+.choice {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-height);
+  padding: 0 var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.choice input {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--role, var(--role-blue));
 }

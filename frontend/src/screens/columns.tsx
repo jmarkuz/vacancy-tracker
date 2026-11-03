@@ -20,7 +20,8 @@ export function formatDate(value: string | null): string {
 export function formatSalary(v: Vacancy): string {
   const amount = (n: number) => Math.round(n).toLocaleString();
   if (v.salaryMin == null && v.salaryMax == null) {
-    return "-";
+    // Unknown is never shown as 0 or a dash (Beacon).
+    return "Not specified";
   }
   const range =
     v.salaryMin != null && v.salaryMax != null && v.salaryMin !== v.salaryMax

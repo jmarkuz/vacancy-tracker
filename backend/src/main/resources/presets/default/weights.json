@@ -1,0 +1,26 @@
+[
+  {
+    "name": "Role and scope",
+    "weight": 30
+  },
+  {
+    "name": "Technology stack",
+    "weight": 20
+  },
+  {
+    "name": "Seniority and growth",
+    "weight": 15
+  },
+  {
+    "name": "Compensation",
+    "weight": 15
+  },
+  {
+    "name": "Location and work mode",
+    "weight": 10
+  },
+  {
+    "name": "Company and domain",
+    "weight": 10
+  }
+]

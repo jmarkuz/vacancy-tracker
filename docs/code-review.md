@@ -73,3 +73,16 @@ All four findings were fixed on 2026-11-02, each with a regression test:
 ### Keyboard shortcuts that must be kept
 
 Inventory used as the regression list for the redesign (T-090): Ctrl/Cmd+K palette (also in text fields); Esc leaves a field first, then closes the drawer; Tab is trapped in the drawer and the palette; palette ↑/↓/Enter/Esc; Inbox J/K/S/X/O/Enter and double-click; board Alt+←/Alt+→, drag and drop and the Move list; rule builder Alt+↑/Alt+↓; Enter submits forms. The design README says plain ←/→ for the board, the code needs Alt: the code is kept and the README corrected.
+
+### Second opinion on M7 (Codex, branch feature/m7-ai-presets against master, 2026-11-03)
+
+All six findings (P2) were confirmed and fixed, each with a test:
+
+| Finding | Fix | Test |
+|---|---|---|
+| Saving one part of the Presets screen reset the whole form and lost unsaved edits elsewhere | The form is rebuilt only when another preset is chosen; after a save only the saved fields come from the server | e2e `m7-presets.spec.ts` (fills, saves the preset, then the base resume) |
+| A package from a pasted resume prepared before V22 has no stored PDF and failed to download | The PDF is made from the kept text at download time (when it fits two pages) | `PackageApiTest.aPastedResumeGoesIntoThePackageAsTextAndWord` |
+| A fact confirmation survived an edit made before the debounced recheck, so new facts could be saved unconfirmed | Every edit clears the confirmation; saving waits until the check matches the text in the editor | e2e `m7-presets.spec.ts` (edit after confirming) |
+| A quote over a line break inside Skills counted as proof | The quote check marks every character with its section, so a quote is proof only if it reaches outside Skills | `QuoteCheckTest.aMentionOnlyInSkillsIsNotProof` |
+| A long link after ordinary text was not broken and ran off the page | Any word wider than the column is broken, wherever it stands | `ResumePdfTest.aLongLinkAfterOrdinaryTextIsBrokenInsideTheColumn` |
+| The analysis cache ignored company and location, which the prompts send | The hash covers title, company, location and description | `AnalysisApiTest.aChangedLocationOrCompanyMakesTheGoalMatchStaleToo` |
