@@ -52,10 +52,16 @@ class CorrespondenceRepository {
                 .param("v", vacancyId).param("r", reason).param("s", suggested).param("st", state).param("id", id).update();
     }
 
-    /** The vacancy the owner last linked a mail from this sender to by hand, if any. */
+    /**
+     * The vacancy the owner last linked a mail from this sender to by hand, if it is still alive. A vacancy the owner
+     * dismissed, or that expired or was hidden, takes no more mail: a new message from the same person is about
+     * something else. A rejected or withdrawn application still gets its follow-ups.
+     */
     Optional<UUID> manualLinkFor(String sender) {
-        return jdbc.sql("SELECT vacancy_id FROM correspondence WHERE lower(sender) = lower(:s) AND vacancy_id IS NOT NULL"
-                        + " AND link_reason = :r ORDER BY received_at DESC NULLS LAST, created_at DESC LIMIT 1")
+        return jdbc.sql("SELECT c.vacancy_id FROM correspondence c JOIN vacancy v ON v.id = c.vacancy_id"
+                        + " WHERE lower(c.sender) = lower(:s) AND c.link_reason = :r"
+                        + " AND v.status NOT IN ('Dismissed', 'Hidden', 'Expired')"
+                        + " ORDER BY c.received_at DESC NULLS LAST, c.created_at DESC LIMIT 1")
                 .param("s", sender).param("r", CorrespondenceService.LINKED_BY_YOU).query(UUID.class).optional();
     }
 
