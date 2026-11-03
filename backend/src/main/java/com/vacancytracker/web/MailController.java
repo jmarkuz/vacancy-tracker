@@ -36,6 +36,12 @@ public class MailController {
         return mail.list(vacancyId, pending);
     }
 
+    /** The applications a mail can be linked to by hand. */
+    @GetMapping("/api/mail/applications")
+    public List<CorrespondenceService.ApplicationOption> applications() {
+        return mail.applications();
+    }
+
     @PostMapping("/api/mail/sync")
     public CorrespondenceService.SyncResult sync() {
         return mail.sync();
