@@ -1,8 +1,9 @@
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { ApiError } from "../api/client";
-import { deleteMail, deleteOldMail, getMailStatus, importEml, listMail, type Mail, type MailStatus, syncMail } from "../api/mail";
+import { deleteMail, deleteOldMail, getMailStatus, importEml, listMail, type Mail, type MailStatus, startMailSync } from "../api/mail";
 import { MailList } from "../components/MailList";
 import { Toast } from "../components/Toast";
+import { SYNC_POLL_MS, syncSummary } from "../domain/mail";
 import { formatDate } from "./columns";
 
 /**
@@ -16,6 +17,8 @@ export function MailScreen({ dataVersion = 0 }: { dataVersion?: number }) {
   const [pendingOnly, setPendingOnly] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The mailbox's own error from the last read: kept apart from `error`, which every reload of the list clears.
+  const [syncError, setSyncError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [reload, setReload] = useState(0);
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
@@ -38,6 +41,30 @@ export function MailScreen({ dataVersion = 0 }: { dataVersion?: number }) {
       });
     return () => controller.abort();
   }, [pendingOnly, reload, dataVersion]);
+
+  // A read of the mailbox runs in the background (started here, or by the schedule): ask until it is done, then show
+  // what it found and load the new mail.
+  const wasSyncing = useRef(false);
+  useEffect(() => {
+    if (!status?.syncing) {
+      if (wasSyncing.current) {
+        wasSyncing.current = false;
+        const r = status?.lastResult;
+        if (r?.error) {
+          setSyncError(r.error);
+        } else if (r) {
+          setToast(syncSummary(r));
+        }
+        setReload((n) => n + 1);
+      }
+      return undefined;
+    }
+    wasSyncing.current = true;
+    const timer = setTimeout(() => {
+      getMailStatus().then(setStatus).catch(() => undefined);
+    }, SYNC_POLL_MS);
+    return () => clearTimeout(timer);
+  }, [status]);
 
   const run = async (action: () => Promise<string>) => {
     setBusy(true);
@@ -89,19 +116,26 @@ export function MailScreen({ dataVersion = 0 }: { dataVersion?: number }) {
         <button
           class="btn"
           type="button"
-          disabled={busy || !status?.configured}
+          disabled={busy || !status?.configured || status.syncing}
           title={status?.configured ? undefined : "Set up IMAP first (docs/deployment.md)"}
+          aria-busy={status?.syncing}
           onClick={() =>
             run(async () => {
-              const r = await syncMail();
-              if (r.error) {
-                throw new ApiError(502, r.error);
+              setSyncError(null);
+              try {
+                await startMailSync();
+              } catch (e: unknown) {
+                // 409: a read is already running; just follow it.
+                if (!(e instanceof ApiError && e.status === 409)) {
+                  throw e;
+                }
               }
-              return `Read ${r.seen} mails: ${r.stored} about jobs, ${r.linked} linked, ${r.suggested} suggestions.`;
+              setStatus(await getMailStatus());
+              return "Checking the mailbox…";
             })
           }
         >
-          Check mail now
+          {status?.syncing ? "Checking…" : "Check mail now"}
         </button>
         <label class="btn ghost file-button">
           Import .eml
@@ -138,9 +172,9 @@ export function MailScreen({ dataVersion = 0 }: { dataVersion?: number }) {
           {status.lastError && <> Last error: {status.lastError}</>}
         </p>
       )}
-      {error && (
+      {(error ?? syncError) && (
         <div class="notice error" role="alert">
-          {error}
+          {error ?? syncError}
         </div>
       )}
 
