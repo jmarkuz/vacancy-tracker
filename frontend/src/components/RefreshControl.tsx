@@ -86,18 +86,23 @@ export function RefreshControl() {
       </button>
 
       {running && progress.length > 0 && (
-        <ul class="progress-list" aria-label="Refresh progress">
-          {progress.map((p) => (
-            <li key={p.adapter}>
-              <span class="num">{p.adapter}</span>{" "}
-              <span class={`badge ${p.state === "failed" ? "health-error" : p.state === "running" ? "" : "health-ok"}`}>
-                {p.state === "running" ? "running" : p.state === "failed" ? "failed" : "ok"}
-              </span>
-              {p.state === "finished" && <span class="muted"> · +{p.new ?? 0} new</span>}
-              {p.state === "failed" && p.error && <span class="muted"> · {p.error}</span>}
-            </li>
-          ))}
-        </ul>
+        <div class="progress-pop" role="group" aria-label="Refresh progress">
+          <p class="progress-head">Refreshing sources</p>
+          <ul class="progress-list">
+            {progress.map((p) => (
+              <li key={p.adapter}>
+                <span class="progress-name num">{p.adapter}</span>
+                <span class="progress-state">
+                  {p.state === "finished" && <span class="muted">+{p.new ?? 0} new</span>}
+                  {p.state === "failed" && p.error && <span class="muted progress-error">{p.error}</span>}
+                  <span class={`badge ${p.state === "failed" ? "health-error" : p.state === "running" ? "" : "health-ok"}`}>
+                    {p.state === "running" ? "running" : p.state === "failed" ? "failed" : "ok"}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {toast && (
