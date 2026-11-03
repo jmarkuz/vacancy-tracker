@@ -22,6 +22,7 @@ import { diffCounts, diffLines } from "../domain/diff";
 import { type Comparison, compare, comparisonLine } from "../domain/match";
 import { placeholders } from "../domain/presets";
 import { formatDate } from "../screens/columns";
+import { LoadFailed } from "./LoadFailed";
 
 interface Props {
   vacancyId: string;
@@ -119,6 +120,8 @@ export function DocumentsPanel({ vacancyId, presetId, onPresetChange, onSaved }:
   const [presets, setPresets] = useState<Preset[]>([]);
   const [editing, setEditing] = useState<Editing | null>(null);
   const [showDiff, setShowDiff] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [reload, setReload] = useState(0);
   const [instructions, setInstructions] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -127,8 +130,14 @@ export function DocumentsPanel({ vacancyId, presetId, onPresetChange, onSaved }:
 
   useEffect(() => {
     const controller = new AbortController();
-    listDocuments(vacancyId, controller.signal).then(setDocs).catch(() => undefined);
-    getAiStatus(controller.signal).then(setAi).catch(() => undefined);
+    setLoadFailed(false);
+    const failed = () => {
+      if (!controller.signal.aborted) {
+        setLoadFailed(true);
+      }
+    };
+    listDocuments(vacancyId, controller.signal).then(setDocs).catch(failed);
+    getAiStatus(controller.signal).then(setAi).catch(failed);
     listPresets(controller.signal)
       .then((list) => {
         setPresets(list);
@@ -137,9 +146,9 @@ export function DocumentsPanel({ vacancyId, presetId, onPresetChange, onSaved }:
           onPresetChange(chosen);
         }
       })
-      .catch(() => undefined);
+      .catch(failed);
     return () => controller.abort();
-  }, [vacancyId]);
+  }, [vacancyId, reload]);
 
   const latest = latestByKind(docs);
   const preset = presets.find((p) => p.id === presetId);
@@ -273,6 +282,7 @@ export function DocumentsPanel({ vacancyId, presetId, onPresetChange, onSaved }:
           drafts with Claude. Use as is works without AI.
         </p>
       )}
+      {loadFailed && <LoadFailed what="the documents, the presets or the AI status" onRetry={() => setReload((n) => n + 1)} />}
       {error && (
         <div class="notice error" role="alert">
           {error}
