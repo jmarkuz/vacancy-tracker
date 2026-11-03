@@ -46,3 +46,11 @@ export function weekLabel(start: string): string {
 export function chartSummary(weeks: Week[]): string {
   return "Applications per week: " + weeks.map((w) => `${weekLabel(w.start)} ${w.applications}`).join(", ");
 }
+
+/** "Quiet for 12 days", "Quiet for 1 day", or "Quiet for over a month" from 30 days on. */
+export function quietText(days: number): string {
+  if (days >= 30) {
+    return "Quiet for over a month";
+  }
+  return `Quiet for ${days} ${days === 1 ? "day" : "days"}`;
+}

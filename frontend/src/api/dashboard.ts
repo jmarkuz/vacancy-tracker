@@ -17,6 +17,16 @@ export interface NextAction {
   overdue: boolean;
 }
 
+/** An application waiting for an answer that has been quiet for a while (no status change and no mail). */
+export interface FollowUp {
+  id: string;
+  title: string;
+  company: string;
+  status: string;
+  lastActivityAt: string;
+  quietDays: number;
+}
+
 export interface FunnelStage {
   status: string;
   count: number;
@@ -37,6 +47,7 @@ export interface Dashboard {
   funnel: FunnelStage[];
   applicationsPerWeek: Week[];
   nextActions: NextAction[];
+  followUps: FollowUp[];
 }
 
 export const getDashboard = (signal?: AbortSignal) => getJson<Dashboard>("/api/dashboard", signal);

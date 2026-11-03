@@ -9,6 +9,7 @@ import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +34,9 @@ public class DashboardService {
                 SELECT vacancy_id, to_status, at, lead(note) OVER (PARTITION BY vacancy_id ORDER BY at, CASE WHEN note = '%1$s' THEN 1 ELSE 0 END, id) AS next_note
                 FROM status_event
             ) e WHERE next_note IS DISTINCT FROM '%1$s'""".formatted(BulkStatusService.UNDO_NOTE);
+    /** The statuses in which the ball is with the employer: an answer is awaited. */
+    static final List<String> WAITING = List.of("Applied", "Screening", "Interview");
+    static final int FOLLOW_UPS = 5;
     static final int TOP = 5;
     static final int NEXT_ACTIONS = 5;
 
@@ -40,6 +44,10 @@ public class DashboardService {
     }
 
     public record NextAction(UUID id, String title, String company, String status, Instant dueAt, String note, boolean overdue) {
+    }
+
+    /** An application that has been quiet: no status change and no mail for quietDays days. */
+    public record FollowUp(UUID id, String title, String company, String status, Instant lastActivityAt, long quietDays) {
     }
 
     public record FunnelStage(String status, long count) {
@@ -50,15 +58,17 @@ public class DashboardService {
 
     public record Dashboard(long newToday, long inbox, long active, long interviews, long overdue,
                             List<TopMatch> topMatches, List<FunnelStage> funnel, List<Week> applicationsPerWeek,
-                            List<NextAction> nextActions) {
+                            List<NextAction> nextActions, List<FollowUp> followUps) {
     }
 
     private final JdbcClient jdbc;
     private final Clock clock;
+    private final int quietDays;
 
-    public DashboardService(JdbcClient jdbc, Clock clock) {
+    public DashboardService(JdbcClient jdbc, Clock clock, @Value("${app.followup.quiet-days:10}") int quietDays) {
         this.jdbc = jdbc;
         this.clock = clock;
+        this.quietDays = Math.max(1, quietDays);
     }
 
     @Transactional(readOnly = true)
@@ -93,7 +103,33 @@ public class DashboardService {
                 })
                 .list();
 
-        return new Dashboard(newToday, inbox, activeCount, interviews, overdue, top, funnel(), weeks(now, zone), next);
+        return new Dashboard(newToday, inbox, activeCount, interviews, overdue, top, funnel(), weeks(now, zone), next, followUps(now));
+    }
+
+    /**
+     * Applications waiting for an answer that have been quiet for quietDays: the last status change and the last mail
+     * linked to the vacancy are both older than that. A vacancy with a next action planned for later is left out: the
+     * owner has already decided when to look at it.
+     */
+    private List<FollowUp> followUps(Instant now) {
+        Instant limit = now.minus(quietDays, java.time.temporal.ChronoUnit.DAYS);
+        return jdbc.sql("""
+                        SELECT id, title, company, status, last_activity FROM (
+                            SELECT v.id, v.title, v.company, v.status,
+                                   GREATEST(COALESCE((SELECT max(e.at) FROM status_event e WHERE e.vacancy_id = v.id), v.first_seen_at),
+                                            COALESCE((SELECT max(c.received_at) FROM correspondence c WHERE c.vacancy_id = v.id), v.first_seen_at)) AS last_activity
+                            FROM vacancy v
+                            WHERE v.status = ANY (:waiting) AND (v.next_action_at IS NULL OR v.next_action_at <= :now)
+                        ) q WHERE last_activity <= :limit ORDER BY last_activity, id LIMIT :n
+                        """)
+                .param("waiting", WAITING.toArray(String[]::new)).param("now", java.sql.Timestamp.from(now))
+                .param("limit", java.sql.Timestamp.from(limit)).param("n", FOLLOW_UPS)
+                .query((rs, i) -> {
+                    Instant last = rs.getTimestamp("last_activity").toInstant();
+                    return new FollowUp(rs.getObject("id", UUID.class), rs.getString("title"), rs.getString("company"),
+                            rs.getString("status"), last, java.time.temporal.ChronoUnit.DAYS.between(last, now));
+                })
+                .list();
     }
 
     private long count(String sql, String name, Object value) {
