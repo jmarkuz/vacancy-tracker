@@ -3,6 +3,7 @@ import { getDashboard, type Dashboard as Data } from "../api/dashboard";
 import { listSources, type SourceStatus } from "../api/sources";
 import { barPercent, chartSummary, funnelMax, kpis, weekLabel, weekMax } from "../domain/dashboard";
 import { healthDetail, healthLabel } from "../domain/sources";
+import { LoadFailed } from "../components/LoadFailed";
 import { formatDate } from "./columns";
 
 /** Dashboard (T-060): KPI cards that open a filtered list, top matches, funnel, applications per week, next actions. */
@@ -19,6 +20,8 @@ export function Dashboard({ dataVersion = 0 }: { dataVersion?: number }) {
   const [data, setData] = useState<Data | null>(null);
   const [sources, setSources] = useState<SourceStatus[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [sourcesFailed, setSourcesFailed] = useState(false);
+  const [sourcesReload, setSourcesReload] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -27,9 +30,21 @@ export function Dashboard({ dataVersion = 0 }: { dataVersion?: number }) {
         setError("Could not load the dashboard.");
       }
     });
-    listSources(controller.signal).then(setSources).catch(() => undefined);
     return () => controller.abort();
   }, [dataVersion]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setSourcesFailed(false);
+    listSources(controller.signal)
+      .then(setSources)
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setSourcesFailed(true);
+        }
+      });
+    return () => controller.abort();
+  }, [dataVersion, sourcesReload]);
 
   if (error) {
     return <div class="notice error" role="alert">{error}</div>;
@@ -135,7 +150,9 @@ export function Dashboard({ dataVersion = 0 }: { dataVersion?: number }) {
 
       <div class="panel">
         <h2>Source health</h2>
-        {sources.length === 0 ? (
+        {sourcesFailed ? (
+          <LoadFailed what="the source health" onRetry={() => setSourcesReload((n) => n + 1)} />
+        ) : sources.length === 0 ? (
           <p class="muted">No source information yet.</p>
         ) : (
           <div class="table-wrap">
