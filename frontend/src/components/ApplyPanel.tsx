@@ -10,6 +10,7 @@ import {
   type TailoredDocument,
 } from "../api/ai";
 import { safeLink } from "../domain/links";
+import { LoadFailed } from "./LoadFailed";
 import { formatDate } from "../screens/columns";
 
 interface Props {
@@ -35,9 +36,16 @@ export function ApplyPanel({ vacancyId, vacancyUrl, docsVersion, onSubmitted }: 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reload, setReload] = useState(0);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
+    setLoadFailed(false);
+    const failed = () => {
+      if (!controller.signal.aborted) {
+        setLoadFailed(true);
+      }
+    };
     listDocuments(vacancyId, controller.signal)
       .then((list) => {
         setDocs(list);
@@ -45,8 +53,8 @@ export function ApplyPanel({ vacancyId, vacancyUrl, docsVersion, onSubmitted }: 
         setResumeId((current) => current || (list.find((d) => d.kind === "resume")?.id ?? ""));
         setLetterId((current) => current || (list.find((d) => d.kind === "cover_letter")?.id ?? ""));
       })
-      .catch(() => undefined);
-    listPackages(vacancyId, controller.signal).then(setPackages).catch(() => undefined);
+      .catch(failed);
+    listPackages(vacancyId, controller.signal).then(setPackages).catch(failed);
     return () => controller.abort();
   }, [vacancyId, docsVersion, reload]);
 
@@ -100,6 +108,7 @@ export function ApplyPanel({ vacancyId, vacancyUrl, docsVersion, onSubmitted }: 
   return (
     <section class="drawer-section" aria-labelledby="apply-title">
       <h3 id="apply-title">Apply</h3>
+      {loadFailed && <LoadFailed what="the documents and packages for this vacancy" onRetry={() => setReload((n) => n + 1)} />}
       {error && (
         <div class="notice error" role="alert">
           {error}
