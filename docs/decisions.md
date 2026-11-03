@@ -38,6 +38,8 @@ Index:
 - ADR-044 Visa sponsorship from the posting text
 - ADR-045 New sources from the owner's list
 - ADR-046 design, dark first
+- ADR-052 Beacon design, light first
+- ADR-053 Graphite: Apple, Uber and sports-car references over Beacon
 
 ---
 
@@ -799,3 +801,20 @@ Status: Accepted (T-101). Supersedes the look of ADR-046; its keyboard rules sta
 - **Language**: the owner kept the interface in English; the package's Ukrainian texts are used for their meaning, not translated literally.
 
 **Consequences.** The look of earlier screenshots and the Phase 0 mockup (now with the new tokens) differs. The package's manual checks (NVDA, real 200% zoom, users with low vision) are not automated and remain to be done before calling the design accepted; the automated checks cover contrast, keyboard tabs, text size and 640 px reflow.
+
+## ADR-053 Graphite: Apple, Uber and sports-car references over Beacon
+
+Status: Accepted. Restyles ADR-052; its structure, keyboard rules and accessibility targets stay. Sources: the Apple, Uber and sports-car design analyses (light and dark) the owner delivered on 2026-11-03, used as references, not copied.
+
+**Context.** The owner asked for a new look built on those three references, with room for ideas of our own. Beacon's promises to people with low vision (text at 7:1, control borders at 3:1, an 18 to 22 px base, 44 px controls, a 3 px focus ring) are not negotiable, and the app still loads nothing from the internet.
+
+**Decision.**
+- **Light theme from Apple:** a parchment canvas (`#f5f5f7`) under white cards with hairlines and 18 px corners, near-black ink (`#1d1d1f`), display type with tight tracking, a frosted header (translucent canvas with blur), Apple's focus blue (`#0071e3`), and a press that scales a control to 97%.
+- **Actions from Uber:** every action is a pill; the primary one is ink (black in light, white in dark) in every section, so a screen has one obvious next step; secondary actions are outlined pills, ghost ones plain links; selected tabs and toggles are ink pills; overlays and the toast are the only things with a shadow.
+- **Dark theme and labels from sports-car:** a true black canvas, near-black cards (`#141414`), hairlines, the ice blue `#c3d9f3` as the dark accent; navigation groups, table heads, field names and metric labels are uppercase monospace with wide tracking; the name is a wordmark in capitals with the widest tracking.
+- **Our own:** the Dashboard's numbers are an *instrument cluster*: one black band in both themes, divided by hairlines like a car's spec cells, light large numerals, and each metric's role as a lit dot. The four Beacon roles keep their meaning but recede to markers (a dot per section, badge tints, the cluster), so color marks meaning and ink marks action.
+- **Fonts:** system faces only (SF Pro on Apple devices, Segoe UI Variable on Windows, the system UI face elsewhere; a system monospace for labels). No font files are shipped.
+- **Implementation:** `tokens.css` holds the values (the contrast unit test still checks 58 pairs); `graphite.css` is a component layer loaded after `app.css`, so the layout and the markup are unchanged. Hairlines (`--color-hairline`) only separate surfaces that already differ; anything operable keeps a 3:1 border.
+
+**Consequences.** Primary buttons no longer carry the section color (Beacon filled them green, purple or amber); the role is still visible on the section marker and in badges. Exact typefaces differ by platform. The manual checks named in ADR-052 still apply.
+

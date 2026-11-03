@@ -1,6 +1,6 @@
 /**
  * The Beacon mark (the design package/assets/logo-primary.svg): a geometric
- * beacon in the shape of an A with a crossbar. It takes the logo color (always blue: never the color of a section).
+ * beacon in the shape of an A with a crossbar. It takes the logo color (ink in Graphite, ADR-053: never the color of a section).
  */
 export function LogoMark({ title }: { title?: string }) {
   return (
