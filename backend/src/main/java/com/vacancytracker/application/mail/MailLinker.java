@@ -83,6 +83,11 @@ public final class MailLinker {
         return Optional.ofNullable(best);
     }
 
+    /** True for a job board's own address (noreply@linkedin.com): one sender writes about many vacancies, so it identifies none. */
+    public static boolean sharedSender(String address) {
+        return JOB_BOARDS.contains(domain(address));
+    }
+
     /** "Acme Pay, Inc." becomes "acme pay": lower case, punctuation and legal forms removed. */
     static String companyKey(String company) {
         if (company == null) {

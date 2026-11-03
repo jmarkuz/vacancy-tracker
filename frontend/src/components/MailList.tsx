@@ -1,6 +1,15 @@
 import { useState } from "preact/hooks";
 import { ApiError } from "../api/client";
-import { acceptSuggestion, CATEGORY_LABEL, dismissSuggestion, type Mail, suggestionText } from "../api/mail";
+import {
+  acceptSuggestion,
+  type ApplicationOption,
+  CATEGORY_LABEL,
+  dismissSuggestion,
+  listApplications,
+  type Mail,
+  relinkMail,
+  suggestionText,
+} from "../api/mail";
 import { formatDate } from "../screens/columns";
 
 interface Props {
@@ -18,6 +27,35 @@ interface Props {
 export function MailList({ items, showVacancyLink = false, onChanged, selected, onToggle }: Props) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [linking, setLinking] = useState<string | null>(null);
+  const [options, setOptions] = useState<ApplicationOption[] | null>(null);
+
+  const startLinking = async (m: Mail) => {
+    setLinking(m.id);
+    setError(null);
+    if (options === null) {
+      try {
+        setOptions(await listApplications());
+      } catch {
+        setError("Could not load your applications.");
+        setLinking(null);
+      }
+    }
+  };
+
+  const link = async (m: Mail, vacancyId: string | null) => {
+    setBusy(m.id);
+    setError(null);
+    try {
+      await relinkMail(m.id, vacancyId);
+      setLinking(null);
+      onChanged(vacancyId ? "Mail linked to the application." : "Mail unlinked.");
+    } catch (e: unknown) {
+      setError(e instanceof ApiError ? e.message : "That did not work.");
+    } finally {
+      setBusy(null);
+    }
+  };
 
   const act = async (m: Mail, accept: boolean) => {
     setBusy(m.id);
@@ -79,6 +117,43 @@ export function MailList({ items, showVacancyLink = false, onChanged, selected, 
               </p>
             ) : (
               <p class="small muted">Not linked to an application.</p>
+            )}
+            {linking === m.id ? (
+              <div class="drawer-row">
+                <select
+                  aria-label="Application for this mail"
+                  disabled={busy !== null || options === null}
+                  value=""
+                  onChange={(e) => {
+                    const v = (e.currentTarget as HTMLSelectElement).value;
+                    if (v) {
+                      void link(m, v);
+                    }
+                  }}
+                >
+                  <option value="">{options === null ? "Loading…" : options.length === 0 ? "No applications yet" : "Choose an application…"}</option>
+                  {(options ?? []).filter((o) => o.id !== m.vacancyId).map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.title}
+                      {o.company ? ` · ${o.company}` : ""} ({o.status})
+                    </option>
+                  ))}
+                </select>
+                <button class="btn ghost" type="button" onClick={() => setLinking(null)}>
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <p class="small">
+                <button class="btn ghost" type="button" disabled={busy !== null} onClick={() => void startLinking(m)}>
+                  {m.vacancyId ? "Change application" : "Link to an application"}
+                </button>
+                {m.vacancyId && (
+                  <button class="btn ghost" type="button" disabled={busy !== null} onClick={() => void link(m, null)}>
+                    Unlink
+                  </button>
+                )}
+              </p>
             )}
             {suggestionText(m) && (
               <div class="drawer-row">

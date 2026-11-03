@@ -52,6 +52,28 @@ class CorrespondenceRepository {
                 .param("v", vacancyId).param("r", reason).param("s", suggested).param("st", state).param("id", id).update();
     }
 
+    /** The vacancy the owner last linked a mail from this sender to by hand, if any. */
+    Optional<UUID> manualLinkFor(String sender) {
+        return jdbc.sql("SELECT vacancy_id FROM correspondence WHERE lower(sender) = lower(:s) AND vacancy_id IS NOT NULL"
+                        + " AND link_reason = :r ORDER BY received_at DESC NULLS LAST, created_at DESC LIMIT 1")
+                .param("s", sender).param("r", CorrespondenceService.LINKED_BY_YOU).query(UUID.class).optional();
+    }
+
+    /** Stored mails from this sender that belong to no application yet. */
+    List<Correspondence> unlinkedFrom(String sender) {
+        return jdbc.sql("SELECT " + COLUMNS + " FROM correspondence WHERE lower(sender) = lower(:s) AND vacancy_id IS NULL")
+                .param("s", sender).query(CorrespondenceRepository::map).list();
+    }
+
+    /** The applications a mail can be linked to by hand: anything past the Inbox that is still alive, newest first. */
+    List<CorrespondenceService.ApplicationOption> applications() {
+        return jdbc.sql("SELECT id, title, company, status FROM vacancy WHERE status NOT IN ('New', 'Dismissed', 'Hidden', 'Expired')"
+                        + " ORDER BY updated_at DESC LIMIT 500")
+                .query((rs, n) -> new CorrespondenceService.ApplicationOption(rs.getObject("id", UUID.class), rs.getString("title"), rs.getString("company"),
+                        rs.getString("status")))
+                .list();
+    }
+
     void updateState(UUID id, String state) {
         jdbc.sql("UPDATE correspondence SET suggestion_state = :st WHERE id = :id").param("st", state).param("id", id).update();
     }
