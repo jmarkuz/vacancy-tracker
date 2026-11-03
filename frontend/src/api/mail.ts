@@ -82,3 +82,13 @@ export const deleteOldMail = (days: number) => requestJson<{ deleted: number }>(
 export function suggestionText(m: Mail): string | null {
   return m.suggestionState === "pending" && m.suggestedStatus ? `Move to ${m.suggestedStatus}?` : null;
 }
+
+/** An application a mail can be linked to by hand. */
+export interface ApplicationOption {
+  id: string;
+  title: string;
+  company: string | null;
+  status: string;
+}
+
+export const listApplications = (signal?: AbortSignal) => getJson<ApplicationOption[]>("/api/mail/applications", signal);

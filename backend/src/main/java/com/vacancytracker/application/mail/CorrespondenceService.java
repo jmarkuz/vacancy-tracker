@@ -46,10 +46,16 @@ public class CorrespondenceService {
     private static final Logger LOG = LoggerFactory.getLogger(CorrespondenceService.class);
     static final String KEY_PREFIX = "reply:";
     static final int SNIPPET = 600;
+    static final String LINKED_BY_YOU = "Linked by you.";
+    static final String SAME_SENDER = "Same sender as a mail you linked.";
     static final int MAX_EML_BYTES = 5 * 1024 * 1024;
     private static final Map<VacancyStatus, Integer> STAGE = Map.of(VacancyStatus.NEW, 0, VacancyStatus.SAVED, 0,
             VacancyStatus.APPLIED, 1, VacancyStatus.SCREENING, 2, VacancyStatus.INTERVIEW, 3, VacancyStatus.TEST_TASK, 3,
             VacancyStatus.OFFER, 4, VacancyStatus.ACCEPTED, 5);
+
+    /** An application a mail can be linked to by hand. */
+    public record ApplicationOption(UUID id, String title, String company, String status) {
+    }
 
     /** What a sync did: how many mails were read, kept as job mail, linked, and given a suggestion. */
     public record SyncResult(boolean configured, int seen, int stored, int linked, int suggested, String error) {
@@ -145,6 +151,10 @@ public class CorrespondenceService {
             return new Outcome(false, "already stored", known.get());
         }
         Optional<MailLinker.Link> link = MailLinker.link(mail, repository.candidates());
+        if (link.isEmpty() && mail.from() != null && !MailLinker.sharedSender(mail.from())) {
+            // A reply from a person the owner already tied to an application stays with it, whatever its wording.
+            link = repository.manualLinkFor(mail.from()).map(v -> new MailLinker.Link(v, 0, SAME_SENDER));
+        }
         Suggestion s = suggestion(category, link.map(MailLinker.Link::vacancyId).orElse(null));
         Correspondence c = new Correspondence(UUID.randomUUID(), mail.key(), folder, mail.from(), mail.senderName(),
                 mail.subject(), mail.receivedAt(), MailClassifier.snippet(mail, SNIPPET), category.code(),
@@ -225,6 +235,11 @@ public class CorrespondenceService {
         return v;
     }
 
+    /** The applications the owner can link a mail to by hand. */
+    public List<ApplicationOption> applications() {
+        return repository.applications();
+    }
+
     public Correspondence dismiss(UUID id) {
         get(id);
         repository.updateState(id, "dismissed");
@@ -239,7 +254,14 @@ public class CorrespondenceService {
             vacancies.get(vacancyId);
         }
         Suggestion s = suggestion(MailCategory.of(c.category()), vacancyId);
-        repository.updateLink(id, vacancyId, vacancyId == null ? null : "Linked by you.", s.status(), s.state());
+        repository.updateLink(id, vacancyId, vacancyId == null ? null : LINKED_BY_YOU, s.status(), s.state());
+        if (vacancyId != null && c.sender() != null && !MailLinker.sharedSender(c.sender())) {
+            // The sender is now known to write about this application: earlier mail from them belongs here too.
+            for (Correspondence other : repository.unlinkedFrom(c.sender())) {
+                Suggestion o = suggestion(MailCategory.of(other.category()), vacancyId);
+                repository.updateLink(other.id(), vacancyId, SAME_SENDER, o.status(), o.state());
+            }
+        }
         return get(id);
     }
 
