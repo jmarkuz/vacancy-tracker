@@ -19,6 +19,8 @@ interface Props {
   fit: ResumeFit | undefined;
   /** A save or skip is on its way: the buttons wait, so a second click cannot send it twice. */
   busy: boolean;
+  /** Changes when the full details close, so the documents saved there show up here. */
+  refreshKey: number;
   onSave: () => void;
   onSkip: () => void;
   onDetails: () => void;
@@ -29,7 +31,7 @@ interface Props {
  * always in the same place; the tabs show the conditions, the match with the resume and the documents. The tabs
  * follow the WAI-ARIA pattern: arrows, Home and End move between them, Tab goes into the content.
  */
-export function InboxInspector({ vacancy, fit, busy, onSave, onSkip, onDetails }: Props) {
+export function InboxInspector({ vacancy, fit, busy, refreshKey, onSave, onSkip, onDetails }: Props) {
   const [tab, setTab] = useState<Tab>("conditions");
   const [docs, setDocs] = useState<TailoredDocument[] | null>(null);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -42,7 +44,7 @@ export function InboxInspector({ vacancy, fit, busy, onSave, onSkip, onDetails }
     setDocs(null);
     listDocuments(vacancy.id, controller.signal).then(setDocs).catch(() => setDocs([]));
     return () => controller.abort();
-  }, [vacancy.id, tab]);
+  }, [vacancy.id, tab, refreshKey]);
 
   const onTabKey = (e: KeyboardEvent, index: number) => {
     const next = nextTab(e.key, index, TABS.length);

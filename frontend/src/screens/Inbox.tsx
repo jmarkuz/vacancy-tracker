@@ -41,6 +41,8 @@ export function Inbox({ params, dataVersion = 0 }: Props) {
   const [reload, setReload] = useState(0);
   // The vacancy whose save or skip is on its way; its buttons wait for the server.
   const [pendingId, setPendingId] = useState<string | null>(null);
+  // Grows each time the full details close: the inspector reloads what may have been saved there.
+  const [detailsClosed, setDetailsClosed] = useState(0);
   const listRef = useRef<HTMLUListElement>(null);
   const triaging = useRef(new Set<string>());
   const itemsRef = useRef<Vacancy[]>([]);
@@ -314,6 +316,7 @@ export function Inbox({ params, dataVersion = 0 }: Props) {
             vacancy={items[selected]}
             fit={fits[items[selected].id]}
             busy={pendingId === items[selected].id}
+            refreshKey={detailsClosed}
             onSave={() => triage(items[selected], "Saved")}
             onSkip={() => triage(items[selected], "Dismissed")}
             onDetails={() => setQuery({ open: items[selected].id })}
@@ -325,7 +328,10 @@ export function Inbox({ params, dataVersion = 0 }: Props) {
       {openId && (
         <VacancyDrawer
           id={openId}
-          onClose={() => setQuery({ open: null })}
+          onClose={() => {
+            setQuery({ open: null });
+            setDetailsClosed((n) => n + 1);
+          }}
           onChange={() => setReload((n) => n + 1)}
         />
       )}

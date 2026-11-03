@@ -48,6 +48,24 @@ test("the Inbox shows the selected vacancy beside the list, with keyboard tabs a
   await expect(page.getByRole("heading", { name: "No new vacancy matches the filter" })).toBeVisible();
 });
 
+test("a document saved in the full details shows in the Inbox panel at once", async ({ page, request }) => {
+  const created = await request.post("/api/vacancies", { data: { title: "Beacon documents role", company: "Beacon Co", description: "zqbeacondocs Java." } });
+  expect(created.status()).toBe(201);
+  await page.goto("/#/inbox?q=zqbeacondocs");
+  const inspector = page.getByRole("complementary", { name: "Selected vacancy: Beacon documents role" });
+  await inspector.getByRole("tab", { name: "Documents" }).click();
+  await expect(inspector.getByRole("tabpanel")).toContainText("Resume: none yet");
+
+  await inspector.getByRole("button", { name: "Full details" }).click();
+  const drawer = page.getByRole("dialog", { name: "Beacon documents role" });
+  await drawer.getByRole("group", { name: "Resume", exact: true }).getByRole("button", { name: "Use as is" }).click();
+  await expect(drawer.getByRole("group", { name: "Resume", exact: true })).toContainText("v1 · base draft as is");
+  await page.keyboard.press("Escape");
+  await expect(drawer).toHaveCount(0);
+
+  await expect(inspector.getByRole("tabpanel")).toContainText("Resume: version 1");
+});
+
 test("the sections carry their color role and the current one is marked, and Skip to content works", async ({ page }) => {
   await page.goto("/#/presets");
   const current = page.getByRole("link", { name: "Presets" });
