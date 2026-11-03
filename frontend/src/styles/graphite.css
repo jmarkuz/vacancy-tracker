@@ -84,17 +84,35 @@ th,
 
 /* ---------- Shell ---------- */
 
-/* The header floats like Apple's sub-nav: translucent canvas with blur, a hairline under it. */
+/*
+ * The header floats like Apple's sub-nav: translucent canvas with blur, a hairline under it. The blur sits on a
+ * pseudo-element, not on the header itself: a backdrop-filter on the header would make it the containing block of
+ * every position: fixed descendant, and the refresh toast (inside the header) would stick to the header.
+ */
 .header {
   border-bottom: var(--border-width) solid var(--color-hairline);
+  background: transparent;
+}
+
+.header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
   background: var(--color-glass);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
   backdrop-filter: saturate(180%) blur(20px);
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .header {
+  .header::before {
     background: var(--color-bg);
+  }
+}
+
+@media (max-width: 1000px) {
+  .header {
+    position: relative;
   }
 }
 
@@ -462,24 +480,188 @@ tbody tr:hover {
   backdrop-filter: blur(6px);
 }
 
-/* The toast is an ink capsule (Uber's floating pill, inverted). */
-.toast {
+/*
+ * Liquid glass (Apple): popups that float over the page are translucent glass: a tinted, heavily blurred and
+ * saturated backdrop, a bright 1 px edge that fades toward the bottom, a specular highlight along the top, and a soft
+ * deep shadow. The tint is opaque enough (about 65%) that the text keeps its contrast over any content behind it.
+ * Without backdrop-filter, and in forced-colors, the popup is a plain solid surface.
+ */
+.glass,
+.toast,
+.progress-pop {
+  position: relative;
+  border: var(--border-width) solid var(--glass-edge-dim);
+  background:
+    linear-gradient(180deg, var(--glass-shine) 0, transparent 38%) top / 100% 100% no-repeat,
+    var(--glass-bg);
+  box-shadow:
+    var(--glass-shadow),
+    inset 0 1px 0 var(--glass-edge),
+    inset 0 -1px 0 var(--glass-edge-dim),
+    inset 1px 0 0 var(--glass-edge-dim),
+    inset -1px 0 0 var(--glass-edge-dim);
+  -webkit-backdrop-filter: saturate(190%) blur(28px);
+  backdrop-filter: saturate(190%) blur(28px);
+  color: var(--color-text);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass,
+  .toast,
+  .progress-pop {
+    background: var(--glass-solid);
+  }
+}
+
+/* The refresh popup: a heading, then one row per source with the name left and its state right. */
+.progress-pop {
+  position: absolute;
+  top: calc(100% + var(--space-3));
+  right: 0;
+  z-index: 30;
+  width: min(380px, 90vw);
+  padding: var(--space-4) var(--space-2) var(--space-3);
+  border-radius: var(--radius-xl);
+  font-size: var(--font-size-sm);
+}
+
+.progress-head {
+  margin: 0 var(--space-4) var(--space-2);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-label);
+  letter-spacing: var(--letter-spacing-label);
+  text-transform: uppercase;
+}
+
+.progress-pop .progress-list {
+  position: static;
+  width: auto;
+  margin: 0;
+  padding: 0;
   border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  list-style: none;
+}
+
+.progress-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: 2.6rem;
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-md);
-  background: var(--color-ink);
-  color: var(--color-on-ink);
-  box-shadow: var(--shadow-2);
+}
+
+.progress-list li + li {
+  box-shadow: 0 -1px 0 var(--glass-edge-dim);
+}
+
+.progress-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: var(--font-weight-semibold);
+}
+
+.progress-state {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: 60%;
+}
+
+.progress-error {
+  overflow-wrap: anywhere;
+}
+
+.progress-pop .badge {
+  background: color-mix(in srgb, currentColor 14%, transparent);
+}
+
+/* The toast is a glass capsule that slides up from the bottom. */
+.toast {
+  position: fixed;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-6);
+  border-radius: var(--radius-xl);
+  line-height: 1.35;
+}
+
+.toast-error {
+  background:
+    linear-gradient(180deg, var(--glass-shine) 0, transparent 38%) top / 100% 100% no-repeat,
+    var(--glass-bg-error);
+  color: var(--color-danger);
 }
 
 .toast a,
 .toast .btn.ghost {
-  color: var(--color-on-ink);
+  color: inherit;
 }
 
-.progress-list {
-  border-color: var(--color-hairline);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-2);
+.toast a {
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}
+
+.toast .btn.ghost {
+  min-width: var(--control-height);
+  padding: var(--space-2) var(--space-3);
+  text-decoration: none;
+  font-size: var(--font-size-lg);
+}
+
+@keyframes glass-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+@keyframes glass-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.toast {
+  animation: glass-in var(--duration-base) var(--ease-out);
+}
+
+.progress-pop {
+  transform-origin: top right;
+  animation: glass-pop var(--duration-base) var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast,
+  .progress-pop {
+    animation: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .toast,
+  .progress-pop {
+    border: 1px solid CanvasText;
+    background: Canvas;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
 }
 
 /* ---------- Badges and chips ---------- */
