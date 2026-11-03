@@ -71,6 +71,16 @@ class MailClassifierTest {
     }
 
     @Test
+    void snippetsDropLinksAndTheirBrackets() {
+        String text = "Proposal from Марина, RecruitGarden\n<https://djinni.co/?utm_medium=email&utm_source=x> <https://djinni.co/my/inbox/1/?a=b#apply_job>\n"
+                + "RecruitGarden <https://djinni.co/my/inbox/1/?a=b>\n.\nМарина <https://djinni.co/my/inbox/1/> Hi!\nSee www.example.com/x now.";
+        MailMessage mail = new MailMessage("<d@x>", "magic@djinni.co", "Djinni", "Proposal", null, text, null);
+
+        assertThat(MailClassifier.snippet(mail, 500)).isEqualTo("Proposal from Марина, RecruitGarden\nRecruitGarden\nМарина Hi!\nSee now.");
+        assertThat(MailClassifier.body(mail)).contains("https://djinni.co/my/inbox/1/");
+    }
+
+    @Test
     void snippetsAreShortPlainText() {
         MailMessage html = new MailMessage("<k@x>", "a@b.c", null, "s", null, null, "<p>Hello</p><p>" + "x".repeat(700) + "</p>");
 
