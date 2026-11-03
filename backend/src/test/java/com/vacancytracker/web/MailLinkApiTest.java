@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
 /** Tying a recruiter's mail to an application by hand, and keeping later mail from the same person with it. */
@@ -23,6 +24,9 @@ class MailLinkApiTest extends AbstractIntegrationTest {
 
     @Autowired
     private MockMvc mvc;
+
+    @Autowired
+    private JdbcTemplate jdbc;
 
     private String vacancy(String title, String company) throws Exception {
         String created = mvc.perform(post("/api/vacancies").contentType(MediaType.APPLICATION_JSON)
@@ -109,5 +113,34 @@ class MailLinkApiTest extends AbstractIntegrationTest {
         link(id, null);
 
         assertThat(vacancyOf(id)).isNull();
+    }
+
+    @Test
+    void aDismissedVacancyTakesNoMoreMailFromTheSender() throws Exception {
+        String application = vacancy("Backend Engineer", "Zeta Corp");
+        link(importMail("jane@recruiting.example", "d1", "Hello"), application);
+        jdbc.update("UPDATE vacancy SET status = 'Dismissed' WHERE id = ?::uuid", application);
+
+        assertThat(vacancyOf(importMail("jane@recruiting.example", "d2", "A different role"))).isNull();
+    }
+
+    @Test
+    void aRejectedApplicationStillGetsFollowUpsFromTheSender() throws Exception {
+        String application = vacancy("Backend Engineer", "Zeta Corp");
+        link(importMail("jane@recruiting.example", "r1", "Hello"), application);
+        jdbc.update("UPDATE vacancy SET status = 'Rejected' WHERE id = ?::uuid", application);
+
+        assertThat(vacancyOf(importMail("jane@recruiting.example", "r2", "Feedback on your interview"))).isEqualTo(application);
+    }
+
+    @Test
+    void theSenderRuleFollowsTheLatestLiveVacancy() throws Exception {
+        String old = vacancy("Backend Engineer", "Zeta Corp");
+        String current = vacancy("Platform Engineer", "Omega Ltd");
+        link(importMail("jane@recruiting.example", "l1", "First"), old);
+        link(importMail("jane@recruiting.example", "l2", "Second"), current);
+        jdbc.update("UPDATE vacancy SET status = 'Expired' WHERE id = ?::uuid", current);
+
+        assertThat(vacancyOf(importMail("jane@recruiting.example", "l3", "Third"))).isEqualTo(old);
     }
 }
