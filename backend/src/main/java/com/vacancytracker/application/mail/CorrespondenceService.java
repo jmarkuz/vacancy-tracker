@@ -197,7 +197,9 @@ public class CorrespondenceService {
     }
 
     /** One mail: classified, and stored with its link and suggestion when it is about jobs. */
-    @Transactional
+    // No @Transactional: sync() and importEml() call this method on the same bean, so Spring's proxy would never see
+    // the call. One mail is stored by a single INSERT ... ON CONFLICT DO NOTHING, which is atomic by itself and keeps
+    // a repeated delivery of the same mail from being stored twice.
     public Outcome handle(MailMessage mail, String folder) {
         MailCategory category = MailClassifier.classify(mail);
         if (category == MailCategory.NOT_JOB) {
