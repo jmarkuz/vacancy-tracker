@@ -61,6 +61,16 @@ class MailClassifierTest {
     }
 
     @Test
+    void aMailWithNoTextAtAllIsClassifiedWithoutFailing() {
+        MailMessage empty = new MailMessage("<e@x>", "a@b.test", null, "Hello", Instant.parse("2026-11-02T10:00:00Z"), null, null);
+        MailMessage markupOnly = new MailMessage("<m@x>", "a@b.test", null, "Hello", Instant.parse("2026-11-02T10:00:00Z"), null, "<img src=\"x.png\">");
+
+        assertThat(MailClassifier.body(empty)).isEmpty();
+        assertThat(MailClassifier.body(markupOnly)).isEmpty();
+        assertThat(MailClassifier.classify(empty)).isNotNull();
+    }
+
+    @Test
     void snippetsAreShortPlainText() {
         MailMessage html = new MailMessage("<k@x>", "a@b.c", null, "s", null, null, "<p>Hello</p><p>" + "x".repeat(700) + "</p>");
 

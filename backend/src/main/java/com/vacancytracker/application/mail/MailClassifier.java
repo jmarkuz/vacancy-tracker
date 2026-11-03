@@ -94,7 +94,9 @@ public final class MailClassifier {
             text = mail.text();
         } else {
             String html = mail.html() == null ? "" : mail.html();
-            text = Normalizer.plainText(html.length() > MAX_TEXT * 4 ? html.substring(0, MAX_TEXT * 4) : html);
+            String plain = Normalizer.plainText(html.length() > MAX_TEXT * 4 ? html.substring(0, MAX_TEXT * 4) : html);
+            // An empty or markup-only message has no text at all: plainText answers null for it.
+            text = plain == null ? "" : plain;
         }
         return text.length() > MAX_TEXT ? text.substring(0, MAX_TEXT) : text;
     }
