@@ -4,8 +4,11 @@ import com.vacancytracker.collection.mail.MailMessage;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -97,9 +100,27 @@ public final class MailLinker {
         return String.join(" ", Arrays.stream(plain.split(" ")).filter(w -> !w.isEmpty() && !LEGAL.contains(w)).toList());
     }
 
+    /** Compiled company patterns, kept between mails: a sync matches every mail against every vacancy's company. */
+    static final int PATTERN_CACHE_SIZE = 2048;
+    private static final Map<String, Pattern> PATTERNS = Collections.synchronizedMap(new LinkedHashMap<>(256, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, Pattern> eldest) {
+            return size() > PATTERN_CACHE_SIZE;
+        }
+    });
+
+    static int cachedPatterns() {
+        return PATTERNS.size();
+    }
+
+    private static Pattern phrasePattern(String phrase) {
+        return PATTERNS.computeIfAbsent(phrase, p -> Pattern.compile("(?<![\\p{L}\\p{N}])"
+                + Pattern.quote(p).replace(" ", "\\E[\\s\\p{Punct}]+\\Q") + "(?![\\p{L}\\p{N}])",
+                Pattern.UNICODE_CASE | Pattern.CASE_INSENSITIVE));
+    }
+
     private static boolean mentions(String text, String phrase) {
-        return !text.isEmpty() && Pattern.compile("(?<![\\p{L}\\p{N}])" + Pattern.quote(phrase).replace(" ", "\\E[\\s\\p{Punct}]+\\Q")
-                + "(?![\\p{L}\\p{N}])", Pattern.UNICODE_CASE | Pattern.CASE_INSENSITIVE).matcher(text).find();
+        return !text.isEmpty() && phrasePattern(phrase).matcher(text).find();
     }
 
     private static String domain(String address) {
