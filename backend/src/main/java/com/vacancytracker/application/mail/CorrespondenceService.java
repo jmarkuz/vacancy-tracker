@@ -8,6 +8,7 @@ import com.vacancytracker.vacancy.StatusPath;
 import com.vacancytracker.vacancy.Vacancy;
 import com.vacancytracker.vacancy.VacancyService;
 import com.vacancytracker.vacancy.VacancyStatus;
+import jakarta.annotation.PreDestroy;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
@@ -26,6 +27,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -65,7 +70,13 @@ public class CorrespondenceService {
     public record Outcome(boolean stored, String reason, Correspondence correspondence) {
     }
 
-    public record Status(boolean configured, List<String> folders, long pending, Instant lastSync, String lastError) {
+    /** syncing is true while a read of the mailbox runs; lastResult is what the last one did (null before the first). */
+    public record Status(boolean configured, List<String> folders, long pending, Instant lastSync, String lastError,
+                         boolean syncing, SyncResult lastResult) {
+    }
+
+    /** started is false when a read was already running or the mailbox is not set up. */
+    public record SyncStart(boolean started, String reason) {
     }
 
     private final ImapMailReader reader;
@@ -75,6 +86,13 @@ public class CorrespondenceService {
     private final List<String> folders;
     private volatile Instant lastSync;
     private volatile String lastError;
+    private volatile SyncResult lastResult;
+    private final AtomicBoolean syncing = new AtomicBoolean();
+    private final ExecutorService syncExecutor = Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "mail-sync");
+        t.setDaemon(true);
+        return t;
+    });
 
     public CorrespondenceService(ImapMailReader reader, CorrespondenceRepository repository, VacancyService vacancies, Clock clock,
                                  @Value("${app.mail.replies.folders:INBOX}") String folders) {
@@ -86,7 +104,39 @@ public class CorrespondenceService {
     }
 
     public Status status() {
-        return new Status(reader.isConfigured(), folders, repository.pendingCount(), lastSync, lastError);
+        return new Status(reader.isConfigured(), folders, repository.pendingCount(), lastSync, lastError, syncing.get(), lastResult);
+    }
+
+    /**
+     * Starts a read of the mailbox in the background and answers at once: reading a large folder can take minutes,
+     * far longer than a request should be held. The screen then polls {@link #status()} until syncing is false and
+     * shows lastResult.
+     */
+    public SyncStart startSync() {
+        if (!reader.isConfigured()) {
+            return new SyncStart(false, "The mailbox is not set up");
+        }
+        if (!syncing.compareAndSet(false, true)) {
+            return new SyncStart(false, "A read is already running");
+        }
+        try {
+            syncExecutor.submit(() -> {
+                try {
+                    sync();
+                } finally {
+                    syncing.set(false);
+                }
+            });
+        } catch (RejectedExecutionException e) {
+            syncing.set(false);
+            return new SyncStart(false, "The application is shutting down");
+        }
+        return new SyncStart(true, null);
+    }
+
+    @PreDestroy
+    void shutdown() {
+        syncExecutor.shutdownNow();
     }
 
     @Scheduled(initialDelayString = "${app.mail.replies.initial-delay:PT1M}", fixedDelayString = "${app.mail.replies.interval:PT15M}")
@@ -101,6 +151,15 @@ public class CorrespondenceService {
         if (!reader.isConfigured()) {
             return new SyncResult(false, 0, 0, 0, 0, null);
         }
+        syncing.set(true);
+        try {
+            return readFolders();
+        } finally {
+            syncing.set(false);
+        }
+    }
+
+    private SyncResult readFolders() {
         int seen = 0;
         int stored = 0;
         int linked = 0;
@@ -132,7 +191,9 @@ public class CorrespondenceService {
         if (stored > 0) {
             LOG.info("Mail: {} job mails stored, {} linked to applications, {} status suggestions", stored, linked, suggested);
         }
-        return new SyncResult(true, seen, stored, linked, suggested, error);
+        SyncResult result = new SyncResult(true, seen, stored, linked, suggested, error);
+        lastResult = result;
+        return result;
     }
 
     /** One mail: classified, and stored with its link and suggestion when it is about jobs. */
