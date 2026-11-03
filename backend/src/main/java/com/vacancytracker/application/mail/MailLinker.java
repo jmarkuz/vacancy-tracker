@@ -25,6 +25,10 @@ public final class MailLinker {
     private static final Set<String> PUBLIC_MAIL = Set.of("gmail.com", "googlemail.com", "outlook.com", "hotmail.com", "yahoo.com",
             "icloud.com", "proton.me", "protonmail.com", "ukr.net", "i.ua", "meta.ua");
 
+    private static final Set<String> JOB_BOARDS = Set.of("linkedin.com", "indeed.com", "glassdoor.com", "djinni.co", "dou.ua", "work.ua",
+            "robota.ua", "jooble.org", "ziprecruiter.com", "greenhouse.io", "lever.co", "workable.com", "smartrecruiters.com",
+            "ashbyhq.com", "recruitee.com", "teamtailor.com", "justjoin.it", "nofluffjobs.com", "jobs.cz", "startup.jobs", "wellfound.com");
+
     /** A vacancy the mail may be about. applied is true from Applied on (or with a submitted package). */
     public record Candidate(UUID vacancyId, String title, String company, String url, boolean applied) {
     }
@@ -54,8 +58,11 @@ public final class MailLinker {
                     why.add("the company name is in the text");
                 }
                 String compact = company.replace(" ", "");
+                // A job board hosts many companies' postings, so its domain says nothing about which vacancy a mail is about.
+                String postingHost = postingHost(c.url());
+                boolean sharedHost = JOB_BOARDS.contains(fromDomain) || JOB_BOARDS.contains(postingHost);
                 if (!fromDomain.isEmpty() && !PUBLIC_MAIL.contains(fromDomain) && compact.length() >= 3
-                        && (fromDomain.replace("-", "").contains(compact) || postingHost(c.url()).equals(fromDomain))) {
+                        && (fromDomain.replace("-", "").contains(compact) || (!sharedHost && postingHost.equals(fromDomain)))) {
                     score += 3;
                     why.add("the sender's domain matches the company or its posting");
                 }
