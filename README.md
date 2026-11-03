@@ -4,7 +4,7 @@ A personal, self-hosted job search tool for a single user. It collects vacancies
 
 The code contains no roles, technologies, countries or salary thresholds. Everything is defined by you as data in search profiles.
 
-Status: every planned task is done except a Jooble adapter (T-036), which is blocked until Jooble provides a key and its API documentation, and the backlog of the 2026-11-02 review (T-092). Milestone M6 (2026-11-02) added the full application cycle: resume and fit, AI-adapted documents behind an explicit opt-in, application packages, mail tracking, new sources and a dark-first design. It runs on your own computer or on a VPS. See [PLAN.md](PLAN.md) for the full list and [CHANGELOG.md](CHANGELOG.md) for what changed when.
+Status: every planned task is done except a Jooble adapter (T-036), which is blocked until Jooble provides a key and its API documentation, and the backlog of the 2026-11-02 review (T-092). Milestone M6 (2026-11-02) added the full application cycle: resume and fit, AI-adapted documents behind an explicit opt-in, application packages, mail tracking, new sources and a design refresh. Milestone M7 (2026-11-02) added AI presets: base documents that AI adapts instead of writing new ones, an Employer match and a Goal match before and after, a resume PDF of at most two pages, and a fact check before saving. It runs on your own computer or on a VPS. See [PLAN.md](PLAN.md) for the full list and [CHANGELOG.md](CHANGELOG.md) for what changed when.
 
 ## How it works
 
@@ -17,11 +17,15 @@ Status: every planned task is done except a Jooble adapter (T-036), which is blo
 ## Features
 
 - Resume upload (PDF, DOCX, TXT, Markdown or pasted) and a fit score 0..100 for every vacancy with the reasons: matched and missing skills, title, years
-- Resume and cover letter adapted to one vacancy: a draft from Claude (off by default, explicit opt-in; the official CLI under your subscription or an API key) or your own text, edited before it is saved as a numbered version, downloadable as DOCX
-- Application package: the chosen versions as a ZIP with a checklist, the application page opened for you (you submit the form yourself), and "I submitted" moves the vacancy to Applied with the versions in its history
+- Presets: your search goal, the weights of its parameters, the resume and cover letter prompts, and your base resume and cover letter, set up once (the default preset's base resume is the resume above)
+- Resume and cover letter for one vacancy: the base draft used as it is, or adapted by Claude (off by default, explicit opt-in; the official CLI under your subscription or an API key) under a fixed guardrail, compared line by line with the base, edited and saved as a numbered version that keeps a snapshot of what it was made from
+- Employer match (how the document covers the employer's requirement checklist, with each quote checked by the app and the score computed by the app) and Goal match (how the vacancy fits your preset), as bars, with "Base 62% → Tailored 78% (+16)" after tailoring
+- Fact check before saving: numbers, dates, employers, titles and technologies that are not in your base documents are shown, and saving waits until you fix them or confirm they are true
+- Resume PDF for every saved version: A4, one column, real text, at most two pages (AI shortens at most twice, then you edit)
+- Application package: the chosen versions as a ZIP with the resume PDF and a checklist, the application page opened for you (you submit the form yourself), and "I submitted" moves the vacancy to Applied with the versions in its history
 - Mail tracking: answers of employers and LinkedIn notices from your mailbox (read-only), linked to the application with the reason, with a suggested status change you accept or dismiss
 - Automatic and on-demand collection ("Refresh" button with live per-source progress)
-- Inbox with keyboard triage (J/K, S, X, O) and score badges with reasons
+- Inbox with keyboard triage (J/K, S, X, O), a filter by words in the title or description (all or any, with exclusions; "/" to jump to it) and score badges with reasons
 - Pipeline as a table or a Kanban board, with status history, follow-up dates and bulk actions with Undo
 - Dashboard: inbox and active counts, top matches, next actions, a funnel and applications per week
 - Search profiles built from rules (require, prefer, avoid, exclude), live preview, versions and a step-by-step wizard for the first one
@@ -30,7 +34,7 @@ Status: every planned task is done except a Jooble adapter (T-036), which is blo
 - Full-text search and Ctrl/Cmd+K command palette
 - Export to CSV (UTF-8 with BOM), XLSX and full JSON backup; import with per-row error reports (a CSV import merges into existing vacancies and keeps the fields you edited by hand)
 - Optional Telegram digest after a run (disabled by default)
-- Dark-first design inspired by third-party (see design file), with light and system themes; keyboard-first screens
+- Beacon design (design/README.md): calm, high-contrast, light first with a dark theme, 18 px text that can be raised to 22 px, four color roles with one meaning each, keyboard-first screens
 
 ## Sources
 
@@ -53,7 +57,7 @@ Each source's terms, limits and status are recorded in [docs/sources.md](docs/so
 - Links from sources and imports are stored and opened only when they are `http` or `https` addresses.
 - Secrets (database password, access token, source keys, the Anthropic API key, IMAP and Telegram credentials) come only from `.env`. They are masked in logs.
 - Importing a profile or vacancies from a URL refuses private and local addresses unless you allow them.
-- **AI is off by default.** With `APP_AI_PROVIDER` unset nothing can reach Claude. When it is set to `cli` (the official Claude Code CLI under your own subscription) or `api` (`ANTHROPIC_API_KEY`), still nothing is sent until you switch AI on in Settings after reading what is sent; you can switch it off at any time. Even then text leaves only when you press Generate: your resume, the vacancy you chose and your instructions. Mail and the rest of your data are never sent to Claude. The app never reads, copies or passes the CLI's OAuth token: the CLI signs in by itself, runs without tools, MCP servers or your own settings, and does not receive your API key.
+- **AI is off by default.** With `APP_AI_PROVIDER` unset nothing can reach Claude. When it is set to `cli` (the official Claude Code CLI under your own subscription) or `api` (`ANTHROPIC_API_KEY`), still nothing is sent until you switch AI on in Settings after reading what is sent; you can switch it off at any time. Even then text leaves only when you press Generate with AI: the vacancy you chose, the preset you picked (its main goal, the weights of its parameters and the document prompt), your base resume and base cover letter, and any instructions you add. A fixed guardrail goes first in every request: facts come only from your base documents, and the vacancy text is treated as untrusted data. Use as is sends nothing. To score the match, opening a vacancy with AI on sends the vacancy, the main goal with its weights and the documents being scored, once per text (the results are cached); the score itself is computed by the app, not by Claude. Mail and the rest of your data are never sent to Claude. The app never reads, copies or passes the CLI's OAuth token: the CLI signs in by itself, runs without tools, MCP servers or your own settings, and does not receive your API key.
 - Mail: the IMAP reader only reads, never deletes, moves or sends. Of the folders it reads, only job-related mail is stored (sender, subject, date and the first part of the text); everything else is skipped and not kept.
 - Nothing is sent to third parties except to the sources themselves. Telegram (digest and forwarded posts) and AI are opt-in.
 
@@ -79,7 +83,7 @@ README.md                      this file
 PLAN.md                        development plan and progress (source of truth)
 tasks.csv                      the same tasks for GitHub Projects or Jira
 CHANGELOG.md                   entries per completed task
-design file                      design language (MIT; how it is used: design/README.md)
+design file                      the earlier design language (MIT); now Beacon, see design/README.md
 docs/
   research.md                  comparable solutions and what we borrow
   sources.md                   sources, terms, limits, adapter capabilities
@@ -99,6 +103,7 @@ ops/
   backup/                      backup script and its Docker test
 design/
   tokens.css                   design tokens (light and dark)
+  the design package/   Beacon brand guide, tokens, logos and mockups
   dashboard.html               static clickable mockup with fake data
   README.md                    design rationale, states, keyboard shortcuts
 ```
@@ -107,7 +112,7 @@ Also in the repository: `backend/` (Java 21, Spring Boot, Maven), `frontend/` (V
 
 ## Tech stack
 
-- Backend: Java 21, Spring Boot 3.5, Maven, PostgreSQL 16, Flyway, plain SQL through `JdbcClient`, Jsoup, Rome (RSS and Atom), Jakarta Mail (IMAP), Apache POI (XLSX and DOCX), Apache PDFBox (PDF resumes), the Anthropic Java SDK (optional AI), Actuator; Checkstyle, JaCoCo (80% line gate for the core modules) and ArchUnit in every build; Testcontainers for integration tests
+- Backend: Java 21, Spring Boot 3.5, Maven, PostgreSQL 16, Flyway, plain SQL through `JdbcClient`, Jsoup, Rome (RSS and Atom), Jakarta Mail (IMAP), Apache POI (XLSX and DOCX), Apache PDFBox (reading resumes and writing the resume PDF, with the Liberation Sans font under the SIL Open Font License in `backend/src/main/resources/fonts`), the Anthropic Java SDK (optional AI), Actuator; Checkstyle, JaCoCo (80% line gate for the core modules) and ArchUnit in every build; Testcontainers for integration tests
 - Modules (backend): `vacancy`, `collection`, `matching`, `export`, `notification`, `web`, `common`; their allowed dependencies are checked by ArchUnit
 - Frontend: Vite, TypeScript (strict), Preact, no UI library; Vitest for the logic; built into static assets served by the backend
 - End-to-end: a Playwright smoke test in `e2e/`, run against the built jar in a local Chrome
@@ -119,7 +124,7 @@ Also in the repository: `backend/` (Java 21, Spring Boot, Maven), `frontend/` (V
 ```sh
 cd backend && mvn verify                   # unit and integration tests (needs Docker), style, coverage gate, architecture
 cd frontend && npm ci && npm test          # logic tests; `npm run typecheck` for types
-cd e2e && npm ci && npm run test:local     # browser tests (smoke, then the full application cycle with the fake AI and a test letter); need the built jar, Docker and Chrome
+cd e2e && npm ci && npm run test:local     # browser tests (smoke, the full application cycle, then the M7 preset scenario; fake AI and a test letter only); need the built jar, Docker and Chrome
 ```
 
 ## Running it

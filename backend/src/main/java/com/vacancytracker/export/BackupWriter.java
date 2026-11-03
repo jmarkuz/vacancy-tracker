@@ -3,6 +3,7 @@ package com.vacancytracker.export;
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vacancytracker.common.BackupSection;
 import com.vacancytracker.export.BackupVacancy.BackupStatusEvent;
 import com.vacancytracker.vacancy.StatusEvent;
 import com.vacancytracker.vacancy.Vacancy;
@@ -11,9 +12,10 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.time.Clock;
 import java.util.List;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
-/** Full JSON backup of all vacancies with their status history (schema version 1). */
+/** Full JSON backup of all vacancies with their status history, then the other modules' sections (schema version 1). */
 @Service
 public class BackupWriter {
 
@@ -21,12 +23,15 @@ public class BackupWriter {
     private final VacancyService service;
     private final ObjectMapper mapper;
     private final Clock clock;
+    private final ObjectProvider<BackupSection> sections;
 
-    public BackupWriter(VacancyExporter exporter, VacancyService service, ObjectMapper mapper, Clock clock) {
+    public BackupWriter(VacancyExporter exporter, VacancyService service, ObjectMapper mapper, Clock clock,
+                        ObjectProvider<BackupSection> sections) {
         this.exporter = exporter;
         this.service = service;
         this.mapper = mapper;
         this.clock = clock;
+        this.sections = sections;
     }
 
     public void write(OutputStream out) throws IOException {
@@ -43,6 +48,10 @@ public class BackupWriter {
                 }
             });
             gen.writeEndArray();
+            for (BackupSection section : sections.orderedStream().toList()) {
+                gen.writeFieldName(section.name());
+                section.write(gen);
+            }
             gen.writeEndObject();
         } catch (java.io.UncheckedIOException e) {
             throw e.getCause();

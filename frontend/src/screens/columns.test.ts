@@ -33,8 +33,8 @@ function vacancy(overrides: Partial<Vacancy>): Vacancy {
 }
 
 describe("formatSalary", () => {
-  it("shows a dash when no salary is stated", () => {
-    expect(formatSalary(vacancy({}))).toBe("-");
+  it("says Not specified when no salary is stated, never a dash or 0", () => {
+    expect(formatSalary(vacancy({}))).toBe("Not specified");
   });
 
   it("shows a range with currency and period", () => {

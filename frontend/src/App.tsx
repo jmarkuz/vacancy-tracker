@@ -1,3 +1,4 @@
+import { Fragment } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import { Placeholder } from "./screens/Placeholder";
 import { CommandPalette } from "./components/CommandPalette";
@@ -11,26 +12,34 @@ import { Profiles } from "./screens/Profiles";
 import { Sources } from "./screens/Sources";
 import { Transfer } from "./screens/Transfer";
 import { ResumeScreen } from "./screens/ResumeScreen";
+import { PresetsScreen } from "./screens/PresetsScreen";
 import { Settings } from "./screens/Settings";
 import { MailScreen } from "./screens/MailScreen";
 import { getAuthStatus, logout, UNAUTHORIZED_EVENT } from "./api/auth";
 import { LoginScreen } from "./components/LoginScreen";
 import { listProfiles } from "./api/profiles";
 import { wizardSkipped } from "./domain/firstRun";
-import { applyTheme, nextTheme, readTheme, type Theme } from "./theme";
+import { applyTextSize, applyTheme, nextTheme, readTextSize, readTheme, type Theme } from "./theme";
+import { LogoMark } from "./components/LogoMark";
 
-/** `short` labels the bottom bar on phones, where the full names would not fit. */
-const NAV: { id: Screen; label: string; short: string }[] = [
-  { id: "dashboard", label: "Dashboard", short: "Home" },
-  { id: "inbox", label: "Inbox", short: "Inbox" },
-  { id: "pipeline", label: "Pipeline", short: "Pipeline" },
-  { id: "mail", label: "Mail", short: "Mail" },
-  { id: "resume", label: "Resume", short: "Resume" },
-  { id: "sources", label: "Sources & Runs", short: "Sources" },
-  { id: "profiles", label: "Search profiles", short: "Profiles" },
-  { id: "export", label: "Export & import", short: "Export" },
-  { id: "settings", label: "Settings", short: "Settings" },
+/** Color roles of Beacon (ADR-052): blue looks for work, green moves it forward, purple is you and AI, amber sets up. */
+export type Role = "blue" | "green" | "purple" | "amber";
+
+/** The sections and their roles; "My profile" groups what describes the owner and how the app works for them. */
+const NAV: { id: Screen; label: string; role: Role; group?: string }[] = [
+  { id: "dashboard", label: "Dashboard", role: "blue" },
+  { id: "inbox", label: "Inbox", role: "blue" },
+  { id: "pipeline", label: "Pipeline", role: "green" },
+  { id: "mail", label: "Mail", role: "blue" },
+  { id: "resume", label: "Resume", role: "purple", group: "My profile" },
+  { id: "presets", label: "Presets", role: "purple" },
+  { id: "sources", label: "Sources & Runs", role: "amber" },
+  { id: "profiles", label: "Search profiles", role: "amber" },
+  { id: "export", label: "Export & import", role: "amber" },
+  { id: "settings", label: "Settings", role: "amber" },
 ];
+
+const THEME_LABEL: Record<Theme, string> = { light: "Light theme", dark: "Dark theme", system: "System theme" };
 
 const SCREEN_INFO: Record<Screen, { title: string; task: string; description: string }> = {
   dashboard: { title: "Dashboard", task: "M3 (dashboard)", description: "KPI cards and top matches appear here." },
@@ -38,6 +47,7 @@ const SCREEN_INFO: Record<Screen, { title: string; task: string; description: st
   pipeline: { title: "Pipeline", task: "T-019 and T-022", description: "Table of all tracked vacancies." },
   mail: { title: "Mail", task: "T-086", description: "Answers of employers and job mail." },
   resume: { title: "Resume", task: "T-080", description: "Your resume and the keywords the fit score uses." },
+  presets: { title: "Presets", task: "T-093", description: "AI presets: goal, weights, prompts and base documents." },
   sources: { title: "Sources & Runs", task: "T-047", description: "Source health and recent collection runs." },
   profiles: { title: "Search profiles", task: "T-055", description: "Rule builder for search profiles." },
   export: { title: "Export & import", task: "T-079", description: "CSV, XLSX and JSON backup downloads and imports." },
@@ -72,6 +82,8 @@ export function App() {
   }, []);
 
   useEffect(() => applyTheme(theme), [theme]);
+  // The base text size chosen in Settings (18, 20 or 22 px); Settings applies changes itself.
+  useEffect(() => applyTextSize(readTextSize()), []);
 
   // Ctrl/Cmd+K works from anywhere, including inside a text box, and replaces the browser's own binding.
   useEffect(() => {
@@ -111,37 +123,52 @@ export function App() {
   }
   return (
     <div class="app">
-      <aside class="sidebar" aria-label="Primary">
-        <div class="logo">Vacancy Tracker</div>
-        <nav>
-          {NAV.map((item) => (
-            <a
-              key={item.id}
-              href={`#/${item.id}`}
-              class="nav-item"
-              aria-current={screen === item.id ? "page" : undefined}
-            >
-              {item.label}
-            </a>
-          ))}
-        </nav>
-        <button class="btn ghost theme-toggle" onClick={() => setTheme(nextTheme(theme))}>
-          Theme: {theme}
+      <a class="skip-link" href="#content" onClick={(e) => { e.preventDefault(); document.getElementById("content")?.focus(); }}>
+        Skip to content
+      </a>
+      <header class="header">
+        <a class="logo" href="#/dashboard" aria-label="Vacancy Tracker, Dashboard">
+          <LogoMark />
+          <span>Vacancy Tracker</span>
+        </a>
+        <span class="grow" />
+        <button type="button" class="btn palette-open" data-role="blue" onClick={() => setPaletteOpen(true)} aria-label="Search and commands, Ctrl K">
+          Search <kbd class="kbd">Ctrl K</kbd>
+        </button>
+        <RefreshControl />
+        <button class="btn theme-toggle" type="button" data-role="amber" onClick={() => setTheme(nextTheme(theme))}
+          aria-label={`${THEME_LABEL[theme]}; switch to ${THEME_LABEL[nextTheme(theme)].toLowerCase()}`}>
+          {THEME_LABEL[theme]}
         </button>
         {tokenRequired && (
-          <button class="btn ghost" type="button" onClick={() => { logout().then(() => setSession("login"), () => setSession("login")); }}>Sign out</button>
+          <button class="btn" type="button" data-role="amber" onClick={() => { logout().then(() => setSession("login"), () => setSession("login")); }}>Sign out</button>
         )}
+      </header>
+
+      <aside class="sidebar" aria-label="Sections">
+        <nav class="nav">
+          {NAV.map((item) => (
+            <Fragment key={item.id}>
+              {item.group && (
+                <p class="nav-group">
+                  {item.group}
+                </p>
+              )}
+              <a
+                href={`#/${item.id}`}
+                class="nav-item"
+                data-role={item.role}
+                aria-current={screen === item.id ? "page" : undefined}
+              >
+                {item.label}
+              </a>
+            </Fragment>
+          ))}
+        </nav>
       </aside>
 
       <div class="main">
-        <header class="header">
-          <span class="header-title">{info.title}</span>
-          <button type="button" class="btn palette-open" onClick={() => setPaletteOpen(true)} aria-label="Search and commands, Ctrl K">
-            Search <kbd class="kbd">Ctrl K</kbd>
-          </button>
-          <RefreshControl />
-        </header>
-        <main class="content">
+        <main class="content" id="content" tabIndex={-1} aria-label={info.title}>
           {screen === "pipeline" ? (
             <Pipeline dataVersion={dataVersion} params={params} />
           ) : screen === "sources" ? (
@@ -156,8 +183,10 @@ export function App() {
             <Transfer />
           ) : screen === "resume" ? (
             <ResumeScreen />
+          ) : screen === "presets" ? (
+            <PresetsScreen params={params} />
           ) : screen === "settings" ? (
-            <Settings />
+            <Settings theme={theme} onTheme={setTheme} />
           ) : screen === "mail" ? (
             <MailScreen dataVersion={dataVersion} />
           ) : (
@@ -168,17 +197,6 @@ export function App() {
 
       {paletteOpen && <CommandPalette onClose={() => setPaletteOpen(false)} />}
 
-      <nav class="mobile-nav" aria-label="Primary mobile">
-        {NAV.map((item) => (
-          <a
-            key={item.id}
-            href={`#/${item.id}`}
-            aria-current={screen === item.id ? "page" : undefined}
-          >
-            {item.short}
-          </a>
-        ))}
-      </nav>
     </div>
   );
 }

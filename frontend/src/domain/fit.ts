@@ -5,9 +5,28 @@ export function fitTier(score: number): "high" | "mid" | "low" {
   return score >= 70 ? "high" : score >= 40 ? "mid" : "low";
 }
 
-/** One line for a tooltip or a screen reader: the score and the first reasons. */
+/**
+ * The skills the vacancy names and how many of them the resume has (Beacon: "22 of 49 skills", never a percentage);
+ * null when the vacancy names no skill the score can compare.
+ */
+export function skillCount(fit: ResumeFit): { matched: number; total: number } | null {
+  const total = fit.matched.length + fit.missing.length;
+  return total === 0 ? null : { matched: fit.matched.length, total };
+}
+
+/** "4 of 5 skills", or "Not enough data" when the vacancy names no skill to compare. */
+export function skillsLabel(fit: ResumeFit): string {
+  const count = skillCount(fit);
+  return count ? `${count.matched} of ${count.total} skills` : "Not enough data";
+}
+
+/** One line for a tooltip or a screen reader: the skills and the first reasons. */
 export function fitSummary(fit: ResumeFit): string {
-  return [`Fit ${fit.score} of 100`, ...fit.reasons.slice(0, 2).map((r) => r.text)].join(". ");
+  const count = skillCount(fit);
+  const head = count
+    ? `${count.matched} of ${count.total} skills the vacancy names are in your resume`
+    : "Not enough data: the vacancy names no skill to compare";
+  return [head, ...fit.reasons.slice(0, 2).map((r) => r.text)].join(". ");
 }
 
 export function fitsById(fits: ResumeFit[]): Record<string, ResumeFit> {

@@ -68,7 +68,7 @@ export function Transfer() {
               onChange={(e) => setFile((e.target as HTMLInputElement).files?.[0] ?? null)}
             />
           </label>
-          <button class="btn primary" type="submit" disabled={!file || busy}>
+          <button class="btn primary" data-role="amber" type="submit" disabled={!file || busy}>
             {busy ? "Importing…" : "Import"}
           </button>
         </form>

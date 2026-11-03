@@ -18,8 +18,12 @@ class PackageRepository {
     private static final String COLUMNS = "id, vacancy_id, resume_document_id, cover_letter_document_id, apply_url, note, status,"
             + " created_at, submitted_at, resume_file_name";
 
-    /** The package's own copy of the uploaded resume. */
-    record ResumeCopy(String fileName, String contentType, byte[] bytes) {
+    /** The package's own copy of the uploaded resume; pdf is its PDF when the upload was not a PDF itself (T-097). */
+    record ResumeCopy(String fileName, String contentType, byte[] bytes, byte[] pdf) {
+
+        ResumeCopy(String fileName, String contentType, byte[] bytes) {
+            this(fileName, contentType, bytes, null);
+        }
     }
 
     private final JdbcClient jdbc;
@@ -30,8 +34,8 @@ class PackageRepository {
 
     /** copy is null when the package carries a tailored resume version instead. */
     void insert(ApplicationPackage p, ResumeCopy copy) {
-        jdbc.sql("INSERT INTO application_package (" + COLUMNS + ", resume_content_type, resume_bytes)"
-                        + " VALUES (:id, :v, :r, :c, :url, :note, :status, :at, NULL, :file, :type, :bytes)")
+        jdbc.sql("INSERT INTO application_package (" + COLUMNS + ", resume_content_type, resume_bytes, resume_pdf)"
+                        + " VALUES (:id, :v, :r, :c, :url, :note, :status, :at, NULL, :file, :type, :bytes, :pdf)")
                 .param("id", p.id())
                 .param("v", p.vacancyId())
                 .param("r", p.resumeDocumentId())
@@ -43,15 +47,16 @@ class PackageRepository {
                 .param("file", copy == null ? null : copy.fileName())
                 .param("type", copy == null ? null : copy.contentType())
                 .param("bytes", copy == null ? null : copy.bytes())
+                .param("pdf", copy == null ? null : copy.pdf())
                 .update();
     }
 
     Optional<ResumeCopy> resumeCopy(UUID id) {
-        return jdbc.sql("SELECT resume_file_name, resume_content_type, resume_bytes FROM application_package"
+        return jdbc.sql("SELECT resume_file_name, resume_content_type, resume_bytes, resume_pdf FROM application_package"
                         + " WHERE id = :id AND resume_bytes IS NOT NULL")
                 .param("id", id)
                 .query((rs, n) -> new ResumeCopy(rs.getString("resume_file_name"), rs.getString("resume_content_type"),
-                        rs.getBytes("resume_bytes")))
+                        rs.getBytes("resume_bytes"), rs.getBytes("resume_pdf")))
                 .optional();
     }
 
