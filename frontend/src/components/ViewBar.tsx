@@ -121,7 +121,7 @@ export function ViewBar({ viewId, criteria, sort, cols, onApply }: Props) {
 
       {active && dirty && <span class="muted">Unsaved changes</span>}
       {active && dirty && (
-        <button class="btn primary" type="button" disabled={busy} onClick={update}>
+        <button class="btn primary" data-role="green" type="button" disabled={busy} onClick={update}>
           Update view
         </button>
       )}

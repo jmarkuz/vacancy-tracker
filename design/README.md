@@ -1,27 +1,26 @@
 # Design
 
-Status: M6 (dark-first redesign after design file, T-090). Files: `tokens.css` (design tokens, the same file as `frontend/src/styles/tokens.css`), `dashboard.html` (static clickable mockup with fake data from Phase 0; it now picks up the new tokens but keeps its old layout). Open `dashboard.html` directly in a browser; it needs no build step. The only external dependency is Google Fonts (Inter, JetBrains Mono).
+Status: Beacon 1.0, light first (T-101, ADR-052); before that the dark-first redesign after design file (T-090). Files: `tokens.css` (design tokens, the same file as `frontend/src/styles/tokens.css`), `dashboard.html` (static clickable mockup with fake data from Phase 0; it now picks up the new tokens but keeps its old layout). Open `dashboard.html` directly in a browser; it needs no build step. It uses the system font and loads nothing from the internet.
 
 ## 1. Rationale
 
-**Style: dark first (T-090, ADR-046).** The visual language comes from [design file](../design file) (an MIT-licensed analysis of third-party's site, copied unchanged with its source). third-party is a keyboard-first mail client; this tool is used the same way, for hours of triage, so its calm editorial look fits. design file describes marketing pages; the app takes its palette, type and shapes, not its page layouts (no portraits, no closing teal band):
+**Style: Beacon ("Маяк") 1.0, light first (T-101, ADR-052).** The brand guide and implementation package of 2026-11-03 are in [the design package](the design package) (start with its `index.html`; values in `styles/tokens.json`; acceptance checklist in `docs/acceptance.html`). The goal is that context, the next action and the state of the data are clear at first sight, also for people with low vision. It replaces the dark-first look of T-090 ([design file](../design file) stays as the record of that step).
 
-- Deep indigo-navy surfaces (`#0e0c1f` to `#1f1c40`), warm off-grey text, hairline borders (`#3f3a52` on dark, `#e8e4dd` on light).
-- One accent: pale violet `#c9b4fa` on dark (focus, primary actions, the current screen, pending decisions); indigo navy `#1b1938` on light. Accent is never used for status. The deep teal of design file is the success colour (Interview, Offer, AI switched on).
-- Inter (variable) at the in-between weights design file asks for: 460 for text, 540 for headings and buttons, with slightly negative tracking on headings.
-- Shapes: 4px tags, 6px inputs, 8px rounded-rectangle buttons (never pills), 12px cards, 16px dialogs and the drawer. Flat surfaces; only floating panels (drawer, palette, toast) lift.
-- 4px spacing grid. Generous whitespace in the dashboard, tighter density in tables where users scan many rows.
-- Generous whitespace in the dashboard, tighter density in tables (Pipeline, Sources) where users scan many rows.
+- Neutral, calm surfaces: canvas `#F2F5FA`, surface `#FFFFFF`, text `#14243B`, secondary text `#3E4E64`, control borders `#71839A`; dark theme on navy `#101B2C` / `#17263A`. Text is at least 7:1 and borders 3:1 against what they sit on (checked by `frontend/src/styles/contrast.test.ts`).
+- Four accent roles, each with one meaning everywhere: **blue** `#1243B2` for overview, inbox, search and mail; **green** `#13563C` for saving, the pipeline and applying ("Save" is always green, even in a blue section); **purple** `#5C2B98` for the resume, presets, AI and the skill match; **amber** `#704400` for sources, profiles, import and settings. Red `#9E2432` is only for errors and deleting. The logo is always blue.
+- The system font Segoe UI (Arial as fallback); no font files are shipped or loaded from the internet. 18 px body (20 or 22 px in Settings), 16 px secondary text, headings 30 / 24 / 20 px, metrics 34 px bold with tabular figures.
+- Controls at least 44 px high; buttons 8 px radius, panels 12 px; 1 px borders and a 4 px bar for the current item; a 3 px focus ring with a 3 px offset.
+- Layout: header 64 px with the logo, search, refresh and theme; sidebar 200 px with a colored marker per section ("My profile" groups resume, presets, sources, profiles, import and settings); the Inbox details beside the list (340 px) with no overlay.
 
-**Typography.** Inter for text. Numbers (scores, counts, dates, salaries, run IDs) use JetBrains Mono or tabular numerals (`font-variant-numeric: tabular-nums`) so that columns align and values can be compared at a glance.
+**Typography.** Segoe UI for everything; numbers use tabular figures (`font-variant-numeric: tabular-nums`) so columns align. Unknown values are written as "Not specified", never 0 or a dash. The skill match is "22 of 49 skills", never turned into a percentage.
 
 **Color is never the only signal.** Every status is a badge with a colored dot and a text label (`Screening`, `Offer`). Source health is `ok`, `warn` or `error` in text. Scores show the number and the profile name. This also keeps the UI readable for color-blind users and in grayscale print.
 
-**Themes.** Dark by default (the `<html>` starts with `data-theme="dark"`, so there is no light flash). The toggle cycles dark, light and system; "system" follows `prefers-color-scheme`. Both themes are defined in `tokens.css` as token overrides; components reference tokens only, never raw hex values. Contrast targets WCAG AA for text and interactive elements in both themes.
+**Themes and size.** Light by default (the `<html>` starts with `data-theme="light"`). The header button and Settings choose light, dark or system; "system" follows `prefers-color-scheme`. Settings also sets the base text size, 18, 20 or 22 px, on the root (`data-text-size`); every size is in rem, so the whole page follows, and browser zoom up to 200% works as well. Both choices are kept in this browser. Components reference tokens only, never raw hex values.
 
 **Motion.** 120 to 180 ms ease-out transitions for hover, drawer open and progress bars. All transitions are removed under `prefers-reduced-motion: reduce` (handled in `tokens.css` and in the mockup CSS).
 
-**Accessibility.** Visible focus ring (2px accent, offset) on every interactive element. Score tooltips open on focus as well as on hover. Drag-and-drop in Kanban has a keyboard alternative. Tables use real `<table>` markup with headers.
+**Accessibility.** "Skip to content" is the first stop of Tab. Visible focus ring (3 px, 3 px offset, neutral) on every interactive element. Tabs follow the WAI-ARIA pattern (arrows, Home, End). Disabled buttons keep readable text on a neutral surface and their reason is written next to them. Score tooltips open on focus as well as on hover. Drag-and-drop in Kanban has a keyboard alternative. Tables use real `<table>` markup with headers.
 
 ## 2. Screens in the mockup
 
@@ -38,9 +37,8 @@ Global: header with search (Ctrl/Cmd+K command palette), "Refreshed ... · next 
 
 ## 3. Responsive behavior
 
-- **Desktop (above 1100 px):** sidebar navigation, two-column dashboard panels, drawer on the right (480 px).
-- **Tablet (760 to 1100 px):** dashboard panels stack; the rule builder rows shrink to two columns; the live preview is no longer sticky.
-- **Phone (360 to 760 px):** sidebar hidden; bottom navigation bar; 16 px side gutter; KPI cards in two columns; the Pipeline table is replaced by cards; the drawer becomes a bottom sheet (max 88% of the viewport height); rule rows stack vertically. No horizontal page scroll (only the table container scrolls, and on phones the table is hidden).
+- **Working sizes 1440 × 900 and 1280 × 800:** header, sidebar, the Inbox list with the selected vacancy beside it; the full details open as the drawer on the right.
+- **Below 1000 px:** the sections wrap above the content; the Inbox details come above the list; every action stays in the flow of the page; 16 px side gutter. No horizontal page scroll (only a table scrolls inside its own area), also with 22 px text (checked by `e2e/tests/beacon.spec.ts` at 640 px).
 
 ## 4. Empty, loading and error states
 
@@ -101,13 +99,14 @@ Shortcuts are not active while focus is in a text field, so typing never trigger
 
 `tokens.css` defines:
 - Colors: surface and text scale, accent, semantic (success, warning, danger, info), status palette (13 statuses), score tiers. Each has light and dark values.
-- Typography: font families, sizes (12 to 28 px), line heights, weights.
+- Typography: Segoe UI, sizes in rem from an 18 px base (16 to 34 px), line heights, weights 400 / 600 / 700.
+- Roles: `--role-blue`, `--role-green`, `--role-purple`, `--role-amber`, each with `-hover` and `-soft`, and `--color-on-role` for text on a filled role; `data-role` on an element chooses its role.
 - Spacing: `--space-0` to `--space-12` on a 4 px grid.
 - Radii: `--radius-sm` (8 px), `--radius-md` (12 px), `--radius-pill`.
 - Layout: sidebar, header, drawer and content widths; mobile gutter.
 - Motion: durations and easing; zero durations under reduced motion.
 
-Dark theme is applied in two places: under `@media (prefers-color-scheme: dark)` guarded by `:root:not([data-theme="light"])`, and under `:root[data-theme="dark"]`. The mockup theme toggle sets `data-theme`.
+Dark theme is applied under `:root[data-theme="dark"]`, and under `@media (prefers-color-scheme: dark)` for `:root[data-theme="system"]`.
 
 ## 7. Mockup limits (intentional)
 

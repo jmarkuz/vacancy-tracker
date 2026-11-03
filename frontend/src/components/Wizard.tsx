@@ -92,7 +92,7 @@ export function Wizard({ meta, onCreated, onSkip }: Props) {
       </fieldset>
 
       <div class="toolbar">
-        <button type="submit" class="btn primary" disabled={saving}>{saving ? "Creating…" : "Create profile"}</button>
+        <button type="submit" class="btn primary" data-role="amber" disabled={saving}>{saving ? "Creating…" : "Create profile"}</button>
         <button type="button" class="btn" onClick={onSkip}>Skip and build it by hand</button>
       </div>
     </form>

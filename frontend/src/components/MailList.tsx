@@ -72,7 +72,7 @@ export function MailList({ items, showVacancyLink = false, onChanged }: Props) {
             {suggestionText(m) && (
               <div class="drawer-row">
                 <span>{suggestionText(m)}</span>
-                <button class="btn primary" type="button" disabled={busy !== null} onClick={() => act(m, true)}>
+                <button class="btn primary" data-role="green" type="button" disabled={busy !== null} onClick={() => act(m, true)}>
                   Accept
                 </button>
                 <button class="btn ghost" type="button" disabled={busy !== null} onClick={() => act(m, false)}>

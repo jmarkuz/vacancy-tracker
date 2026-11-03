@@ -320,7 +320,7 @@ export function DocumentsPanel({ vacancyId, presetId, onPresetChange, onSaved }:
                   onClick={() => asIs(kind)}>
                   {busy === `as-is-${kind}` ? "Saving…" : "Use as is"}
                 </button>
-                <button class="btn primary" type="button" disabled={busy !== null || !canGenerate}
+                <button class="btn primary" data-role="purple" type="button" disabled={busy !== null || !canGenerate}
                   title={!ai?.enabled ? "Switch AI on in Settings first" : missing.length ? "Complete the preset first" : undefined}
                   onClick={() => generate(kind)}>
                   {busy === `draft-${kind}` ? "Generating…" : "Generate with AI"}
@@ -410,7 +410,7 @@ export function DocumentsPanel({ vacancyId, presetId, onPresetChange, onSaved }:
             <button class="btn ghost" type="button" onClick={() => setEditing(null)}>
               Discard
             </button>
-            <button class="btn primary" type="button" disabled={busy !== null || !editing.content.trim() || factsBlock}
+            <button class="btn primary" data-role="green" type="button" disabled={busy !== null || !editing.content.trim() || factsBlock}
               title={factsPending ? "Checking the facts of your edit…" : factsBlock ? "Fix the facts or confirm them first" : undefined} onClick={save}>
               {busy === "save" ? "Saving…" : `Save as version ${nextVersion}`}
             </button>
