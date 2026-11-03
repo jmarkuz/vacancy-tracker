@@ -1,4 +1,4 @@
-import { useState } from "preact/hooks";
+import { useRef, useState } from "preact/hooks";
 import { ApiError } from "../api/client";
 import {
   acceptSuggestion,
@@ -30,13 +30,21 @@ export function MailList({ items, showVacancyLink = false, onChanged, selected, 
   const [linking, setLinking] = useState<string | null>(null);
   const [options, setOptions] = useState<ApplicationOption[] | null>(null);
 
+  // The applications change (a status moves, a vacancy is dismissed), so the list is read again each time linking
+  // opens. A slow answer for an earlier opening must not replace the newer one.
+  const latestRequest = useRef(0);
   const startLinking = async (m: Mail) => {
+    const request = ++latestRequest.current;
     setLinking(m.id);
     setError(null);
-    if (options === null) {
-      try {
-        setOptions(await listApplications());
-      } catch {
+    setOptions(null);
+    try {
+      const loaded = await listApplications();
+      if (request === latestRequest.current) {
+        setOptions(loaded);
+      }
+    } catch {
+      if (request === latestRequest.current) {
         setError("Could not load your applications.");
         setLinking(null);
       }
