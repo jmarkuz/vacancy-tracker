@@ -72,6 +72,12 @@ export const dismissSuggestion = (id: string) => requestJson<Mail>("POST", `/api
 export const relinkMail = (id: string, vacancyId: string | null) =>
   requestJson<Mail>("PUT", `/api/mail/${encodeURIComponent(id)}/vacancy`, { vacancyId });
 
+/** Deletes stored mails from the app. The mailbox itself is not touched. */
+export const deleteMail = (ids: string[]) => requestJson<{ deleted: number }>("POST", "/api/mail/delete", { ids });
+
+/** Deletes the stored mails older than this many days. */
+export const deleteOldMail = (days: number) => requestJson<{ deleted: number }>("POST", "/api/mail/delete-old", { days });
+
 /** "Move to Interview?" for a pending suggestion; null when there is nothing to decide. */
 export function suggestionText(m: Mail): string | null {
   return m.suggestionState === "pending" && m.suggestedStatus ? `Move to ${m.suggestedStatus}?` : null;

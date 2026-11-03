@@ -13,8 +13,12 @@ import jakarta.mail.Store;
 import jakarta.mail.UIDFolder;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.search.ComparisonTerm;
+import jakarta.mail.search.ReceivedDateTerm;
 import java.io.IOException;
+import java.time.Duration;
 import java.time.Instant;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +26,7 @@ import java.util.Optional;
 import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -59,8 +64,16 @@ public class ImapMailReader {
     private final String folderName;
     private final boolean markProcessed;
     private final int maxPerRun;
+    private final int maxAgeDays;
     private final ProcessedMailRepository processed;
 
+    /** Without an age limit: every message of the folder is looked at. */
+    public ImapMailReader(boolean enabled, String host, int port, boolean ssl, String username, String password, String folderName,
+                          boolean markProcessed, int maxPerRun, ProcessedMailRepository processed) {
+        this(enabled, host, port, ssl, username, password, folderName, markProcessed, maxPerRun, 0, processed);
+    }
+
+    @Autowired
     public ImapMailReader(@Value("${app.mail.imap.enabled:false}") boolean enabled,
                           @Value("${app.mail.imap.host:}") String host,
                           @Value("${app.mail.imap.port:993}") int port,
@@ -70,6 +83,7 @@ public class ImapMailReader {
                           @Value("${app.mail.imap.folder:Job alerts}") String folderName,
                           @Value("${app.mail.imap.mark-processed:false}") boolean markProcessed,
                           @Value("${app.mail.imap.max-per-run:50}") int maxPerRun,
+                          @Value("${app.mail.imap.max-age-days:14}") int maxAgeDays,
                           ProcessedMailRepository processed) {
         this.enabled = enabled;
         this.host = host;
@@ -80,6 +94,7 @@ public class ImapMailReader {
         this.folderName = folderName;
         this.markProcessed = markProcessed;
         this.maxPerRun = Math.max(1, maxPerRun);
+        this.maxAgeDays = Math.max(0, maxAgeDays);
         this.processed = processed;
     }
 
@@ -135,7 +150,10 @@ public class ImapMailReader {
     }
 
     private ReadResult process(Folder folder, String keyPrefix, MailHandler handler, boolean defer) throws MessagingException {
-        Message[] all = folder.getMessages();
+        // Older mail is not even listed: the server searches by date, so a folder of thousands of old messages costs nothing.
+        Message[] all = maxAgeDays > 0
+                ? folder.search(new ReceivedDateTerm(ComparisonTerm.GE, Date.from(Instant.now().minus(Duration.ofDays(maxAgeDays)))))
+                : folder.getMessages();
         FetchProfile profile = new FetchProfile();
         profile.add(FetchProfile.Item.ENVELOPE);
         profile.add(UIDFolder.FetchProfileItem.UID);

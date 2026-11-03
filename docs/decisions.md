@@ -445,6 +445,7 @@ Status: Accepted (T-064)
 - "Processed" is stored in the database (`processed_mail`), keyed by the Message-ID header, or by folder, UID validity and UID when there is none. This holds even on servers that cannot store flags, and when a message is copied to another folder.
 - With `app.mail.imap.mark-processed=true` the folder is opened read-write and handled messages also get the user flag `VacancyTrackerProcessed`, where the server allows user flags. The flag is for the user's convenience; the database decides.
 - A handler answers PROCESSED (done or deliberately skipped) or RETRY. Only PROCESSED is remembered, so a message that could not be handled yet is offered again.
+- Only mail received in the last `max-age-days` (default 14; 0 = no limit) is looked at: the reader asks the server to search by date, so older mail is never listed or fetched. Deleting stored mails (one by one or older than N days) removes only the app's copy of the job mail; the mailbox is never changed.
 - At most `max-per-run` (default 50) messages are offered per read, oldest first; the rest waits for the next read. Bodies are capped at 2 million characters and attachments are never read.
 - The password comes from `.env` only. Error text shows the server's message but never the password, and TLS with host name checking is the default.
 - Disabled unless `app.mail.imap.enabled=true` and a host and user are set.
