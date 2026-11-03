@@ -120,6 +120,40 @@ class ImapMailReaderTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void aMessageSettledFromItsEnvelopeIsNeverDownloadedAndDoesNotUseUpTheAllowance() throws Exception {
+        deliver(message("a@other.test", "Not mine", "Body A", null, "<o1@x>"));
+        deliver(message("b@nobody.test", "Nobody's", "Body B", null, "<o2@x>"));
+        deliver(message("jobs@mine.test", "Mine", "Body C", null, "<m1@x>"));
+        List<String> previewed = new ArrayList<>();
+        List<MailMessage> bodies = new ArrayList<>();
+        MailHandler handler = new MailHandler() {
+            @Override
+            public Outcome handle(MailMessage mail) {
+                bodies.add(mail);
+                return Outcome.PROCESSED;
+            }
+
+            @Override
+            public java.util.Optional<Outcome> preview(MailMessage envelope) {
+                previewed.add(envelope.from());
+                assertThat(envelope.text()).isNull();
+                assertThat(envelope.html()).isNull();
+                if (envelope.from().endsWith("mine.test")) {
+                    return java.util.Optional.empty();
+                }
+                return java.util.Optional.of(envelope.from().endsWith("other.test") ? Outcome.RETRY : Outcome.PROCESSED);
+            }
+        };
+
+        ReadResult result = reader(PASSWORD, false, 1, true).readNew(handler);
+
+        assertThat(previewed).hasSize(3);
+        assertThat(bodies).extracting(MailMessage::key).containsExactly("<m1@x>");
+        assertThat(result.retried()).isEqualTo(1);
+        assertThat(processed.known(List.of("<o1@x>", "<o2@x>", "<m1@x>"))).containsExactlyInAnyOrder("<o2@x>", "<m1@x>");
+    }
+
+    @Test
     void aMessageTheHandlerAsksToRetryIsOfferedAgain() throws Exception {
         deliver(message("a@x.test", "Later", "Body", null, "<r@x>"));
         Collector collector = new Collector();

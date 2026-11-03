@@ -18,6 +18,7 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +37,7 @@ public class ImapMailReader {
     private static final Logger LOG = LoggerFactory.getLogger(ImapMailReader.class);
     static final String PROCESSED_FLAG = "VacancyTrackerProcessed";
     static final int MAX_BODY_CHARS = 2_000_000;
-    private static final int TIMEOUT_MS = 20_000;
+    private static final int TIMEOUT_MS = 60_000;
 
     /** error is a short text without secrets, or null. */
     public record ReadResult(boolean enabled, int seen, int handled, int retried, int skipped, String error, List<String> handledKeys) {
@@ -138,6 +139,8 @@ public class ImapMailReader {
         FetchProfile profile = new FetchProfile();
         profile.add(FetchProfile.Item.ENVELOPE);
         profile.add(UIDFolder.FetchProfileItem.UID);
+        // Without this each Message-ID is a round trip of its own: minutes for a folder of thousands of messages.
+        profile.add("Message-ID");
         folder.fetch(all, profile);
 
         Map<String, Message> byKey = new LinkedHashMap<>();
@@ -150,6 +153,7 @@ public class ImapMailReader {
         int handled = 0;
         int retried = 0;
         int skipped = 0;
+        int settled = 0;
         List<String> handledKeys = new java.util.ArrayList<>();
         // The limit counts messages taken, not messages looked at: mail that another sender's adapter will take, or
         // that cannot be read, must not use up the allowance and starve the rest.
@@ -159,9 +163,31 @@ public class ImapMailReader {
             }
             MailMessage mail;
             try {
+                Optional<MailHandler.Outcome> early = handler.preview(toEnvelope(entry.getKey(), (MimeMessage) entry.getValue()));
+                if (early.isPresent()) {
+                    // Settled from the envelope: the body is never downloaded and the message does not use up the allowance.
+                    if (early.get() == MailHandler.Outcome.PROCESSED) {
+                        if (defer) {
+                            handledKeys.add(entry.getKey());
+                        } else {
+                            processed.markProcessed(entry.getKey());
+                        }
+                        flag(folder, entry.getValue());
+                        settled++;
+                    } else {
+                        retried++;
+                    }
+                    continue;
+                }
                 mail = toMailMessage(entry.getKey(), (MimeMessage) entry.getValue());
             } catch (IOException | MessagingException e) {
-                LOG.warn("Skipping an unreadable message in '{}': {}", folderName, e.getMessage());
+                if (!folder.isOpen()) {
+                    // The server dropped the connection (for example a read timeout): every message after this one
+                    // would fail at once. Keep what was read so far; the rest is offered again on the next run.
+                    LOG.warn("The connection to '{}' was lost after {} messages; stopping this read: {}", folder.getFullName(), handled, e.toString());
+                    break;
+                }
+                LOG.warn("Skipping an unreadable message in '{}': {}", folder.getFullName(), e.toString());
                 skipped++;
                 continue;
             }
@@ -177,7 +203,7 @@ public class ImapMailReader {
                 retried++;
             }
         }
-        return new ReadResult(true, all.length, handled, retried, skipped, null, List.copyOf(handledKeys));
+        return new ReadResult(true, all.length, handled + settled, retried, skipped, null, List.copyOf(handledKeys));
     }
 
     private void flag(Folder folder, Message message) {
@@ -201,6 +227,23 @@ public class ImapMailReader {
         long uid = folder instanceof UIDFolder u ? u.getUID(message) : message.getMessageNumber();
         long validity = folder instanceof UIDFolder u ? u.getUIDValidity() : 0;
         return folder.getFullName() + ":" + validity + ":" + uid;
+    }
+
+    /** Sender, subject and date only, from the envelope fetched for the whole folder: no body is downloaded. */
+    private static MailMessage toEnvelope(String key, MimeMessage message) throws MessagingException {
+        String from = null;
+        String name = null;
+        if (message.getFrom() != null && message.getFrom().length > 0) {
+            if (message.getFrom()[0] instanceof InternetAddress a) {
+                from = a.getAddress();
+                name = a.getPersonal();
+            } else {
+                from = message.getFrom()[0].toString();
+            }
+        }
+        Instant received = message.getReceivedDate() != null ? message.getReceivedDate().toInstant()
+                : message.getSentDate() != null ? message.getSentDate().toInstant() : null;
+        return new MailMessage(key, from, name, message.getSubject(), received, null, null);
     }
 
     /** The parts the parsers read, from a message of the mailbox or from an uploaded .eml file. */
