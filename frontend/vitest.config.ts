@@ -15,6 +15,8 @@ export default defineConfig({
     environment: "jsdom",
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
     pool: "forks",
+    // The contrast test reads tokens.css as text (?raw); other styles stay out of the tests.
+    css: { include: [/tokens\.css/] },
     poolOptions: { forks: { execArgv } },
   },
 });

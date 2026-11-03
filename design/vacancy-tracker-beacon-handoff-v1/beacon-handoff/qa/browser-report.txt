@@ -1,0 +1,25 @@
+Маяк 1.0 — автоматична перевірка
+Команда: node work/verify-handoff.cjs
+Дата: 2026-11-03
+
+34 contrast pairs PASS
+overview: 4 viewports, light/dark renders PASS
+inbox: 4 viewports, light/dark renders PASS
+pipeline: 4 viewports, light/dark renders PASS
+mail: 4 viewports, light/dark renders PASS
+resume: 4 viewports, light/dark renders PASS
+presets: 4 viewports, light/dark renders PASS
+sources: 4 viewports, light/dark renders PASS
+profiles: 4 viewports, light/dark renders PASS
+transfer: 4 viewports, light/dark renders PASS
+settings: 4 viewports, light/dark renders PASS
+components: 4 viewports, light/dark renders PASS
+Inbox: selection, tabs + keyboard, save, empty, reset, filter PASS
+Board/table, invalid file, skill, theme, font, AI toggle PASS
+JSON sample download PASS
+640px reflow + 22px base PASS (native browser zoom and NVDA remain manual checks)
+Brand guide PDF generated
+All local document, asset and navigation links PASS
+No browser JS errors. PASS
+
+Не виконано вручну: NVDA, реальний browser zoom 200%, користувачі зі слабким зором, інтеграція з сервером.

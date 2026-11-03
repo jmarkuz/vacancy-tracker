@@ -81,7 +81,7 @@ export function RefreshControl() {
       <span class="refresh-meta num" aria-live="polite">
         {latest ? refreshedLine(latest.finishedAt, latest.nextScheduledAt) : ""}
       </span>
-      <button class="btn primary" type="button" onClick={refresh} disabled={running} aria-busy={running}>
+      <button class="btn primary" data-role="amber" type="button" onClick={refresh} disabled={running} aria-busy={running}>
         {running ? "Refreshing…" : "Refresh"}
       </button>
 

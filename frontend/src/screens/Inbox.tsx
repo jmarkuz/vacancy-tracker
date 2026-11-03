@@ -13,6 +13,7 @@ import { serializeCriteria } from "../domain/criteria";
 import { EMPTY_FILTER, filterFromParams, filterToParams, inboxCriteria, type InboxFilter, isActive } from "../domain/inboxFilter";
 import { formatDate } from "./columns";
 import { VacancyDrawer } from "./VacancyDrawer";
+import { InboxInspector } from "../components/InboxInspector";
 
 const PAGE_SIZE = 100;
 
@@ -38,6 +39,10 @@ export function Inbox({ params, dataVersion = 0 }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; tone: "info" | "error" } | null>(null);
   const [reload, setReload] = useState(0);
+  // The vacancy whose save or skip is on its way; its buttons wait for the server.
+  const [pendingId, setPendingId] = useState<string | null>(null);
+  // Grows each time the full details close: the inspector reloads what may have been saved there.
+  const [detailsClosed, setDetailsClosed] = useState(0);
   const listRef = useRef<HTMLUListElement>(null);
   const triaging = useRef(new Set<string>());
   const itemsRef = useRef<Vacancy[]>([]);
@@ -110,14 +115,17 @@ export function Inbox({ params, dataVersion = 0 }: Props) {
       return;
     }
     triaging.current.add(vacancy.id);
+    setPendingId(vacancy.id);
     try {
       await changeStatus(vacancy.id, status);
     } catch (e: unknown) {
       triaging.current.delete(vacancy.id);
+      setPendingId(null);
       setToast({ message: e instanceof Error ? e.message : `Could not mark it ${status}.`, tone: "error" });
       return;
     }
     triaging.current.delete(vacancy.id);
+    setPendingId(null);
     // The list as it is now: other rows may have been triaged while this request was in flight.
     const before = itemsRef.current;
     const remaining = before.filter((v) => v.id !== vacancy.id);
@@ -271,6 +279,7 @@ export function Inbox({ params, dataVersion = 0 }: Props) {
       {loading && items.length === 0 && <p class="muted" role="status">Loading the Inbox…</p>}
 
       {items.length > 0 && (
+        <div class="inbox-layout">
         <ul
           class="inbox-list"
           role="listbox"
@@ -291,26 +300,38 @@ export function Inbox({ params, dataVersion = 0 }: Props) {
               onFocusIn={() => select(v.id)}
               onDblClick={() => setQuery({ open: v.id })}
             >
-              <span class="inbox-title">
-                {v.title} <FitBadge fit={fits[v.id]} />
+              <span class="inbox-main">
+                <span class="inbox-title">{v.title}</span>
+                <span class="muted small">
+                  {[v.company, v.location ?? "Location not specified", v.workMode].filter(Boolean).join(" · ")} · seen{" "}
+                  <span class="num">{formatDate(v.lastSeenAt)}</span>
+                </span>
               </span>
-              <span class="muted">{v.company}</span>
-              <span class="muted">{v.location ?? "-"}</span>
-              <span class="muted num small">{formatDate(v.lastSeenAt)}</span>
-              <span class="inbox-actions">
-                <button type="button" class="btn" onClick={(e) => { e.stopPropagation(); triage(v, "Saved"); }}>Save</button>
-                <button type="button" class="btn" onClick={(e) => { e.stopPropagation(); triage(v, "Dismissed"); }}>Dismiss</button>
-                <button type="button" class="btn ghost" onClick={(e) => { e.stopPropagation(); setQuery({ open: v.id }); }}>Details</button>
-              </span>
+              <FitBadge fit={fits[v.id]} />
             </li>
           ))}
         </ul>
+        {selected >= 0 && (
+          <InboxInspector
+            vacancy={items[selected]}
+            fit={fits[items[selected].id]}
+            busy={pendingId === items[selected].id}
+            refreshKey={detailsClosed}
+            onSave={() => triage(items[selected], "Saved")}
+            onSkip={() => triage(items[selected], "Dismissed")}
+            onDetails={() => setQuery({ open: items[selected].id })}
+          />
+        )}
+        </div>
       )}
 
       {openId && (
         <VacancyDrawer
           id={openId}
-          onClose={() => setQuery({ open: null })}
+          onClose={() => {
+            setQuery({ open: null });
+            setDetailsClosed((n) => n + 1);
+          }}
           onChange={() => setReload((n) => n + 1)}
         />
       )}

@@ -781,3 +781,20 @@ Status: Accepted (T-098). Specification: [specs/M7-ai-presets.md](specs/M7-ai-pr
 - The findings and the confirmation are stored with the version (`fact_findings`, `facts_confirmed`, V23).
 
 **Consequences.** The check is literal: a reworded fact that keeps its numbers and names passes, and a truthful new term (an abbreviation spelled out) has to be confirmed. That bias is deliberate.
+
+## ADR-052 Beacon design, light first
+
+Status: Accepted (T-101). Supersedes the look of ADR-046; its keyboard rules stay. Source: [design/vacancy-tracker-beacon-handoff-v1/beacon-handoff](../design/vacancy-tracker-beacon-handoff-v1/beacon-handoff) (brand guide, tokens, logos, ten mockups, acceptance checklist), delivered by the owner on 2026-11-03.
+
+**Context.** The owner chose the light "Beacon" ("Маяк") direction: context, the next action and the state of the data must be clear at first sight, for people with low vision too. The package targets text at 7:1, borders at 3:1, an 18 px base, 44 px controls and four color roles with fixed meanings.
+
+**Decision.**
+- **Tokens** follow `styles/tokens.json` of the package: neutral canvas and surface, text and borders that meet the contrast targets in both themes, four roles (blue overview / inbox / search / mail, green save / pipeline / apply, purple resume / presets / AI / skill match, amber sources / profiles / import / settings) with base, hover and soft values, red only for errors. They keep the existing variable names, so every screen took them at once; `data-role` on an element chooses its role and `:where()` keeps the default role the weakest rule. A unit test reads `tokens.css` and checks 58 text, border and focus pairs.
+- **Light is the default**, dark and system are a choice in the header and in Settings. **Text size** 18, 20 or 22 px from Settings (`data-text-size`); all sizes are rem.
+- **Font**: the system Segoe UI with Arial as fallback, as the package specifies; the Google Fonts request is removed, so the app loads nothing from the internet. No font files are shipped.
+- **Shell**: a 64 px header with the blue Beacon mark and the name, search, refresh and theme; a 200 px sidebar with a colored marker per section and the current one filled with its role (`aria-current`); "Skip to content"; below 1000 px the sections wrap above the content (the phone bottom bar is gone).
+- **Inbox**: the selected vacancy beside the list (340 px), no overlay, with "Save vacancy" (green) always in place, and Conditions / Match / Documents tabs following the WAI-ARIA pattern; Skip and Full details below. Below 1000 px the details come first.
+- **Data in words**: the quick fit is "N of M skills" in purple ("Not enough data" when the vacancy names none), never "Fit 38" or a percentage; unknown pay and places are "Not specified".
+- **Language**: the owner kept the interface in English; the package's Ukrainian texts are used for their meaning, not translated literally.
+
+**Consequences.** The look of earlier screenshots and the Phase 0 mockup (now with the new tokens) differs. The package's manual checks (NVDA, real 200% zoom, users with low vision) are not automated and remain to be done before calling the design accepted; the automated checks cover contrast, keyboard tabs, text size and 640 px reflow.
