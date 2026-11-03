@@ -78,6 +78,23 @@ class MailClassifierTest {
     }
 
     @Test
+    void aJobBoardSendersDomainDoesNotLinkAMailToAnUnrelatedVacancy() {
+        UUID first = UUID.randomUUID();
+        UUID second = UUID.randomUUID();
+        List<MailLinker.Candidate> candidates = List.of(
+                new MailLinker.Candidate(first, "Java Backend Developer", "VIG Re", "https://www.linkedin.com/jobs/view/1", false),
+                new MailLinker.Candidate(second, "Kotlin Developer", "Deutsche Börse Group", "https://www.linkedin.com/jobs/view/2", false));
+
+        Optional<MailLinker.Link> link = MailLinker.link(new MailMessage("<k@x>", "jobs-noreply@linkedin.com", "LinkedIn",
+                "Apply now: Kotlin Developer at Deutsche Börse Group", null, "Your saved job at Deutsche Börse Group", null), candidates);
+
+        assertThat(link).isPresent();
+        assertThat(link.get().vacancyId()).isEqualTo(second);
+        assertThat(MailLinker.link(new MailMessage("<j@x>", "jobalerts-noreply@linkedin.com", "LinkedIn", "New job at JetBrains", null,
+                "JetBrains is hiring", null), candidates)).isEmpty();
+    }
+
+    @Test
     void linksByCompanyDomainAndTitleWithTheReason() {
         UUID acme = UUID.randomUUID();
         UUID beta = UUID.randomUUID();
