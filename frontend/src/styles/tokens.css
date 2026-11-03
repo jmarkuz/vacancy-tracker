@@ -46,6 +46,15 @@
   --signal-purple: #d9c2ff;
   --signal-amber: #f0cd86;
 
+  /* Liquid glass (floating popups): a translucent tint, a bright edge, a specular top highlight, strong blur */
+  --glass-bg: rgb(255 255 255 / 0.66);
+  --glass-bg-error: rgb(255 238 240 / 0.78);
+  --glass-edge: rgb(255 255 255 / 0.85);
+  --glass-edge-dim: rgb(0 0 0 / 0.1);
+  --glass-shine: rgb(255 255 255 / 0.9);
+  --glass-shadow: 0 18px 48px rgb(0 0 0 / 0.18), 0 2px 8px rgb(0 0 0 / 0.08);
+  --glass-solid: #ffffff;
+
   /* Accent roles: base, hover, soft background */
   --role-blue: #1243b2;
   --role-blue-hover: #123da2;
@@ -225,6 +234,13 @@
   --role-amber-hover: #f0cd86;
   --role-amber-soft: #2b2213;
   --color-on-role: #000000;
+  --glass-bg: rgb(32 32 36 / 0.6);
+  --glass-bg-error: rgb(64 22 30 / 0.72);
+  --glass-edge: rgb(255 255 255 / 0.22);
+  --glass-edge-dim: rgb(255 255 255 / 0.06);
+  --glass-shine: rgb(255 255 255 / 0.28);
+  --glass-shadow: 0 22px 60px rgb(0 0 0 / 0.65), 0 2px 10px rgb(0 0 0 / 0.5);
+  --glass-solid: #1c1c1e;
 
   --color-focus: #c3d9f3;
   --color-logo: #ffffff;
@@ -280,6 +296,13 @@
     --role-amber-hover: #f0cd86;
     --role-amber-soft: #2b2213;
     --color-on-role: #000000;
+    --glass-bg: rgb(32 32 36 / 0.6);
+    --glass-bg-error: rgb(64 22 30 / 0.72);
+    --glass-edge: rgb(255 255 255 / 0.22);
+    --glass-edge-dim: rgb(255 255 255 / 0.06);
+    --glass-shine: rgb(255 255 255 / 0.28);
+    --glass-shadow: 0 22px 60px rgb(0 0 0 / 0.65), 0 2px 10px rgb(0 0 0 / 0.5);
+    --glass-solid: #1c1c1e;
 
     --color-focus: #c3d9f3;
     --color-logo: #ffffff;
