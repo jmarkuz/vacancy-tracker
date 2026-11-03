@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ACTIVE_STATUSES, barPercent, chartSummary, funnelMax, kpis, weekLabel } from "./dashboard";
+import { ACTIVE_STATUSES, barPercent, chartSummary, funnelMax, kpis, quietText, weekLabel } from "./dashboard";
 import { parseCriteria } from "./criteria";
 
 const counts = { newToday: 3, inbox: 7, active: 5, interviews: 2, overdue: 1 };
@@ -60,5 +60,21 @@ describe("chart helpers", () => {
   it("summarises the bars for screen readers", () => {
     expect(chartSummary([{ start: "2026-10-26", applications: 2 }, { start: "2026-11-02", applications: 0 }]))
       .toBe("Applications per week: Oct 26 2, Nov 2 0");
+  });
+});
+
+describe("quietText", () => {
+  it("counts the days", () => {
+    expect(quietText(10)).toBe("Quiet for 10 days");
+    expect(quietText(29)).toBe("Quiet for 29 days");
+  });
+
+  it("uses the singular for one day", () => {
+    expect(quietText(1)).toBe("Quiet for 1 day");
+  });
+
+  it("says over a month from thirty days on", () => {
+    expect(quietText(30)).toBe("Quiet for over a month");
+    expect(quietText(75)).toBe("Quiet for over a month");
   });
 });
