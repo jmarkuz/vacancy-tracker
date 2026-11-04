@@ -21,6 +21,7 @@ import { listProfiles } from "./api/profiles";
 import { wizardSkipped } from "./domain/firstRun";
 import { applyTextSize, applyTheme, nextTheme, readTextSize, readTheme, type Theme } from "./theme";
 import { LogoMark } from "./components/LogoMark";
+import { ThemeIcon } from "./components/ThemeIcon";
 
 /** Color roles of Beacon (ADR-052): blue looks for work, green moves it forward, purple is you and AI, amber sets up. */
 export type Role = "blue" | "green" | "purple" | "amber";
@@ -138,6 +139,7 @@ export function App() {
         <RefreshControl />
         <button class="btn theme-toggle" type="button" data-role="amber" onClick={() => setTheme(nextTheme(theme))}
           aria-label={`${THEME_LABEL[theme]}; switch to ${THEME_LABEL[nextTheme(theme)].toLowerCase()}`}>
+          <ThemeIcon theme={theme} />
           {THEME_LABEL[theme]}
         </button>
         {tokenRequired && (

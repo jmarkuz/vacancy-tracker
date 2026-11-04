@@ -918,3 +918,8 @@ tbody tr:hover {
     border: 1px solid CanvasText;
   }
 }
+
+/* The theme button's icon sits before the words and takes the button's color. */
+.theme-toggle .theme-icon {
+  flex: none;
+}
