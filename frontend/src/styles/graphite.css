@@ -945,3 +945,67 @@ tbody tr:hover {
 .theme-toggle .theme-icon {
   flex: none;
 }
+
+/* Pipeline table, denser the title no longer takes the whole width, so every column is visible together.
+   Long text ends in an ellipsis (the full text is in the tooltip); rows are shorter and the type is a step smaller. */
+.pipeline-table {
+  font-size: var(--font-size-sm);
+}
+
+.pipeline-table th,
+.pipeline-table td {
+  padding: var(--space-1) var(--space-2);
+}
+
+.pipeline-table th {
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-2);
+}
+
+.pipeline-table .check-col {
+  width: 1%;
+  padding-right: 0;
+}
+
+.pipeline-table .col-title {
+  width: 100%;
+  max-width: 0; /* with width 100% this lets the title fill what the other columns leave, and clip */
+}
+
+.title-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.title-cell .row-open {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.title-cell .title-text {
+  display: inline;
+}
+
+.title-cell .fit-badge {
+  flex: none;
+}
+
+.cell-clip {
+  display: block;
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pipeline-table .col-company .cell-clip {
+  max-width: 12rem;
+}
+
+.pipeline-table .col-status,
+.pipeline-table .col-priority {
+  width: 1%;
+}

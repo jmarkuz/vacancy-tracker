@@ -236,7 +236,7 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
             </div>
           )}
           <div class="table-wrap" aria-busy={loading}>
-            <table>
+            <table class="pipeline-table">
               <thead>
                 <tr>
                   <th scope="col" class="check-col">
@@ -257,14 +257,14 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
                         onChange={() => setSelected(toggle(selected, v.id))} />
                     </td>
                     {visible.map((col) => (
-                      <td key={col.id} class={col.numeric ? "numeric" : undefined}>
+                      <td key={col.id} class={`col-${col.id}${col.numeric ? " numeric" : ""}`}>
                         {col.id === "title" ? (
-                          <>
-                            <button type="button" class="row-open" onClick={() => setQuery({ open: v.id })}>
+                          <div class="title-cell">
+                            <button type="button" class="row-open" title={v.title} onClick={() => setQuery({ open: v.id })}>
                               {col.render(v)}
-                            </button>{" "}
+                            </button>
                             <FitBadge fit={fits[v.id]} />
-                          </>
+                          </div>
                         ) : (
                           col.render(v)
                         )}
@@ -360,14 +360,14 @@ function resolveColumns(raw: string | null): Column[] {
 
 function SortableHeader({ column, sort, onSort }: { column: Column; sort: string; onSort: (next: string) => void }) {
   if (!column.sortKey) {
-    return <th scope="col">{column.label}</th>;
+    return <th scope="col" class={`col-${column.id}`}>{column.label}</th>;
   }
   const [currentKey, direction] = sort.split(":");
   const active = currentKey === column.sortKey;
   const nextDirection = active && direction === "asc" ? "desc" : "asc";
   const ariaSort = active ? (direction === "asc" ? "ascending" : "descending") : "none";
   return (
-    <th scope="col" aria-sort={ariaSort} class={column.numeric ? "numeric" : undefined}>
+    <th scope="col" aria-sort={ariaSort} class={`col-${column.id}${column.numeric ? " numeric" : ""}`}>
       <button type="button" class="sort-button" onClick={() => onSort(`${column.sortKey}:${nextDirection}`)}>
         {column.label}
         <span aria-hidden="true">{active ? (direction === "asc" ? " ▲" : " ▼") : ""}</span>

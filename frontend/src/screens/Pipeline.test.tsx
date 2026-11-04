@@ -236,3 +236,26 @@ describe("Pipeline: more of the buttons at work", () => {
     expect(control("Retry").el).toBeUndefined();
   });
 });
+
+describe("Pipeline: the dense table", () => {
+  it("marks the table and every column so the styles can size them, and keeps long text readable in a tooltip", async () => {
+    items = [{ ...row(1), location: "Time zone: Europe, Latin America and more" }];
+    total = 1;
+    await show();
+
+    expect(host.querySelector("table.pipeline-table")).not.toBeNull();
+    expect(host.querySelector("th.col-title")).not.toBeNull();
+    expect(host.querySelector("td.col-company")).not.toBeNull();
+    const clipped = host.querySelector("td.col-location .cell-clip");
+    expect(clipped?.getAttribute("title")).toBe("Time zone: Europe, Latin America and more");
+    expect(host.querySelector(".title-cell .row-open")?.getAttribute("title")).toBe("Backend 1");
+  });
+
+  it("shows a dash for an empty clipped cell", async () => {
+    items = [{ ...row(1), location: null as unknown as string }];
+    total = 1;
+    await show();
+
+    expect(host.querySelector("td.col-location .cell-clip")?.textContent).toBe("-");
+  });
+});
