@@ -1,6 +1,7 @@
 package com.vacancytracker.matching;
 
 import com.vacancytracker.matching.RuleEngine.SalaryFact;
+import com.vacancytracker.vacancy.GhostJob;
 import com.vacancytracker.vacancy.Vacancy;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -33,6 +34,7 @@ final class VacancyFacts {
         if (v.getPostedAt() != null) {
             facts.put("postedAge", Math.max(0L, ChronoUnit.DAYS.between(v.getPostedAt(), now)));
         }
+        facts.put("ghostSignals", GhostJob.assess(v, now).signs());
         if (v.getVisaSponsorship() != null) {
             facts.put("visaSponsorship", v.getVisaSponsorship());
         }

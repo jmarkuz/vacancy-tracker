@@ -152,14 +152,23 @@ public class VacancyController {
             java.math.BigDecimal salaryMin, java.math.BigDecimal salaryMax, String currency, String salaryPeriod,
             String status, Integer priority, String notes, String contact, String nextActionNote, Instant nextActionAt,
             List<String> tags, Set<String> userEditedFields, Instant firstSeenAt, Instant lastSeenAt, boolean isNew,
-            Boolean visaSponsorship, Instant postedAt) {
+            Boolean visaSponsorship, Instant postedAt, GhostResponse ghost) {
 
         static VacancyResponse from(Vacancy v) {
             return new VacancyResponse(v.getId(), v.getTitle(), v.getCompany(), v.getUrl(), v.getCanonicalUrl(),
                     v.getLocation(), v.getCountry(), v.getWorkMode(), v.getDescription(), v.getSalaryMin(), v.getSalaryMax(), v.getCurrency(), v.getSalaryPeriod(),
                     v.getStatus().label(), v.getPriority(), v.getNotes(), v.getContact(), v.getNextActionNote(),
                     v.getNextActionAt(), v.getTags(), v.getUserEditedFields(), v.getFirstSeenAt(), v.getLastSeenAt(),
-                    v.isNew(), v.getVisaSponsorship(), v.getPostedAt());
+                    v.isNew(), v.getVisaSponsorship(), v.getPostedAt(), GhostResponse.of(v));
+        }
+    }
+
+    /** The "likely ghost" advice with its reasons (see GhostJob). */
+    public record GhostResponse(boolean likely, int signs, List<String> reasons) {
+
+        static GhostResponse of(Vacancy v) {
+            com.vacancytracker.vacancy.GhostJob.Assessment a = com.vacancytracker.vacancy.GhostJob.assess(v, Instant.now());
+            return new GhostResponse(a.likely(), a.signs(), a.reasons());
         }
     }
 
