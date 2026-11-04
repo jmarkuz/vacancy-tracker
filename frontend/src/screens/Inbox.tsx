@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import { ApiError, getJson } from "../api/client";
 import type { PageResponse, Vacancy } from "../api/types";
 import { changeStatus } from "../api/vacancies";
+import { postedText } from "../domain/age";
 import { safeLink } from "../domain/links";
 import { getFits, type ResumeFit } from "../api/resume";
 import { fitsById } from "../domain/fit";
@@ -303,7 +304,8 @@ export function Inbox({ params, dataVersion = 0 }: Props) {
               <span class="inbox-main">
                 <span class="inbox-title">{v.title}</span>
                 <span class="muted small">
-                  {[v.company, v.location ?? "Location not specified", v.workMode].filter(Boolean).join(" · ")} · seen{" "}
+                  {[v.company, v.location ?? "Location not specified", v.workMode].filter(Boolean).join(" · ")}
+                  {v.postedAt ? ` · posted ${postedText(v.postedAt, new Date()).toLowerCase()}` : ""} · seen{" "}
                   <span class="num">{formatDate(v.lastSeenAt)}</span>
                 </span>
               </span>

@@ -201,4 +201,22 @@ class ProfilePreviewServiceTest extends AbstractIntegrationTest {
 
         assertThatThrownBy(() -> previews.preview(bad)).isInstanceOf(ProfileValidationException.class);
     }
+
+    @Test
+    void aPostingOlderThanTheDraftsMaxAgeCountsAsFilteredOutInThePreview() {
+        UUID old = vacancy("Java Developer", "djinni");
+        UUID young = vacancy("Java Engineer", "djinni");
+        UUID undated = vacancy("Java Architect", "djinni");
+        template.update("UPDATE vacancy SET posted_at = now() - interval '45 days' WHERE id = ?", old);
+        template.update("UPDATE vacancy SET posted_at = now() - interval '3 days' WHERE id = ?", young);
+        ProfileInput draft = new ProfileInput("Aged", true, List.of("all"), null, new Thresholds(0, 70, 30),
+                List.of(c("java", "title", "contains_any", "[\"java\"]", "prefer", 5)));
+
+        Preview p = previews.preview(draft);
+
+        assertThat(p.applicable()).isEqualTo(3);
+        assertThat(p.filteredOut()).isEqualTo(1);
+        assertThat(p.matched()).isEqualTo(2);
+        assertThat(p.samples()).filteredOn(smp -> smp.kind().equals("filtered-out")).extracting(Sample::title).containsExactly("Java Developer");
+    }
 }

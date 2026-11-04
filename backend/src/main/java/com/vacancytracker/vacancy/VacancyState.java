@@ -33,5 +33,7 @@ public record VacancyState(
         Instant lastSeenAt,
         boolean isNew,
         /** Read from the posting text (ADR-044): true, false, or null when the text says nothing. */
-        Boolean visaSponsorship) {
+        Boolean visaSponsorship,
+        /** When the source says the posting was published; null when it does not say (never guessed). */
+        Instant postedAt) {
 }

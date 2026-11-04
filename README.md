@@ -34,7 +34,7 @@ The Beacon design in its graphite (monochrome) variant, light and dark. Source i
 - Application package: the chosen versions as a ZIP with the resume PDF and a checklist, the application page opened for you (you submit the form yourself), and "I submitted" moves the vacancy to Applied with the versions in its history
 - Mail tracking: answers of employers and LinkedIn notices from your mailbox (read-only), linked to the application with the reason, with a suggested status change you accept or dismiss
 - Automatic and on-demand collection ("Refresh" button with live per-source progress)
-- Inbox with keyboard triage (J/K, S, X, O), a filter by words in the title or description (all or any, with exclusions; "/" to jump to it) and score badges with reasons
+- Inbox with keyboard triage (J/K, S, X, O), a filter by words in the title or description (all or any, with exclusions; "/" to jump to it) and score badges with reasons; the age of a posting ("posted 9 days ago") when the source gives a date, usable in profile rules (`postedAge`) and in the profile's `maxAgeDays`
 - Pipeline as a table or a Kanban board, with status history, follow-up dates and bulk actions with Undo
 - Dashboard: inbox and active counts, top matches, next actions, a funnel, applications per week, and "Time to follow up": applications in Applied, Screening or Interview with no status change and no mail for 10 days (`APP_FOLLOWUP_QUIET_DAYS`), unless you planned a later next action
 - Search profiles built from rules (require, prefer, avoid, exclude), live preview, versions and a step-by-step wizard for the first one

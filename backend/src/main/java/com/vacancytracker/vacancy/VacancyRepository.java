@@ -23,7 +23,7 @@ public class VacancyRepository {
     private static final String COLUMNS = """
             id, title, company, url, canonical_url, location, country, work_mode, description, salary_min, salary_max, currency, salary_period,
             status, priority, notes, contact, next_action_note, next_action_at, tags, user_edited_fields,
-            first_seen_at, last_seen_at, is_new, visa_sponsorship
+            first_seen_at, last_seen_at, is_new, visa_sponsorship, posted_at
             """;
 
     private final JdbcClient jdbc;
@@ -36,10 +36,10 @@ public class VacancyRepository {
         jdbc.sql("""
                 INSERT INTO vacancy (id, title, company, url, canonical_url, location, country, work_mode, description, salary_min, salary_max,
                     currency, salary_period, status, priority, notes, contact, next_action_note, next_action_at,
-                    tags, user_edited_fields, first_seen_at, last_seen_at, is_new, visa_sponsorship, updated_at)
+                    tags, user_edited_fields, first_seen_at, last_seen_at, is_new, visa_sponsorship, posted_at, updated_at)
                 VALUES (:id, :title, :company, :url, :canonicalUrl, :location, :country, :workMode, :description, :salaryMin, :salaryMax,
                     :currency, :salaryPeriod, :status, :priority, :notes, :contact, :nextActionNote, :nextActionAt,
-                    :tags, :editedFields, :firstSeenAt, :lastSeenAt, :isNew, :visa, now())
+                    :tags, :editedFields, :firstSeenAt, :lastSeenAt, :isNew, :visa, :postedAt, now())
                 ON CONFLICT (id) DO UPDATE SET
                     title = EXCLUDED.title, company = EXCLUDED.company, url = EXCLUDED.url,
                     canonical_url = EXCLUDED.canonical_url, location = EXCLUDED.location,
@@ -50,7 +50,7 @@ public class VacancyRepository {
                     contact = EXCLUDED.contact, next_action_note = EXCLUDED.next_action_note,
                     next_action_at = EXCLUDED.next_action_at, tags = EXCLUDED.tags,
                     user_edited_fields = EXCLUDED.user_edited_fields, last_seen_at = EXCLUDED.last_seen_at,
-                    is_new = EXCLUDED.is_new, visa_sponsorship = EXCLUDED.visa_sponsorship, updated_at = now()
+                    is_new = EXCLUDED.is_new, visa_sponsorship = EXCLUDED.visa_sponsorship, posted_at = EXCLUDED.posted_at, updated_at = now()
                 """)
                 .param("id", s.id())
                 .param("title", s.title())
@@ -77,6 +77,7 @@ public class VacancyRepository {
                 .param("lastSeenAt", OffsetDateTime.ofInstant(s.lastSeenAt(), java.time.ZoneOffset.UTC))
                 .param("isNew", s.isNew())
                 .param("visa", s.visaSponsorship())
+                .param("postedAt", s.postedAt() == null ? null : OffsetDateTime.ofInstant(s.postedAt(), java.time.ZoneOffset.UTC))
                 .update();
     }
 
@@ -318,7 +319,8 @@ public class VacancyRepository {
                 instant(rs, "first_seen_at"),
                 instant(rs, "last_seen_at"),
                 rs.getBoolean("is_new"),
-                (Boolean) rs.getObject("visa_sponsorship"));
+                (Boolean) rs.getObject("visa_sponsorship"),
+                instant(rs, "posted_at"));
     }
 
     private static Instant instant(ResultSet rs, String column) throws SQLException {

@@ -40,13 +40,15 @@ public class ProfilePreviewService {
 
     private final ProfileValidator validator;
     private final VacancyRepository vacancies;
+    private final java.time.Clock clock;
     private final RuleEngine engine;
     private final CompanyListService lists;
     private final int allowlistBonus;
 
     public ProfilePreviewService(ProfileValidator validator, VacancyRepository vacancies, RateSalaryConverter converter,
-                                CompanyListService lists,
+                                CompanyListService lists, java.time.Clock clock,
                                 @org.springframework.beans.factory.annotation.Value("${app.matching.allowlist-bonus:10}") int allowlistBonus) {
+        this.clock = clock;
         this.validator = validator;
         this.vacancies = vacancies;
         this.engine = new RuleEngine(converter);
@@ -92,9 +94,11 @@ public class ProfilePreviewService {
                 }
                 applicable++;
                 Vacancy vacancy = Vacancy.restore(state);
-                RuleResult result = engine.evaluate(profile.criteria(), VacancyFacts.of(vacancy, sources));
-                ScoreOutcome outcome = Scorer.score(profile.criteria(), result,
-                        companyLists.verdict(profileId, vacancy.getCompany()), allowlistBonus);
+                Map<String, Object> facts = VacancyFacts.of(vacancy, sources, clock.instant());
+                RuleResult result = engine.evaluate(profile.criteria(), facts);
+                ScoreOutcome outcome = Scorer.tooOld(facts.get("postedAge"), profile.thresholds().maxAgeDays())
+                        .orElseGet(() -> Scorer.score(profile.criteria(), result,
+                                companyLists.verdict(profileId, vacancy.getCompany()), allowlistBonus));
                 if (outcome.hidden()) {
                     filteredOut++;
                     keep(filtered, sample(vacancy, "filtered-out", outcome), FILTERED_SAMPLES);

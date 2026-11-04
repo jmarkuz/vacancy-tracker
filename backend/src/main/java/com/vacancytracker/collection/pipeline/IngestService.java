@@ -40,6 +40,7 @@ public class IngestService {
             Vacancy created = Vacancy.discovered(UUID.randomUUID(), posting.title(), posting.company(), posting.url(),
                     posting.canonicalUrl(), posting.description(), now);
             created.setPlacement(posting.location(), posting.country(), posting.workMode());
+            created.recordPostedAt(posting.postedAt());
             created.applyAutomated(new AutomatedFields(null, posting.salaryMin(), posting.salaryMax(),
                     posting.currency(), posting.salaryPeriod(), now));
             vacancies.save(created.toState());
@@ -52,6 +53,7 @@ public class IngestService {
         String before = existing.getDescription();
         BigDecimal beforeMin = existing.getSalaryMin();
         BigDecimal beforeMax = existing.getSalaryMax();
+        existing.recordPostedAt(posting.postedAt());
         existing.applyAutomated(new AutomatedFields(posting.description(), posting.salaryMin(), posting.salaryMax(),
                 posting.currency(), posting.salaryPeriod(), now));
         if (existing.getLocation() == null && posting.location() != null) {
