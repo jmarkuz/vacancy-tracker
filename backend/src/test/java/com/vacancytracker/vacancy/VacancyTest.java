@@ -118,4 +118,35 @@ class VacancyTest {
     void priorityOutOfRangeIsRejected() {
         assertThatThrownBy(() -> vacancy.setPriority(4)).isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void thePostingDateStartsEmptyAndTheEarliestDateSeenIsKept() {
+        assertThat(vacancy.getPostedAt()).isNull();
+
+        vacancy.recordPostedAt(Instant.parse("2026-10-20T09:00:00Z"));
+        vacancy.recordPostedAt(Instant.parse("2026-10-31T09:00:00Z"));
+        assertThat(vacancy.getPostedAt()).isEqualTo(Instant.parse("2026-10-20T09:00:00Z"));
+
+        vacancy.recordPostedAt(Instant.parse("2026-10-01T09:00:00Z"));
+        assertThat(vacancy.getPostedAt()).isEqualTo(Instant.parse("2026-10-01T09:00:00Z"));
+    }
+
+    @Test
+    void aMissingDateNeverErasesTheOneWeHave() {
+        vacancy.recordPostedAt(Instant.parse("2026-10-20T09:00:00Z"));
+
+        vacancy.recordPostedAt(null);
+
+        assertThat(vacancy.getPostedAt()).isEqualTo(Instant.parse("2026-10-20T09:00:00Z"));
+    }
+
+    @Test
+    void thePostingDateSurvivesTheStoredState() {
+        vacancy.recordPostedAt(Instant.parse("2026-10-20T09:00:00Z"));
+
+        Vacancy restored = Vacancy.restore(vacancy.toState());
+
+        assertThat(restored.getPostedAt()).isEqualTo(Instant.parse("2026-10-20T09:00:00Z"));
+        assertThat(vacancy.toState().postedAt()).isEqualTo(Instant.parse("2026-10-20T09:00:00Z"));
+    }
 }

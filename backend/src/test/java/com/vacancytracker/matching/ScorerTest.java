@@ -250,4 +250,30 @@ class ScorerTest {
             assertThat(after).as("case %d", i).isLessThanOrEqualTo(base);
         }
     }
+
+    @Test
+    void aPostingOlderThanTheProfilesLimitIsFilteredOutWithTheReason() {
+        ScoreOutcome outcome = Scorer.tooOld(45L, 30).orElseThrow();
+
+        assertThat(outcome.hidden()).isTrue();
+        assertThat(outcome.score()).isNull();
+        assertThat(outcome.reasons()).singleElement().satisfies(r -> {
+            assertThat(r.criterionId()).isEqualTo("max-age");
+            assertThat(r.kind()).isEqualTo("exclude");
+            assertThat(r.text()).isEqualTo("Filtered out: posted 45 days ago, more than this profile's limit of 30 days");
+        });
+    }
+
+    @Test
+    void aPostingExactlyAtTheLimitOrYoungerIsKept() {
+        assertThat(Scorer.tooOld(30L, 30)).isEmpty();
+        assertThat(Scorer.tooOld(0L, 30)).isEmpty();
+        assertThat(Scorer.tooOld(7, 30)).isEmpty();
+    }
+
+    @Test
+    void aVacancyWithoutADateIsNeverFilteredByAge() {
+        assertThat(Scorer.tooOld(null, 30)).isEmpty();
+        assertThat(Scorer.tooOld("not a number", 30)).isEmpty();
+    }
 }

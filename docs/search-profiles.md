@@ -174,7 +174,7 @@ Plain-language rendering uses the criterion `label` when set, otherwise a genera
 |---|---|
 | `inboxMinScore` | Below it, the vacancy is `Hidden` (still visible via the "hidden by score" filter). Default 40 |
 | `notifyMinScore` | Minimum score for a vacancy to appear in the Telegram digest. Default 70 |
-| `maxAgeDays` | Vacancies older than this are ignored at ingestion for this profile. Default 60 |
+| `maxAgeDays` | A vacancy whose source dates the posting as older than this is filtered out for this profile (reason "posted N days ago"; shown in the preview too). A vacancy without a posting date is never filtered by age: the date is not guessed. Default 60 |
 
 Thresholds are per profile.
 
