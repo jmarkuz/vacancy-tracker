@@ -924,7 +924,6 @@ tbody tr:hover {
   flex: none;
 }
 
-
 /* The refresh arrows turn while a refresh runs; with reduced motion they stay still. */
 .icon-spin {
   animation: icon-turn 1.2s linear infinite;
@@ -940,4 +939,9 @@ tbody tr:hover {
   .icon-spin {
     animation: none;
   }
+}
+
+/* The theme button's icon sits before the words and takes the button's color. */
+.theme-toggle .theme-icon {
+  flex: none;
 }
