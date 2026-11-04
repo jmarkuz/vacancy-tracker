@@ -1,5 +1,10 @@
 .git
+.github
 .idea
+.claude
+e2e
+docs
+design
 **/node_modules
 **/target
 **/dist

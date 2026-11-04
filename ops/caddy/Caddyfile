@@ -5,10 +5,20 @@
 	encode zstd gzip
 
 	header {
-		Strict-Transport-Security "max-age=31536000"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		# The UI is a same-origin bundle: module script from /assets, no external fonts, hosts or inline scripts.
+		# Inline styles are allowed (Preact style attributes); data: images cover inline icons.
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		X-Frame-Options "DENY"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
 		X-Content-Type-Options "nosniff"
 		Referrer-Policy "no-referrer"
 		-Server
+	}
+
+	# Uploads are capped at 5 MB in the app (resume, .eml); 10 MB leaves room for multipart overhead.
+	request_body {
+		max_size 10MB
 	}
 
 	# flush_interval -1 sends server-sent events (the Refresh progress) at once instead of buffering them.
