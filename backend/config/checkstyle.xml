@@ -10,10 +10,12 @@
     <property name="severity" value="warning"/>
     <property name="fileExtensions" value="java, properties, xml"/>
 
+    <module name="SuppressWarningsFilter"/>
     <module name="FileTabCharacter"/>
     <module name="NewlineAtEndOfFile"/>
 
     <module name="TreeWalker">
+        <module name="SuppressWarningsHolder"/>
         <module name="AvoidStarImport"/>
         <module name="RedundantImport"/>
         <module name="UnusedImports"/>

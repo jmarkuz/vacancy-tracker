@@ -92,6 +92,27 @@ class CorrespondenceSyncTest {
     }
 
     @Test
+    void aDirectSyncWhileAReadRunsIsRefusedAndKeepsTheFlag() throws Exception {
+        CountDownLatch inside = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        when(reader.isConfigured()).thenReturn(true);
+        when(reader.readFolderDeferred(eq("INBOX"), any(), any())).thenAnswer(call -> {
+            inside.countDown();
+            release.await(5, TimeUnit.SECONDS);
+            return read(1, null);
+        });
+
+        assertThat(service.startSync().started()).isTrue();
+        assertThat(inside.await(5, TimeUnit.SECONDS)).isTrue();
+        CorrespondenceService.SyncResult direct = service.sync();
+
+        assertThat(direct.error()).contains("already running");
+        assertThat(service.status().syncing()).isTrue();
+        release.countDown();
+        waitUntilIdle();
+    }
+
+    @Test
     void aMailboxErrorIsReportedNotThrown() throws Exception {
         when(reader.isConfigured()).thenReturn(true);
         when(reader.readFolderDeferred(eq("INBOX"), any(), any())).thenReturn(read(0, "Login failed"));
