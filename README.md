@@ -36,7 +36,7 @@ The Beacon design in its graphite (monochrome) variant, light and dark. Source i
 - Automatic and on-demand collection ("Refresh" button with live per-source progress)
 - Inbox with keyboard triage (J/K, S, X, O), a filter by words in the title or description (all or any, with exclusions; "/" to jump to it) and score badges with reasons
 - Pipeline as a table or a Kanban board, with status history, follow-up dates and bulk actions with Undo
-- Dashboard: inbox and active counts, top matches, next actions, a funnel and applications per week
+- Dashboard: inbox and active counts, top matches, next actions, a funnel, applications per week, and "Time to follow up": applications in Applied, Screening or Interview with no status change and no mail for 10 days (`APP_FOLLOWUP_QUIET_DAYS`), unless you planned a later next action
 - Search profiles built from rules (require, prefer, avoid, exclude), live preview, versions and a step-by-step wizard for the first one
 - Company allow and block lists, which a profile can use
 - Filters and saved views using the same rule model as search profiles

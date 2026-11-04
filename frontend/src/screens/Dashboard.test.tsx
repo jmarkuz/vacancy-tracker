@@ -23,6 +23,7 @@ const data: Data = {
   funnel: [],
   applicationsPerWeek: [],
   nextActions: [],
+  followUps: [],
 };
 
 const source = (id: string): SourceStatus => ({
@@ -100,5 +101,38 @@ describe("Dashboard: source health", () => {
 
     expect(host.textContent).toContain("Top matches");
     expect(host.textContent).toContain("Applications per week");
+  });
+});
+
+describe("Dashboard: time to follow up", () => {
+  beforeEach(() => {
+    listSources.mockResolvedValue([]);
+  });
+
+  it("lists the quiet applications with how long they have been quiet and links to each", async () => {
+    getDashboard.mockResolvedValue({
+      ...data,
+      followUps: [
+        { id: "v1", title: "Backend Engineer", company: "Zeta Corp", status: "Applied", lastActivityAt: "2026-10-20T10:00:00Z", quietDays: 14 },
+        { id: "v2", title: "Platform Engineer", company: "Omega Ltd", status: "Screening", lastActivityAt: "2026-10-30T10:00:00Z", quietDays: 1 },
+      ],
+    });
+
+    await show();
+
+    const list = host.querySelector('ul[aria-label="Time to follow up"]');
+    expect(list?.textContent).toContain("Backend Engineer");
+    expect(list?.textContent).toContain("Quiet for 14 days · Zeta Corp");
+    expect(list?.textContent).toContain("Quiet for 1 day · Omega Ltd");
+    expect(list?.querySelector("a")?.getAttribute("href")).toBe("#/pipeline?open=v1");
+    expect(host.textContent).toContain("Time to follow up");
+  });
+
+  it("shows no panel when nothing has gone quiet", async () => {
+    getDashboard.mockResolvedValue(data);
+
+    await show();
+
+    expect(host.textContent).not.toContain("Time to follow up");
   });
 });

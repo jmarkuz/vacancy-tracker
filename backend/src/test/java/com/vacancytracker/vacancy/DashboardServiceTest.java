@@ -148,4 +148,80 @@ class DashboardServiceTest extends AbstractIntegrationTest {
                 .contains(org.assertj.core.groups.Tuple.tuple("Saved", 1L), org.assertj.core.groups.Tuple.tuple("Applied", 0L));
         assertThat(d.applicationsPerWeek().stream().mapToLong(DashboardService.Week::applications).sum()).isZero();
     }
+
+    private void statusEventAt(UUID id, String to, Instant at) {
+        template.update("INSERT INTO status_event (id, vacancy_id, to_status, at) VALUES (?, ?, ?, ?)",
+                UUID.randomUUID(), id, to, java.sql.Timestamp.from(at));
+    }
+
+    private void mailAt(UUID id, Instant at) {
+        template.update("INSERT INTO correspondence (id, mail_key, category, vacancy_id, suggestion_state, received_at, created_at)"
+                + " VALUES (?, ?, 'recruiter_message', ?, 'none', ?, now())", UUID.randomUUID(), "k-" + UUID.randomUUID(), id,
+                java.sql.Timestamp.from(at));
+    }
+
+    @Test
+    void anApplicationQuietForTenDaysIsListedOldestFirstWithHowLongItHasBeenQuiet() {
+        Instant now = Instant.now();
+        UUID a = vacancy("quiet 12", "Applied", null, now.minus(30, ChronoUnit.DAYS), null, null);
+        statusEventAt(a, "Applied", now.minus(12, ChronoUnit.DAYS));
+        UUID b = vacancy("quiet 20", "Screening", null, now.minus(30, ChronoUnit.DAYS), null, null);
+        statusEventAt(b, "Screening", now.minus(20, ChronoUnit.DAYS));
+
+        var followUps = service.dashboard().followUps();
+
+        assertThat(followUps).extracting(DashboardService.FollowUp::title).containsExactly("quiet 20", "quiet 12");
+        assertThat(followUps.get(0).quietDays()).isEqualTo(20);
+        assertThat(followUps.get(1).quietDays()).isEqualTo(12);
+        assertThat(followUps.get(0).status()).isEqualTo("Screening");
+    }
+
+    @Test
+    void recentActivityOrAPlannedNextActionKeepsAnApplicationOffTheList() {
+        Instant now = Instant.now();
+        Instant long_ago = now.minus(40, ChronoUnit.DAYS);
+        UUID recentStatus = vacancy("recent status", "Applied", null, long_ago, null, null);
+        statusEventAt(recentStatus, "Applied", now.minus(3, ChronoUnit.DAYS));
+        UUID recentMail = vacancy("recent mail", "Applied", null, long_ago, null, null);
+        statusEventAt(recentMail, "Applied", now.minus(30, ChronoUnit.DAYS));
+        mailAt(recentMail, now.minus(2, ChronoUnit.DAYS));
+        UUID planned = vacancy("planned", "Applied", null, long_ago, now.plus(3, ChronoUnit.DAYS), null);
+        statusEventAt(planned, "Applied", now.minus(30, ChronoUnit.DAYS));
+        UUID overduePlan = vacancy("plan overdue", "Applied", null, long_ago, now.minus(1, ChronoUnit.DAYS), null);
+        statusEventAt(overduePlan, "Applied", now.minus(30, ChronoUnit.DAYS));
+
+        assertThat(service.dashboard().followUps()).extracting(DashboardService.FollowUp::title).containsExactly("plan overdue");
+    }
+
+    @Test
+    void onlyApplicationsWaitingForAnAnswerAreListed() {
+        Instant now = Instant.now();
+        Instant long_ago = now.minus(40, ChronoUnit.DAYS);
+        for (String status : new String[] {"New", "Saved", "Test task", "Offer", "Accepted", "Rejected", "Withdrawn", "Dismissed"}) {
+            vacancy("not waiting " + status, status, null, long_ago, null, null);
+        }
+        vacancy("interview", "Interview", null, long_ago, null, null);
+
+        assertThat(service.dashboard().followUps()).extracting(DashboardService.FollowUp::title).containsExactly("interview");
+    }
+
+    @Test
+    void aVacancyWithoutAnyHistoryIsQuietSinceItWasFirstSeen() {
+        Instant now = Instant.now();
+        vacancy("imported as applied", "Applied", null, now.minus(15, ChronoUnit.DAYS), null, null);
+        vacancy("just imported", "Applied", null, now.minus(2, ChronoUnit.DAYS), null, null);
+
+        assertThat(service.dashboard().followUps()).extracting(DashboardService.FollowUp::title).containsExactly("imported as applied");
+    }
+
+    @Test
+    void theListHoldsAtMostFiveAndAnEmptyDatabaseHasNone() {
+        assertThat(service.dashboard().followUps()).isEmpty();
+        Instant long_ago = Instant.now().minus(60, ChronoUnit.DAYS);
+        for (int i = 0; i < 8; i++) {
+            vacancy("quiet " + i, "Applied", null, long_ago.plus(i, ChronoUnit.DAYS), null, null);
+        }
+
+        assertThat(service.dashboard().followUps()).hasSize(DashboardService.FOLLOW_UPS);
+    }
 }
