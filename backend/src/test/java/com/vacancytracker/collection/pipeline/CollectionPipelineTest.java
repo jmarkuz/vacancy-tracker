@@ -177,4 +177,61 @@ class CollectionPipelineTest extends AbstractIntegrationTest {
 
         assertThat(summary.adapters().get(0).error()).contains("Circuit open");
     }
+
+    private static RawPosting postingDated(String ext, Instant postedAt) {
+        return new RawPosting("fake-ok", ext, "https://ex.com/dated", "Java Developer", "Acme", "Berlin", null, "Plain description.",
+                null, null, null, null, postedAt);
+    }
+
+    private Instant storedPostedAt() {
+        var at = jdbc.sql("SELECT posted_at FROM vacancy WHERE title = 'Java Developer'").query(java.time.OffsetDateTime.class).optional();
+        return at.map(java.time.OffsetDateTime::toInstant).orElse(null);
+    }
+
+    @Test
+    void thePostingDateIsStoredAndTheEarliestDateSeenIsKept() {
+        Instant first = Instant.parse("2026-10-20T09:00:00Z");
+        List<RawPosting>[] batch = new List[] {List.of(postingDated("1", first))};
+        var pipeline = pipeline(List.of(fixed("fake-ok", () -> FetchOutcome.of(batch[0]))));
+
+        pipeline.run("manual");
+        assertThat(storedPostedAt()).isEqualTo(first);
+
+        // A source that republishes the posting with a fresh date must not make it look new.
+        batch[0] = List.of(postingDated("1", Instant.parse("2026-10-31T09:00:00Z")));
+        pipeline.run("manual");
+        assertThat(storedPostedAt()).isEqualTo(first);
+
+        // A source that knows an earlier date moves it back.
+        batch[0] = List.of(postingDated("1", Instant.parse("2026-10-10T09:00:00Z")));
+        pipeline.run("manual");
+        assertThat(storedPostedAt()).isEqualTo(Instant.parse("2026-10-10T09:00:00Z"));
+
+        // A source that gives no date never erases it.
+        batch[0] = List.of(postingDated("1", null));
+        pipeline.run("manual");
+        assertThat(storedPostedAt()).isEqualTo(Instant.parse("2026-10-10T09:00:00Z"));
+    }
+
+    @Test
+    void aPostingWithoutADateStoresNone() {
+        var pipeline = pipeline(List.of(fixed("fake-ok", () -> FetchOutcome.of(List.of(postingDated("1", null))))));
+
+        pipeline.run("manual");
+
+        assertThat(storedPostedAt()).isNull();
+    }
+
+    @Test
+    void aSecondDateOnlyDoesNotCountAsAnUpdate() {
+        List<RawPosting>[] batch = new List[] {List.of(postingDated("1", Instant.parse("2026-10-20T09:00:00Z")))};
+        var pipeline = pipeline(List.of(fixed("fake-ok", () -> FetchOutcome.of(batch[0]))));
+        pipeline.run("manual");
+        batch[0] = List.of(postingDated("1", Instant.parse("2026-10-05T09:00:00Z")));
+
+        var second = pipeline.run("manual");
+
+        assertThat(second.adapters().get(0).stats().updated).isZero();
+        assertThat(second.adapters().get(0).stats().duplicates).isEqualTo(1);
+    }
 }

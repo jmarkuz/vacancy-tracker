@@ -6,6 +6,7 @@ import com.vacancytracker.matching.RuleEngine.RuleResult;
 import com.vacancytracker.matching.RuleEngine.Verdict;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * The score of a vacancy for a profile (T-052, docs/search-profiles.md section 3, ADR-025).
@@ -85,6 +86,18 @@ public final class Scorer {
         int numerator = Math.max(0, positive - negative + bonus + absorb);
         int score = Math.min(100, (200 * numerator + denominator) / (2 * denominator));
         return new ScoreOutcome(score, false, List.copyOf(reasons));
+    }
+
+    /**
+     * The profile's maxAgeDays (docs/search-profiles.md section 4): a posting the source dates as older than that is
+     * filtered out for this profile. A vacancy without a posting date is never filtered by age: the date is not guessed.
+     */
+    public static Optional<ScoreOutcome> tooOld(Object postedAge, int maxAgeDays) {
+        if (postedAge instanceof Number days && days.longValue() > maxAgeDays) {
+            return Optional.of(new ScoreOutcome(null, true, List.of(new MatchReason("max-age", 0, "exclude",
+                    "Filtered out: posted " + days.longValue() + " days ago, more than this profile's limit of " + maxAgeDays + " days"))));
+        }
+        return Optional.empty();
     }
 
     private static MatchReason filterReason(Criterion c, CriterionResult r) {

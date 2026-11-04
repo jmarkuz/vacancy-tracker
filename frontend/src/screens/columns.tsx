@@ -59,6 +59,12 @@ export const COLUMNS: Column[] = [
     sortKey: "lastSeenAt",
     render: (v) => <span class="num">{formatDate(v.lastSeenAt)}</span>,
   },
+  {
+    id: "postedAt",
+    label: "Posted",
+    sortKey: "postedAt",
+    render: (v) => <span class="num">{formatDate(v.postedAt ?? null)}</span>,
+  },
   { id: "tags", label: "Tags", render: (v) => (v.tags.length ? v.tags.join(", ") : "-") },
 ];
 
