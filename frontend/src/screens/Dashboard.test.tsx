@@ -136,3 +136,21 @@ describe("Dashboard: time to follow up", () => {
     expect(host.textContent).not.toContain("Time to follow up");
   });
 });
+
+describe("Dashboard: load failure", () => {
+  it("shows a retry, and the dashboard returns (error reset) after a successful retry", async () => {
+    listSources.mockResolvedValue([]);
+    getDashboard.mockRejectedValueOnce(new Error("offline"));
+    await show();
+    expect(host.querySelector('[role="alert"]')?.textContent).toContain("Could not load the dashboard.");
+
+    getDashboard.mockResolvedValueOnce(data);
+    await act(async () => {
+      (host.querySelector('[role="alert"] button') as HTMLButtonElement).click();
+    });
+    await settle(4);
+
+    expect(host.querySelector('[role="alert"]')).toBeNull();
+    expect(host.textContent).toContain("Top matches");
+  });
+});

@@ -15,8 +15,10 @@ import { ResumeScreen } from "./screens/ResumeScreen";
 import { PresetsScreen } from "./screens/PresetsScreen";
 import { Settings } from "./screens/Settings";
 import { MailScreen } from "./screens/MailScreen";
-import { getAuthStatus, logout, UNAUTHORIZED_EVENT } from "./api/auth";
+import { getAuthStatus, isLocalHost, logout, UNAUTHORIZED_EVENT } from "./api/auth";
 import { LoginScreen } from "./components/LoginScreen";
+import { logFailure } from "./api/logFailure";
+import { useScreenAnnouncement } from "./screenFocus";
 import { listProfiles } from "./api/profiles";
 import { wizardSkipped } from "./domain/firstRun";
 import { applyTextSize, applyTheme, nextTheme, readTextSize, readTheme, type Theme } from "./theme";
@@ -67,16 +69,21 @@ export function App() {
     return () => window.removeEventListener(DATA_CHANGED_EVENT, onChanged);
   }, []);
   // "checking" until the server says whether a token is needed; "login" shows the sign-in page.
-  const [session, setSession] = useState<"checking" | "login" | "open">("checking");
+  const [session, setSession] = useState<"checking" | "login" | "open" | "unreachable">("checking");
+  const [statusAttempt, setStatusAttempt] = useState(0);
   const [tokenRequired, setTokenRequired] = useState(false);
 
   useEffect(() => {
+    // Only the local profile (no token) may be taken as open when the check fails; elsewhere a broken UI would follow.
     getAuthStatus()
       .then((s) => {
         setTokenRequired(s.required);
         setSession(s.authenticated ? "open" : "login");
       })
-      .catch(() => setSession("open"));
+      .catch(() => setSession(isLocalHost(window.location.hostname) ? "open" : "unreachable"));
+  }, [statusAttempt]);
+
+  useEffect(() => {
     const lost = () => setSession("login");
     window.addEventListener(UNAUTHORIZED_EVENT, lost);
     return () => window.removeEventListener(UNAUTHORIZED_EVENT, lost);
@@ -112,12 +119,23 @@ export function App() {
           window.location.hash = "#/profiles?wizard=1";
         }
       })
-      .catch(() => undefined);
+      .catch(logFailure("the profiles"));
   }, [session]);
 
   const info = SCREEN_INFO[screen];
+  useScreenAnnouncement(screen, info.title, session === "open");
   if (session === "checking") {
     return <p class="muted" role="status">Loading…</p>;
+  }
+  if (session === "unreachable") {
+    return (
+      <div class="notice error" role="alert">
+        <span>Could not reach the server, so it is not known whether a sign-in is needed.</span>
+        <button class="btn" type="button" onClick={() => { setSession("checking"); setStatusAttempt((n) => n + 1); }}>
+          Retry
+        </button>
+      </div>
+    );
   }
   if (session === "login") {
     return <LoginScreen onLoggedIn={() => { setTokenRequired(true); setSession("open"); }} />;
