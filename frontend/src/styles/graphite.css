@@ -950,6 +950,7 @@ tbody tr:hover {
    Long text ends in an ellipsis (the full text is in the tooltip); rows are shorter and the type is a step smaller. */
 .pipeline-table {
   font-size: var(--font-size-sm);
+  table-layout: fixed; /* widths come from the <col> elements, which the header edges change */
 }
 
 .pipeline-table th,
@@ -962,14 +963,14 @@ tbody tr:hover {
   padding-bottom: var(--space-2);
 }
 
-.pipeline-table .check-col {
-  width: 1%;
-  padding-right: 0;
+.pipeline-table th,
+.pipeline-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.pipeline-table .col-title {
-  width: 100%;
-  max-width: 0; /* with width 100% this lets the title fill what the other columns leave, and clip */
+.pipeline-table .check-col {
+  padding-right: 0;
 }
 
 .title-cell {
@@ -996,16 +997,46 @@ tbody tr:hover {
 
 .cell-clip {
   display: block;
-  max-width: 14rem;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.pipeline-table .col-company .cell-clip {
-  max-width: 12rem;
+/* The edge of a header you can drag (components/ColumnResizer.tsx). */
+.pipeline-table th {
+  position: sticky; /* also the anchor of the resizer */
 }
 
-.pipeline-table .col-status,
-.pipeline-table .col-priority {
-  width: 1%;
+.col-resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 9px;
+  cursor: col-resize;
+  touch-action: none;
+  user-select: none;
+}
+
+.col-resizer::after {
+  content: "";
+  position: absolute;
+  top: 25%;
+  bottom: 25%;
+  right: 3px;
+  width: 1px;
+  background: var(--color-hairline);
+  transition: background var(--duration-fast) var(--ease-out), top var(--duration-fast) var(--ease-out),
+    bottom var(--duration-fast) var(--ease-out);
+}
+
+.col-resizer:hover::after,
+.col-resizer:focus-visible::after {
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--color-accent, currentColor);
+}
+
+.col-resizer:focus-visible {
+  outline: none;
 }
