@@ -1,3 +1,4 @@
+import { logFailure } from "../api/logFailure";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { ApiError, getJson } from "../api/client";
 import type { PageResponse, Vacancy } from "../api/types";
@@ -77,7 +78,7 @@ export function Inbox({ params, dataVersion = 0 }: Props) {
     const controller = new AbortController();
     getFits(items.map((v) => v.id), controller.signal)
       .then((list) => setFits(fitsById(list)))
-      .catch(() => undefined);
+      .catch(logFailure("the fit scores", controller.signal));
     return () => controller.abort();
   }, [items.map((v) => v.id).join(",")]);
 

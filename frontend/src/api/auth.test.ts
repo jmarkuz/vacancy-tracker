@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { login, retryText, UNAUTHORIZED_EVENT, watchUnauthorized } from "./auth";
+import { isLocalHost, login, retryText, UNAUTHORIZED_EVENT, watchUnauthorized } from "./auth";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -64,5 +64,14 @@ describe("watchUnauthorized", () => {
   it("returns the response untouched", async () => {
     const { target } = fakeWindow(401);
     expect((await target.fetch("/api/vacancies")).status).toBe(401);
+  });
+});
+
+describe("isLocalHost", () => {
+  it("accepts only loopback names", () => {
+    expect(isLocalHost("localhost")).toBe(true);
+    expect(isLocalHost("127.0.0.1")).toBe(true);
+    expect(isLocalHost("[::1]")).toBe(true);
+    expect(isLocalHost("tracker.example.com")).toBe(false);
   });
 });

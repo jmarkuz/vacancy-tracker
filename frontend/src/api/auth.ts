@@ -52,3 +52,8 @@ export function watchUnauthorized(target: Window = window): void {
     return response;
   };
 }
+
+/** True for the address of the local profile, which has no token: only there may a failed status check be taken as "open". */
+export function isLocalHost(hostname: string): boolean {
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]" || hostname === "::1";
+}

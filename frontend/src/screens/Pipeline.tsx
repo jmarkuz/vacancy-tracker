@@ -1,3 +1,4 @@
+import { logFailure } from "../api/logFailure";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import { getJson, ApiError } from "../api/client";
 import { changeStatus } from "../api/vacancies";
@@ -122,7 +123,7 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
     const controller = new AbortController();
     getFits((data?.items ?? []).map((v) => v.id), controller.signal)
       .then((list) => setFits(fitsById(list)))
-      .catch(() => undefined);
+      .catch(logFailure("the fit scores", controller.signal));
     return () => controller.abort();
   }, [data]);
 

@@ -23,15 +23,22 @@ export function Dashboard({ dataVersion = 0 }: { dataVersion?: number }) {
   const [sourcesFailed, setSourcesFailed] = useState(false);
   const [sourcesReload, setSourcesReload] = useState(0);
 
+  const [reload, setReload] = useState(0);
+
   useEffect(() => {
     const controller = new AbortController();
-    getDashboard(controller.signal).then(setData).catch(() => {
-      if (!controller.signal.aborted) {
-        setError("Could not load the dashboard.");
-      }
-    });
+    getDashboard(controller.signal)
+      .then((d) => {
+        setData(d);
+        setError(null);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setError("Could not load the dashboard.");
+        }
+      });
     return () => controller.abort();
-  }, [dataVersion]);
+  }, [dataVersion, reload]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -47,7 +54,7 @@ export function Dashboard({ dataVersion = 0 }: { dataVersion?: number }) {
   }, [dataVersion, sourcesReload]);
 
   if (error) {
-    return <div class="notice error" role="alert">{error}</div>;
+    return <LoadFailed what="the dashboard" onRetry={() => { setError(null); setReload((n) => n + 1); }} />;
   }
   if (!data) {
     return <p class="muted" role="status">Loading the dashboard…</p>;
