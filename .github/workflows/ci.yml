@@ -13,6 +13,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  plan-sync:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PLAN.md and tasks.csv must agree
+        run: bash scripts/check-plan-sync.sh
+
   backend:
     timeout-minutes: 20
     # Maven verify: unit and integration tests (Testcontainers needs Docker, which this runner has), Checkstyle,
