@@ -1040,3 +1040,82 @@ tbody tr:hover {
 .col-resizer:focus-visible {
   outline: none;
 }
+
+/* The refresh popup shows only on hover or keyboard focus, so it never covers other controls. The button shows
+   the progress itself: turning arrows and a light band moving across it. */
+.refresh-trigger {
+  display: inline-flex;
+}
+
+.refresh-trigger .progress-pop {
+  animation: none;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-4px) scale(0.98);
+  transition: opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out),
+    visibility 0s linear var(--duration-base);
+}
+
+/* An invisible bridge over the gap, so moving the pointer from the button into the popup does not close it. */
+.refresh-trigger .progress-pop::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: var(--space-3);
+}
+
+.refresh-trigger:hover .progress-pop,
+.refresh-trigger:has(:focus-visible) .progress-pop {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: none;
+  transition-delay: 0s;
+}
+
+.btn.is-refreshing {
+  position: relative;
+  overflow: hidden;
+  opacity: 1;
+}
+
+.btn.is-refreshing::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 20%, rgb(128 128 128 / 0.35) 50%, transparent 80%);
+  transform: translateX(-100%);
+  animation: refresh-sweep 1.4s var(--ease-out) infinite;
+  pointer-events: none;
+}
+
+@keyframes refresh-sweep {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn.is-refreshing::after {
+    animation: none;
+    transform: none;
+    opacity: 0.5;
+  }
+
+  .refresh-trigger .progress-pop {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .btn.is-refreshing::after {
+    display: none;
+  }
+}
+
+.btn[aria-disabled="true"] {
+  cursor: progress;
+}

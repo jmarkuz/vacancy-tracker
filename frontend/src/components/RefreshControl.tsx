@@ -13,8 +13,9 @@ interface ToastState {
 }
 
 /**
- * Header control: starts a refresh, shows per-source progress while it runs (T-046), and then a summary
- * toast that links to the Inbox. The "Last refreshed" line is read from the server.
+ * Header control: starts a refresh and shows its progress on the button itself (spinning arrows and a moving
+ * band); the per-source list (T-046) opens only while the pointer is over the button or it has keyboard focus, so
+ * it never covers the screen behind it. A summary toast that links to the Inbox follows. The "Last refreshed" line is read from the server.
  */
 /** Sent on window when a refresh has finished and stored new data. */
 export const DATA_CHANGED_EVENT = "vt:data-changed";
@@ -38,6 +39,9 @@ export function RefreshControl() {
   }, []);
 
   const refresh = async () => {
+    if (phase === "running") {
+      return;
+    }
     setToast(null);
     setProgress([]);
     setPhase("running");
@@ -82,30 +86,41 @@ export function RefreshControl() {
       <span class="refresh-meta num" aria-live="polite">
         {latest ? refreshedLine(latest.finishedAt, latest.nextScheduledAt) : ""}
       </span>
-      <button class="btn primary" data-role="amber" type="button" onClick={refresh} disabled={running} aria-busy={running}>
-        <Icon name="refresh" spin={running} />
-        {running ? "Refreshing…" : "Refresh"}
-      </button>
+      <div class="refresh-trigger">
+        <button
+          class={`btn primary${running ? " is-refreshing" : ""}`}
+          data-role="amber"
+          type="button"
+          onClick={refresh}
+          // Not `disabled`: a disabled button may not report the pointer, and the popup opens on hover.
+          aria-disabled={running}
+          aria-busy={running}
+          aria-describedby={running && progress.length > 0 ? "refresh-progress" : undefined}
+        >
+          <Icon name="refresh" spin={running} />
+          {running ? "Refreshing…" : "Refresh"}
+        </button>
 
-      {running && progress.length > 0 && (
-        <div class="progress-pop" role="group" aria-label="Refresh progress">
-          <p class="progress-head">Refreshing sources</p>
-          <ul class="progress-list">
-            {progress.map((p) => (
-              <li key={p.adapter}>
-                <span class="progress-name num">{p.adapter}</span>
-                <span class="progress-state">
-                  {p.state === "finished" && <span class="muted">+{p.new ?? 0} new</span>}
-                  {p.state === "failed" && p.error && <span class="muted progress-error">{p.error}</span>}
-                  <span class={`badge ${p.state === "failed" ? "health-error" : p.state === "running" ? "" : "health-ok"}`}>
-                    {p.state === "running" ? "running" : p.state === "failed" ? "failed" : "ok"}
+        {running && progress.length > 0 && (
+          <div id="refresh-progress" class="progress-pop" role="group" aria-label="Refresh progress">
+            <p class="progress-head">Refreshing sources</p>
+            <ul class="progress-list">
+              {progress.map((p) => (
+                <li key={p.adapter}>
+                  <span class="progress-name num">{p.adapter}</span>
+                  <span class="progress-state">
+                    {p.state === "finished" && <span class="muted">+{p.new ?? 0} new</span>}
+                    {p.state === "failed" && p.error && <span class="muted progress-error">{p.error}</span>}
+                    <span class={`badge ${p.state === "failed" ? "health-error" : p.state === "running" ? "" : "health-ok"}`}>
+                      {p.state === "running" ? "running" : p.state === "failed" ? "failed" : "ok"}
+                    </span>
                   </span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
 
       {toast && (
         <Toast message={toast.message} tone={toast.tone} link={toast.link} onDismiss={() => setToast(null)} />
