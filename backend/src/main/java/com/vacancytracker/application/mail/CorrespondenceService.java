@@ -122,7 +122,7 @@ public class CorrespondenceService {
         try {
             syncExecutor.submit(() -> {
                 try {
-                    sync();
+                    syncHoldingFlag();
                 } finally {
                     syncing.set(false);
                 }
@@ -147,16 +147,23 @@ public class CorrespondenceService {
     }
 
     /** Reads every configured folder now. Never throws for a mailbox problem: the result carries the error. */
-    public synchronized SyncResult sync() {
+    public SyncResult sync() {
         if (!reader.isConfigured()) {
             return new SyncResult(false, 0, 0, 0, 0, null);
         }
-        syncing.set(true);
+        if (!syncing.compareAndSet(false, true)) {
+            return new SyncResult(true, 0, 0, 0, 0, "A read is already running");
+        }
         try {
-            return readFolders();
+            return syncHoldingFlag();
         } finally {
             syncing.set(false);
         }
+    }
+
+    /** The caller has set the syncing flag; the lock keeps the read single-threaded. */
+    private synchronized SyncResult syncHoldingFlag() {
+        return readFolders();
     }
 
     private SyncResult readFolders() {
