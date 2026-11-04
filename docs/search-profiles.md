@@ -58,7 +58,8 @@ Criterion {
 | `workLanguage` | text (language code) | |
 | `visaSponsorship` | boolean | Read from the posting text (ADR-044): true when it offers sponsorship or visa support, false when it refuses or asks for an existing right to work, missing when it says nothing. Also a view filter. |
 | `relocationSupport` | boolean | |
-| `postedAge` | integer days | Computed from `postedAt` |
+| `postedAge` | integer days | Computed from `postedAt`; missing when the source gives no date |
+| `ghostSignals` | integer 0..3 | How many signs of a "ghost" posting the vacancy shows: posted 30 or more days ago, still listed 30 or more days after it was first seen, no salary stated. `ghostSignals gte 2` as an `exclude` rule hides likely ghosts. The Inbox and the drawer show the same advice with its reasons |
 | `source` | adapter ID | |
 | `tags` | list of text | |
 

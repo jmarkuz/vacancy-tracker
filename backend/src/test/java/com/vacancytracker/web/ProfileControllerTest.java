@@ -102,7 +102,7 @@ class ProfileControllerTest extends AbstractIntegrationTest {
     void metaOffersFieldsOperatorsWithValueShapesModesAndPolicies() throws Exception {
         mvc.perform(get("/api/profiles/meta"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.fields.length()").value(19))
+                .andExpect(jsonPath("$.fields.length()").value(20))
                 .andExpect(jsonPath("$.fields[0].name").value("title"))
                 .andExpect(jsonPath("$.fields[12].name").value("salary"))
                 .andExpect(jsonPath("$.fields[12].operators[?(@.name == 'gte')].valueShape")

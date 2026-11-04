@@ -79,4 +79,12 @@ describe("InboxInspector: the conditions", () => {
 
     expect(value("Posted")).toBe("Not stated");
   });
+
+  it("shows why a vacancy is a likely ghost, and nothing when it is not", () => {
+    show(vacancy({ ghost: { likely: true, signs: 2, reasons: ["Posted 45 days ago", "No salary stated"] } }));
+    expect(value("Likely ghost")).toBe("Posted 45 days ago · No salary stated");
+
+    show(vacancy({ ghost: { likely: false, signs: 1, reasons: ["No salary stated"] } }));
+    expect(value("Likely ghost")).toBeUndefined();
+  });
 });
