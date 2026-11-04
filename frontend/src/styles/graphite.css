@@ -1119,3 +1119,132 @@ tbody tr:hover {
 .btn[aria-disabled="true"] {
   cursor: progress;
 }
+
+/* ---------- The vacancy drawer (side panel), tidier ----------
+   One rhythm: sections are divided by hairlines, labels are one size, long titles balance over their lines, the
+   requirement list has a head, a text and a quoted proof instead of one run-on line. */
+.drawer-header {
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6) var(--space-4);
+}
+
+.drawer-header h2 {
+  font-size: var(--font-size-lg);
+  line-height: 1.3;
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
+}
+
+.drawer-header p {
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.drawer-close {
+  flex: none;
+  gap: var(--space-1);
+  text-decoration: none;
+}
+
+.drawer-body {
+  gap: 0;
+  padding: var(--space-2) var(--space-6) var(--space-7, var(--space-6));
+  line-height: 1.5;
+}
+
+.drawer-section {
+  gap: var(--space-3);
+  padding: var(--space-5) 0;
+}
+
+.drawer-section + .drawer-section {
+  border-top: var(--border-width) solid var(--color-hairline);
+}
+
+.drawer-section h3 {
+  margin: 0 0 var(--space-1);
+  font-size: 0.75rem;
+}
+
+.drawer .stack {
+  gap: var(--space-3);
+}
+
+.drawer h4 {
+  margin: 0;
+  font-size: var(--font-size-md);
+}
+
+.drawer .facts {
+  grid-template-columns: 10.5rem 1fr;
+  gap: var(--space-2) var(--space-4);
+  align-items: baseline;
+}
+
+.drawer .facts dt {
+  font-size: 0.75rem;
+}
+
+.quick-fit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.drawer .reasons {
+  display: grid;
+  gap: var(--space-2);
+  padding-left: var(--space-5);
+}
+
+.requirements {
+  gap: 0;
+}
+
+.req {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3) 0;
+}
+
+.req + .req {
+  border-top: var(--border-width) solid var(--color-hairline);
+}
+
+.req-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.req-text {
+  font-weight: var(--font-weight-medium);
+}
+
+.req-quote {
+  margin: var(--space-1) 0 0;
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--color-hairline);
+  color: var(--color-text-muted);
+  font-style: normal;
+}
+
+.req-quote::before,
+.req-quote::after {
+  content: none;
+}
+
+.drawer .history {
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* Spacing comes from the grid gaps, not from the browser's paragraph margins. */
+.drawer-body p {
+  margin: 0;
+}
