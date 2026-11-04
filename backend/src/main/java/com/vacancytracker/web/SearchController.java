@@ -17,7 +17,10 @@ public class SearchController {
         this.search = search;
     }
 
-    /** Ranked full-text search. Blank or symbol-only text gives an empty list. */
+    /**
+     * Ranked full-text search. Blank or symbol-only text gives an empty list. Unlike the vacancy list, an
+     * out-of-range {@code limit} is clamped, not rejected: it only sizes a typeahead.
+     */
     @GetMapping
     public List<VacancySearchService.Hit> search(@RequestParam(name = "q", defaultValue = "") String q,
                                                   @RequestParam(defaultValue = "20") int limit) {
