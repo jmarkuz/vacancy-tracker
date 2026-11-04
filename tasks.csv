@@ -34,7 +34,7 @@ T-032,Adapter ats-lever,M2,S,"T-027,T-030",done
 T-033,Adapter ats-ashby,M2,S,"T-027,T-030",done
 T-034,Adapter arbeitnow,M2,M,"T-027,T-030",done
 T-035,Adapter adzuna,M2,M,"T-027,T-030",done
-T-036,Adapter jooble,M2,M,"T-027,T-030",todo
+T-036,Adapter jooble,M2,M,"T-027,T-030",blocked
 T-037,Adapter remotive,M2,S,"T-027,T-030",done
 T-038,Adapter himalayas,M2,S,"T-027,T-030",done
 T-039,Adapter jobicy,M2,S,"T-027,T-030",done
