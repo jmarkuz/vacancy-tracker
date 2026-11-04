@@ -687,6 +687,10 @@ tbody tr:hover {
   display: none;
 }
 
+.ghost-badge {
+  color: var(--color-warning);
+}
+
 .fit-badge {
   padding: 1px var(--space-3);
   border: 0;

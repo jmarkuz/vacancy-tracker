@@ -3,6 +3,7 @@ import { ApiError, getJson } from "../api/client";
 import type { PageResponse, Vacancy } from "../api/types";
 import { changeStatus } from "../api/vacancies";
 import { postedText } from "../domain/age";
+import { GhostBadge } from "../components/GhostBadge";
 import { safeLink } from "../domain/links";
 import { getFits, type ResumeFit } from "../api/resume";
 import { fitsById } from "../domain/fit";
@@ -309,7 +310,10 @@ export function Inbox({ params, dataVersion = 0 }: Props) {
                   <span class="num">{formatDate(v.lastSeenAt)}</span>
                 </span>
               </span>
-              <FitBadge fit={fits[v.id]} />
+              <span class="inbox-actions">
+                <GhostBadge ghost={v.ghost} />
+                <FitBadge fit={fits[v.id]} />
+              </span>
             </li>
           ))}
         </ul>
