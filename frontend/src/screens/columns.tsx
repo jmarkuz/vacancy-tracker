@@ -32,12 +32,18 @@ export function formatSalary(v: Vacancy): string {
   return `${range}${currency}${period}`;
 }
 
+/** Long text stays on one line and ends in an ellipsis; the full text is in the tooltip. */
+export function clip(text: string | null | undefined): ComponentChildren {
+  const value = text || "-";
+  return <span class="cell-clip" title={value}>{value}</span>;
+}
+
 /** Every column the Pipeline table can show, in default order where it matters. */
 export const COLUMNS: Column[] = [
   { id: "title", label: "Title", sortKey: "title", render: (v) => <span class="title-text">{v.title}</span> },
-  { id: "company", label: "Company", sortKey: "company", render: (v) => v.company },
+  { id: "company", label: "Company", sortKey: "company", render: (v) => clip(v.company) },
   { id: "status", label: "Status", sortKey: "status", render: (v) => <StatusBadge status={v.status} /> },
-  { id: "location", label: "Location", sortKey: "location", render: (v) => v.location ?? "-" },
+  { id: "location", label: "Location", sortKey: "location", render: (v) => clip(v.location) },
   { id: "workMode", label: "Work mode", sortKey: "workMode", render: (v) => v.workMode ?? "-" },
   {
     id: "salary",
@@ -65,7 +71,7 @@ export const COLUMNS: Column[] = [
     sortKey: "postedAt",
     render: (v) => <span class="num">{formatDate(v.postedAt ?? null)}</span>,
   },
-  { id: "tags", label: "Tags", render: (v) => (v.tags.length ? v.tags.join(", ") : "-") },
+  { id: "tags", label: "Tags", render: (v) => clip(v.tags.length ? v.tags.join(", ") : null) },
 ];
 
 export const DEFAULT_COLUMNS = ["title", "company", "status", "location", "salary", "lastSeenAt"];
