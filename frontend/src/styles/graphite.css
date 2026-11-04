@@ -919,6 +919,28 @@ tbody tr:hover {
   }
 }
 
+/* Button icons (components/Icon.tsx): they sit beside the words and take the button's color. */
+.icon {
+  flex: none;
+}
+
+/* The refresh arrows turn while a refresh runs; with reduced motion they stay still. */
+.icon-spin {
+  animation: icon-turn 1.2s linear infinite;
+}
+
+@keyframes icon-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icon-spin {
+    animation: none;
+  }
+}
+
 /* The theme button's icon sits before the words and takes the button's color. */
 .theme-toggle .theme-icon {
   flex: none;
