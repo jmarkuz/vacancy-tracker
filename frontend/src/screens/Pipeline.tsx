@@ -14,6 +14,7 @@ import { parseCriteria, serializeCriteria, type Criterion } from "../domain/crit
 import type { SavedView } from "../api/views";
 import { COLUMNS, DEFAULT_COLUMNS, type Column } from "./columns";
 import { VacancyDrawer } from "./VacancyDrawer";
+import { Icon } from "../components/Icon";
 import { AddVacancy } from "../components/AddVacancy";
 import { getFits, type ResumeFit } from "../api/resume";
 import { fitsById } from "../domain/fit";
@@ -149,11 +150,18 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
         <h1 id="pipeline-title">Pipeline</h1>
         <span class="grow" />
         <div class="filters" role="group" aria-label="Layout">
-          <button type="button" class="chip" aria-pressed={!board} onClick={() => setQuery({ layout: null })}>Table</button>
-          <button type="button" class="chip" aria-pressed={board} onClick={() => setQuery({ layout: "board" })}>Board</button>
+          <button type="button" class="chip" aria-pressed={!board} onClick={() => setQuery({ layout: null })}>
+            <Icon name="table" />
+            Table
+          </button>
+          <button type="button" class="chip" aria-pressed={board} onClick={() => setQuery({ layout: "board" })}>
+            <Icon name="board" />
+            Board
+          </button>
         </div>
         {!board && <ColumnPicker selected={visible} />}
         <button type="button" class="btn primary" data-role="green" aria-expanded={adding} onClick={() => setAdding((a) => !a)}>
+          <Icon name="plus" />
           Add vacancy
         </button>
       </div>
@@ -182,6 +190,7 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
         <div class="notice error" role="alert">
           <span>{error}</span>
           <button class="btn" type="button" onClick={() => setAttempt((n) => n + 1)}>
+            <Icon name="refresh" />
             Retry
           </button>
         </div>
@@ -216,8 +225,14 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
                 <option value="">Change status to…</option>
                 {options.map((o) => <option key={o.status} value={o.status}>{optionLabel(o)}</option>)}
               </select>
-              <button type="button" class="btn primary" data-role="green" disabled={!target} onClick={applyBulk}>Apply</button>
-              <button type="button" class="btn" onClick={() => setSelected([])}>Clear selection</button>
+              <button type="button" class="btn primary" data-role="green" disabled={!target} onClick={applyBulk}>
+                <Icon name="check" />
+                Apply
+              </button>
+              <button type="button" class="btn" onClick={() => setSelected([])}>
+                <Icon name="close" />
+                Clear selection
+              </button>
             </div>
           )}
           <div class="table-wrap" aria-busy={loading}>
@@ -279,6 +294,7 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
 
           <nav class="pager" aria-label="Pages">
             <button class="btn" type="button" disabled={page === 0} onClick={() => setQuery({ page: String(page - 1) })}>
+              <Icon name="chevron-left" />
               Previous
             </button>
             <span class="num" aria-live="polite">
@@ -291,6 +307,7 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
               onClick={() => setQuery({ page: String(page + 1) })}
             >
               Next
+              <Icon name="chevron-right" />
             </button>
           </nav>
         </>
@@ -372,7 +389,10 @@ function ColumnPicker({ selected }: { selected: Column[] }) {
   };
   return (
     <details class="column-picker">
-      <summary class="btn">Columns</summary>
+      <summary class="btn">
+        <Icon name="columns" />
+        Columns
+      </summary>
       <fieldset>
         <legend class="sr-only">Visible columns</legend>
         {COLUMNS.map((c) => (

@@ -1,5 +1,6 @@
 import { useState } from "preact/hooks";
 import { type Criterion, describe, FIELDS, needsInput, operatorKey, specFor, toValue, type ValueKind } from "../domain/criteria";
+import { Icon } from "./Icon";
 
 interface Props {
   criteria: Criterion[];
@@ -47,6 +48,7 @@ export function FilterBar({ criteria, onChange }: Props) {
           ))}
           <li>
             <button type="button" class="btn ghost" onClick={() => onChange([])}>
+              <Icon name="close" />
               Clear all
             </button>
           </li>
@@ -103,6 +105,7 @@ export function FilterBar({ criteria, onChange }: Props) {
           </label>
         )}
         <button class="btn" type="submit">
+          <Icon name="filter" />
           Add filter
         </button>
       </form>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import { type LatestRun, type RunStream, type SourceEvent, getLatestRun, openRunStream, startRun } from "../api/runs";
 import { refreshedLine, summaryText } from "../domain/refresh";
 import { Toast } from "./Toast";
+import { Icon } from "./Icon";
 
 type Phase = "idle" | "running";
 
@@ -82,6 +83,7 @@ export function RefreshControl() {
         {latest ? refreshedLine(latest.finishedAt, latest.nextScheduledAt) : ""}
       </span>
       <button class="btn primary" data-role="amber" type="button" onClick={refresh} disabled={running} aria-busy={running}>
+        <Icon name="refresh" spin={running} />
         {running ? "Refreshing…" : "Refresh"}
       </button>
 

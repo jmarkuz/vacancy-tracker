@@ -1,6 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { createView, deleteView, listViews, type SavedView, updateView } from "../api/views";
 import type { Criterion } from "../domain/criteria";
+import { Icon } from "./Icon";
 
 interface Props {
   viewId: string | null;
@@ -122,11 +123,13 @@ export function ViewBar({ viewId, criteria, sort, cols, onApply }: Props) {
       {active && dirty && <span class="muted">Unsaved changes</span>}
       {active && dirty && (
         <button class="btn primary" data-role="green" type="button" disabled={busy} onClick={update}>
+          <Icon name="save" />
           Update view
         </button>
       )}
       {active && (
         <button class="btn" type="button" disabled={busy} onClick={remove}>
+          <Icon name="trash" />
           Delete view
         </button>
       )}
@@ -144,6 +147,7 @@ export function ViewBar({ viewId, criteria, sort, cols, onApply }: Props) {
             <input class="input" placeholder="Name this view" value={name} onInput={(e) => setName((e.target as HTMLInputElement).value)} />
           </label>
           <button class="btn" type="submit" disabled={busy}>
+            <Icon name="bookmark" />
             Save as view
           </button>
         </form>
