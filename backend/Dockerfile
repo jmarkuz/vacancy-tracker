@@ -20,7 +20,7 @@ COPY --from=web /src/backend/src/main/resources/static src/main/resources/static
 RUN --mount=type=cache,target=/root/.m2 mvn -q -B -DskipTests package
 
 # Stage 3: JRE only, non-root user.
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:25-jre
 RUN useradd --system --uid 10001 app
 WORKDIR /app
 COPY --from=build /build/target/vacancy-tracker-*.jar app.jar
