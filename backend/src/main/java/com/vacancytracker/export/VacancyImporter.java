@@ -175,7 +175,8 @@ public class VacancyImporter {
                 firstSeen,
                 lastSeen,
                 false,
-                com.vacancytracker.vacancy.VisaSponsorship.detect(title, b.description()));
+                com.vacancytracker.vacancy.VisaSponsorship.detect(title, b.description()),
+                b.postedAt());
     }
 
     private static List<StatusEvent> toHistory(UUID vacancyId, List<BackupStatusEvent> events) {
@@ -226,6 +227,7 @@ public class VacancyImporter {
                 java.util.Set.of(),
                 csvInstant(v.get("first_seen_at"), "first_seen_at"),
                 csvInstant(v.get("last_seen_at"), "last_seen_at"),
+                null,
                 List.of());
     }
 

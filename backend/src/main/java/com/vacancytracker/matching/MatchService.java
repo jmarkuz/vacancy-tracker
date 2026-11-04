@@ -103,7 +103,7 @@ public class MatchService {
         Vacancy vacancy = Vacancy.restore(vacancies.findByIdForUpdate(vacancyId)
                 .orElseThrow(() -> new NotFoundException("Vacancy not found: " + vacancyId)));
         List<String> adapters = vacancies.findSourceAdapters(vacancyId);
-        Map<String, Object> facts = VacancyFacts.of(vacancy, adapters);
+        Map<String, Object> facts = VacancyFacts.of(vacancy, adapters, clock.instant());
 
         List<SearchProfile> applicable = new ArrayList<>();
         for (SearchProfile profile : enabled) {
@@ -111,8 +111,9 @@ public class MatchService {
                 continue;
             }
             RuleResult result = engine.evaluate(profile.criteria(), facts);
-            ScoreOutcome outcome = Scorer.score(profile.criteria(), result,
-                    companyLists.verdict(profile.id(), vacancy.getCompany()), allowlistBonus);
+            ScoreOutcome outcome = Scorer.tooOld(facts.get("postedAge"), profile.thresholds().maxAgeDays())
+                    .orElseGet(() -> Scorer.score(profile.criteria(), result,
+                            companyLists.verdict(profile.id(), vacancy.getCompany()), allowlistBonus));
             matches.upsert(new VacancyMatch(vacancyId, profile.id(), profile.version(), outcome.score(),
                     outcome.hidden(), outcome.reasons(), clock.instant()));
             applicable.add(profile);

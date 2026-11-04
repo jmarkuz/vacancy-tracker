@@ -17,6 +17,7 @@ public record VacancySort(String column, boolean descending) {
             Map.entry("salaryMax", "salary_max"),
             Map.entry("firstSeenAt", "first_seen_at"),
             Map.entry("lastSeenAt", "last_seen_at"),
+            Map.entry("postedAt", "posted_at"),
             Map.entry("nextActionAt", "next_action_at"));
 
     /** Parses "field" or "field:asc|desc". Unknown fields are rejected. */

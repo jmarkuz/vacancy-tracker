@@ -23,6 +23,8 @@ export interface Vacancy {
   nextActionAt: string | null;
   firstSeenAt: string;
   lastSeenAt: string;
+  /** When the source says the posting was published; null when it does not say. */
+  postedAt?: string | null;
   isNew: boolean;
   /** From the posting text: true offered, false not offered, null not stated (ADR-044). */
   visaSponsorship?: boolean | null;

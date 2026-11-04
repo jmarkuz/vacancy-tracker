@@ -32,6 +32,8 @@ public record BackupVacancy(
         Set<String> userEditedFields,
         Instant firstSeenAt,
         Instant lastSeenAt,
+        /** When the source said the posting was published; null for backups made before it was stored. */
+        Instant postedAt,
         List<BackupStatusEvent> statusHistory) {
 
     public static final int SCHEMA_VERSION = 1;
@@ -41,7 +43,7 @@ public record BackupVacancy(
                 v.getCountry(), v.getWorkMode(), v.getDescription(), v.getStatus().label(), v.getPriority(), v.getSalaryMin(),
                 v.getSalaryMax(), v.getCurrency(), v.getSalaryPeriod(), v.getTags(), v.getNotes(), v.getContact(),
                 v.getNextActionAt(), v.getNextActionNote(), v.getUserEditedFields(), v.getFirstSeenAt(),
-                v.getLastSeenAt(), history);
+                v.getLastSeenAt(), v.getPostedAt(), history);
     }
 
     public record BackupStatusEvent(String from, String to, Instant at, String note) {
