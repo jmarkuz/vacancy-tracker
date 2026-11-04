@@ -1,7 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { getDashboard, type Dashboard as Data } from "../api/dashboard";
 import { listSources, type SourceStatus } from "../api/sources";
-import { barPercent, chartSummary, funnelMax, kpis, weekLabel, weekMax } from "../domain/dashboard";
+import { barPercent, chartSummary, funnelMax, kpis, quietText, weekLabel, weekMax } from "../domain/dashboard";
 import { healthDetail, healthLabel } from "../domain/sources";
 import { LoadFailed } from "../components/LoadFailed";
 import { formatDate } from "./columns";
@@ -124,6 +124,24 @@ export function Dashboard({ dataVersion = 0 }: { dataVersion?: number }) {
               })}
             </svg>
           </div>
+
+          {data.followUps.length > 0 && (
+            <div class="panel">
+              <h2>Time to follow up</h2>
+              <p class="muted small">Waiting for an answer, with no status change and no mail for a while.</p>
+              <ul class="plain-list" aria-label="Time to follow up">
+                {data.followUps.map((f) => (
+                  <li key={f.id} class="list-item">
+                    <a class="meta" href={`#/pipeline?open=${f.id}`}>
+                      <div>{f.title}</div>
+                      <div class="small subtle num">{quietText(f.quietDays)} · {f.company}</div>
+                    </a>
+                    <span class="badge">{f.status}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <div class="panel">
             <h2>Next actions</h2>
