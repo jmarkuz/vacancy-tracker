@@ -39,6 +39,11 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 @RequestMapping("/api/vacancies")
 public class VacancyController {
 
+    /**
+     * Convention for list parameters: a bad page or size is rejected with 422, never silently changed. The only
+     * exception is the typeahead search ({@code SearchController}), where {@code limit} is a hint and is clamped.
+     * An unknown {@code status} is also 422 (the criterion compiler rejects it).
+     */
     private static final int MAX_PAGE_SIZE = 200;
 
     private final VacancyService service;
