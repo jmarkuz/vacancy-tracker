@@ -10,7 +10,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # Stage 2: compile and package the Spring Boot fat jar with the UI bundled.
-FROM maven:3.9.9-eclipse-temurin-21 AS build
+FROM maven:3.9-eclipse-temurin-26 AS build
 WORKDIR /build
 COPY backend/pom.xml .
 RUN --mount=type=cache,target=/root/.m2 mvn -q -B dependency:go-offline
