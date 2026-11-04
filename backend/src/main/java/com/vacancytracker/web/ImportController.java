@@ -38,7 +38,21 @@ public class ImportController {
             throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.PAYLOAD_TOO_LARGE,
                     "The file is larger than " + MAX_BODY_BYTES / (1024 * 1024) + " MB");
         }
-        String charset = request.getCharacterEncoding();
-        return new String(bytes, charset == null ? java.nio.charset.StandardCharsets.UTF_8 : java.nio.charset.Charset.forName(charset));
+        return new String(bytes, charsetOf(request));
+    }
+
+    /** The charset of the Content-Type, or UTF-8 when it names none; an unknown one is refused with 415. */
+    private static java.nio.charset.Charset charsetOf(jakarta.servlet.http.HttpServletRequest request) {
+        String contentType = request.getContentType();
+        if (contentType == null) {
+            return java.nio.charset.StandardCharsets.UTF_8;
+        }
+        try {
+            java.nio.charset.Charset charset = MediaType.parseMediaType(contentType).getCharset();
+            return charset == null ? java.nio.charset.StandardCharsets.UTF_8 : charset;
+        } catch (org.springframework.http.InvalidMediaTypeException | java.nio.charset.UnsupportedCharsetException e) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.UNSUPPORTED_MEDIA_TYPE, "The charset of the file is not supported. Use UTF-8.");
+        }
     }
 }
