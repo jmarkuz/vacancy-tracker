@@ -72,8 +72,8 @@ export function AnalysisPanel({ vacancyId, presetId, docsVersion }: Props) {
       )}
 
       {analysis && (
-        <p class="small">
-          Quick fit <FitBadge fit={analysis.quickFit} />{" "}
+        <p class="small quick-fit">
+          <span>Quick fit</span> <FitBadge fit={analysis.quickFit} />{" "}
           <span class="muted">
             {analysis.quickFit
               ? "a quick estimate from your resume keywords, without AI."
@@ -158,9 +158,13 @@ export function Requirements({ items }: { items: MatchItem[] }) {
     <ul class="requirements">
       {items.map((item) => (
         <li key={item.requirementId} class={`req req-${item.status}`}>
-          <span class="req-status">{STATUS_LABEL[item.status]}</span> <span class="muted small">{PRIORITY_LABEL[item.priority]}</span> {item.text}
-          {item.quote && <q class="small"> {item.quote}</q>}
-          {item.note && <span class="small muted"> {item.note}</span>}
+          <span class="req-head">
+            <span class="req-status">{STATUS_LABEL[item.status]}</span>
+            <span class="muted small">{PRIORITY_LABEL[item.priority]}</span>
+          </span>
+          <span class="req-text">{item.text}</span>
+          {item.quote && <blockquote class="req-quote small">{item.quote}</blockquote>}
+          {item.note && <span class="req-note small muted">{item.note}</span>}
         </li>
       ))}
     </ul>
