@@ -918,3 +918,26 @@ tbody tr:hover {
     border: 1px solid CanvasText;
   }
 }
+
+/* Button icons (components/Icon.tsx): they sit beside the words and take the button's color. */
+.icon {
+  flex: none;
+}
+
+
+/* The refresh arrows turn while a refresh runs; with reduced motion they stay still. */
+.icon-spin {
+  animation: icon-turn 1.2s linear infinite;
+}
+
+@keyframes icon-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icon-spin {
+    animation: none;
+  }
+}
