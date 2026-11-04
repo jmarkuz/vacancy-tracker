@@ -259,3 +259,91 @@ describe("Pipeline: the dense table", () => {
     expect(host.querySelector("td.col-location .cell-clip")?.textContent).toBe("-");
   });
 });
+
+describe("Pipeline: resizable columns", () => {
+  const handle = (label: string) => host.querySelector(`[role="separator"][aria-label="Resize ${label} column"]`) as HTMLElement;
+  const colOf = (id: string) => {
+    const index = [...host.querySelectorAll("thead th")].findIndex((th) => th.classList.contains(`col-${id}`));
+    return host.querySelectorAll("colgroup col")[index] as HTMLElement;
+  };
+  const keydown = (el: HTMLElement, key: string) =>
+    act(async () => {
+      el.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+    });
+
+  beforeEach(() => {
+    window.localStorage.removeItem("vt:pipeline-column-widths");
+    items = [row(1)];
+    total = 1;
+  });
+
+  it("gives every column header a resize handle and a width", async () => {
+    await show();
+
+    const handles = host.querySelectorAll('[role="separator"]');
+    expect(handles.length).toBe(host.querySelectorAll("thead th:not(.check-col)").length);
+    expect(colOf("company").style.width).toBe("170px");
+    expect(colOf("title").style.width).toBe("");
+  });
+
+  it("widens and narrows a column with the arrow keys and remembers it", async () => {
+    await show();
+
+    await keydown(handle("Company"), "ArrowRight");
+    expect(colOf("company").style.width).toBe("186px");
+    await keydown(handle("Company"), "ArrowLeft");
+    await keydown(handle("Company"), "ArrowLeft");
+    expect(colOf("company").style.width).toBe("154px");
+    expect(window.localStorage.getItem("vt:pipeline-column-widths")).toContain('"company":154');
+
+    await show();
+    expect(colOf("company").style.width).toBe("154px");
+  });
+
+  it("follows a drag of the edge with the pointer", async () => {
+    // jsdom has no pointer event handlers on elements; with them Preact listens for the lower-case names, as in a browser.
+    for (const name of ["pointerdown", "pointermove", "pointerup", "pointercancel"]) {
+      Object.defineProperty(HTMLElement.prototype, `on${name}`, { value: null, configurable: true, writable: true });
+    }
+    await show();
+    const edge = handle("Company");
+    const fire = (type: string, x: number) =>
+      act(async () => {
+        const e = new MouseEvent(type, { clientX: x, bubbles: true, cancelable: true });
+        Object.defineProperty(e, "pointerId", { value: 1 });
+        edge.dispatchEvent(e);
+      });
+
+    await fire("pointerdown", 500);
+    await fire("pointermove", 560);
+    expect(colOf("company").style.width).toBe("230px");
+    await fire("pointerup", 560);
+    await fire("pointermove", 700);
+    expect(colOf("company").style.width).toBe("230px");
+  });
+
+  it("goes back to the default on a double click or Enter", async () => {
+    await show();
+    await keydown(handle("Company"), "ArrowRight");
+    await act(async () => {
+      handle("Company").dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
+    });
+    expect(colOf("company").style.width).toBe("170px");
+
+    await keydown(handle("Company"), "ArrowRight");
+    await keydown(handle("Company"), "Enter");
+    expect(colOf("company").style.width).toBe("170px");
+    expect(window.localStorage.getItem("vt:pipeline-column-widths")).toBe("{}");
+  });
+
+  it("does not sort when the edge is clicked and keeps the table at least as wide as its columns", async () => {
+    await show();
+
+    await act(async () => {
+      handle("Company").click();
+    });
+    expect(window.location.hash).not.toContain("sort=company");
+    const table = host.querySelector("table.pipeline-table") as HTMLElement;
+    expect(parseInt(table.style.minWidth, 10)).toBeGreaterThan(280);
+  });
+});

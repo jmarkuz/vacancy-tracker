@@ -19,8 +19,13 @@ import { AddVacancy } from "../components/AddVacancy";
 import { getFits, type ResumeFit } from "../api/resume";
 import { fitsById } from "../domain/fit";
 import { FitBadge } from "../components/FitBadge";
+import { ColumnResizer } from "../components/ColumnResizer";
+import { loadWidths, saveWidths, widthOf, withoutWidth, withWidth, type Widths } from "../domain/columnWidths";
 
 const PAGE_SIZE = 100;
+/** Room kept for the title column, which has no width of its own, and for the checkbox column. */
+const TITLE_ROOM = 280;
+const CHECK_WIDTH = 36;
 const DEFAULT_SORT = "lastSeenAt:desc";
 
 interface Props {
@@ -52,6 +57,19 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
   const [toast, setToast] = useState<{ message: string; tone: "info" | "error"; undo?: () => void } | null>(null);
   const [adding, setAdding] = useState(false);
   const [fits, setFits] = useState<Record<string, ResumeFit>>({});
+  const [widths, setWidths] = useState<Widths>(() => loadWidths());
+  const resizeColumn = (id: string, px: number) =>
+    setWidths((current) => {
+      const next = withWidth(current, id, px);
+      saveWidths(next);
+      return next;
+    });
+  const resetColumn = (id: string) =>
+    setWidths((current) => {
+      const next = withoutWidth(current, id);
+      saveWidths(next);
+      return next;
+    });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -236,7 +254,14 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
             </div>
           )}
           <div class="table-wrap" aria-busy={loading}>
-            <table class="pipeline-table">
+            <table class="pipeline-table" style={{ minWidth: `${tableMinWidth(visible, widths)}px` }}>
+              <colgroup>
+                <col style={{ width: `${CHECK_WIDTH}px` }} />
+                {visible.map((col) => {
+                  const px = widthOf(col.id, widths);
+                  return <col key={col.id} style={px ? { width: `${px}px` } : undefined} />;
+                })}
+              </colgroup>
               <thead>
                 <tr>
                   <th scope="col" class="check-col">
@@ -245,7 +270,8 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
                       onChange={() => setSelected(togglePage(selected, data.items.map((v) => v.id)))} />
                   </th>
                   {visible.map((col) => (
-                    <SortableHeader key={col.id} column={col} sort={sort} onSort={(next) => setQuery({ sort: next, page: null })} />
+                    <SortableHeader key={col.id} column={col} sort={sort} onSort={(next) => setQuery({ sort: next, page: null })}
+                      width={widthOf(col.id, widths)} onResize={(px) => resizeColumn(col.id, px)} onReset={() => resetColumn(col.id)} />
                   ))}
                 </tr>
               </thead>
@@ -358,20 +384,45 @@ function resolveColumns(raw: string | null): Column[] {
   return picked.length > 0 ? picked : COLUMNS.filter((c) => DEFAULT_COLUMNS.includes(c.id));
 }
 
-function SortableHeader({ column, sort, onSort }: { column: Column; sort: string; onSort: (next: string) => void }) {
+/** The table is at least as wide as its columns, so a narrow window scrolls sideways instead of squeezing them. */
+export function tableMinWidth(columns: Column[], widths: Widths): number {
+  return CHECK_WIDTH + columns.reduce((sum, c) => sum + (widthOf(c.id, widths) ?? TITLE_ROOM), 0);
+}
+
+interface HeaderProps {
+  column: Column;
+  sort: string;
+  onSort: (next: string) => void;
+  width: number | undefined;
+  onResize: (px: number) => void;
+  onReset: () => void;
+}
+
+function SortableHeader({ column, sort, onSort, width, onResize, onReset }: HeaderProps) {
+  const cell = useRef<HTMLTableCellElement>(null);
+  const resizer = (
+    <ColumnResizer
+      label={column.label}
+      width={() => cell.current?.offsetWidth || width || TITLE_ROOM}
+      onResize={onResize}
+      onReset={onReset}
+    />
+  );
+  const classes = `col-${column.id}${column.numeric ? " numeric" : ""}`;
   if (!column.sortKey) {
-    return <th scope="col" class={`col-${column.id}`}>{column.label}</th>;
+    return <th scope="col" class={classes} ref={cell}>{column.label}{resizer}</th>;
   }
   const [currentKey, direction] = sort.split(":");
   const active = currentKey === column.sortKey;
   const nextDirection = active && direction === "asc" ? "desc" : "asc";
   const ariaSort = active ? (direction === "asc" ? "ascending" : "descending") : "none";
   return (
-    <th scope="col" aria-sort={ariaSort} class={`col-${column.id}${column.numeric ? " numeric" : ""}`}>
+    <th scope="col" aria-sort={ariaSort} class={classes} ref={cell}>
       <button type="button" class="sort-button" onClick={() => onSort(`${column.sortKey}:${nextDirection}`)}>
         {column.label}
         <span aria-hidden="true">{active ? (direction === "asc" ? " ▲" : " ▼") : ""}</span>
       </button>
+      {resizer}
     </th>
   );
 }
