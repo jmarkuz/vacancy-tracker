@@ -5,6 +5,7 @@ import { changeStatus, getHistory, getVacancy, patchVacancy, type StatusEvent } 
 import type { Vacancy } from "../api/types";
 import { allowedNext } from "../domain/statuses";
 import { postedText } from "../domain/age";
+import { ghostReasons } from "../components/GhostBadge";
 import { safeLink } from "../domain/links";
 import { AnalysisPanel } from "../components/AnalysisPanel";
 import { DocumentsPanel } from "../components/DocumentsPanel";
@@ -190,6 +191,12 @@ export function VacancyDrawer({ id, onClose, onChange }: Props) {
                 <dd>{vacancy.visaSponsorship === true ? "Offered" : vacancy.visaSponsorship === false ? "Not offered" : "Not stated"}</dd>
                 <dt>Posted</dt>
                 <dd>{postedText(vacancy.postedAt, new Date())}</dd>
+                {ghostReasons(vacancy.ghost) && (
+                  <>
+                    <dt>Likely ghost</dt>
+                    <dd>{ghostReasons(vacancy.ghost)}</dd>
+                  </>
+                )}
                 <dt>Last seen</dt>
                 <dd class="num">{formatDate(vacancy.lastSeenAt)}</dd>
                 <dt>Original</dt>

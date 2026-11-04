@@ -41,6 +41,7 @@ public class ProfileValidator {
             Map.entry("visaSponsorship", Kind.BOOLEAN),
             Map.entry("relocationSupport", Kind.BOOLEAN),
             Map.entry("postedAge", Kind.NUMBER),
+            Map.entry("ghostSignals", Kind.NUMBER),
             Map.entry("source", Kind.ENUM),
             Map.entry("tags", Kind.LIST));
 
@@ -68,7 +69,7 @@ public class ProfileValidator {
 
     private static final List<String> FIELD_ORDER = List.of("title", "description", "keywords", "company", "companyType",
             "industry", "location", "country", "city", "workMode", "employmentType", "seniority", "salary",
-            "workLanguage", "visaSponsorship", "relocationSupport", "postedAge", "source", "tags");
+            "workLanguage", "visaSponsorship", "relocationSupport", "postedAge", "ghostSignals", "source", "tags");
 
     private static final List<String> OPERATOR_ORDER = List.of("contains_any", "contains_all", "not_contains", "equals",
             "in", "not_in", "regex", "gte", "lte", "between", "exists", "not_exists");

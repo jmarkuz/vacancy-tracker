@@ -250,4 +250,17 @@ class MatchServiceTest extends AbstractIntegrationTest {
         assertThat(matchService.match(fresh).get(0).score()).isEqualTo(100);
         assertThat(matchService.match(stale).get(0).score()).isEqualTo(50);
     }
+
+    @Test
+    void aProfileCanHideLikelyGhostsWithTheGhostSignalsRule() {
+        profileWithMaxAge(365, c("ghost", "ghostSignals", "gte", "2", "exclude", 1), c("kw", "title", "contains_any", "[\"java\"]", "prefer", 5));
+        UUID ghost = vacancyPostedDaysAgo("Java Developer", 50);          // old and no salary: two signs
+        UUID fresh = vacancyPostedDaysAgo("Java Engineer", 3);            // only no salary: one sign
+
+        assertThat(matchService.match(ghost)).singleElement().satisfies(m -> assertThat(m.hidden()).isTrue());
+        assertThat(matchService.match(fresh)).singleElement().satisfies(m -> {
+            assertThat(m.hidden()).isFalse();
+            assertThat(m.score()).isEqualTo(100);
+        });
+    }
 }

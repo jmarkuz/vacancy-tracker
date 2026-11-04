@@ -41,4 +41,16 @@ class VacancyFactsTest {
     void withoutADateThereIsNoAgeFact() {
         assertThat(VacancyFacts.of(vacancy(null), List.of(), NOW)).doesNotContainKey("postedAge");
     }
+
+    @Test
+    void theGhostSignsAreCountedAsAFact() {
+        Vacancy old = Vacancy.discovered(UUID.randomUUID(), "Backend Engineer", "Zeta", "https://ex.com/2", null, "Plain",
+                Instant.parse("2026-09-01T00:00:00Z"));
+        old.recordPostedAt(Instant.parse("2026-09-01T00:00:00Z"));
+
+        // Posted 64 days ago and no salary: two signs.
+        assertThat(VacancyFacts.of(old, List.of(), NOW).get("ghostSignals")).isEqualTo(2);
+        // A fresh vacancy with no salary: one sign (no salary).
+        assertThat(VacancyFacts.of(vacancy(null), List.of(), NOW).get("ghostSignals")).isEqualTo(1);
+    }
 }
