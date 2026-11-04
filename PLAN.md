@@ -67,7 +67,7 @@ Phase 0 ended with an approval request to the owner. Approved 2026-11-01.
 | [x] 2026-11-02 | T-033 | Adapter: ats-ashby | S | T-027, T-030 | As T-031 |
 | [x] 2026-11-02 | T-034 | Adapter: arbeitnow | M | T-027, T-030 | As T-031; visa filter translated when criterion exists |
 | [x] 2026-11-02 | T-035 | Adapter: adzuna | M | T-027, T-030 | Key from `.env`; country validated against documented list; key never appears in logs |
-| [ ] | T-036 | Adapter: jooble | M | T-027, T-030 | POST body built; key masked in logs and errors |
+| [ ] blocked | T-036 | Adapter: jooble | M | T-027, T-030 | POST body built; key masked in logs and errors |
 | [x] 2026-11-01 | T-037 | Adapter: remotive with daily quota and attribution | S | T-027, T-030 | At most 4 calls per day enforced; attribution stored with each vacancy |
 | [x] 2026-11-01 | T-038 | Adapter: himalayas | S | T-027, T-030 | Pagination with limit 20; 429 handled |
 | [x] 2026-11-01 | T-039 | Adapter: jobicy | S | T-027, T-030 | `count` parameter used; fixtures tested |
