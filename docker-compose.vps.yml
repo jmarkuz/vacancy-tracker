@@ -11,7 +11,7 @@ services:
       APP_ALLOWED_HOSTS: ${DOMAIN:?set DOMAIN in .env (the host name that points at this server)}
 
   caddy:
-    image: caddy:2
+    image: caddy:2.8
     environment:
       DOMAIN: ${DOMAIN:?set DOMAIN in .env (the host name that points at this server)}
     ports:
@@ -22,7 +22,19 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
-      - app
+      app:
+        condition: service_healthy
+    mem_limit: 256m
+    # Caddy needs only the capability to bind ports 80/443.
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     restart: unless-stopped
 
 volumes:
