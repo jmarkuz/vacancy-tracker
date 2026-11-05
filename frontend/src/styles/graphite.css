@@ -1290,6 +1290,78 @@ tbody tr:hover {
   font-variant-numeric: tabular-nums;
 }
 
+/* Filters of the list: search field, kind chips, linked state. */
+.mail-filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.mail-search {
+  position: relative;
+  max-width: 28rem;
+}
+
+.mail-search .input {
+  width: 100%;
+  min-height: var(--control-height);
+  padding: var(--space-2) 2.25rem;
+  appearance: none;
+}
+
+.mail-search .input::-webkit-search-cancel-button,
+.mail-search .input::-webkit-search-decoration {
+  appearance: none;
+  display: none;
+}
+
+.mail-search-icon,
+.mail-search-clear {
+  position: absolute;
+  top: 50%;
+  display: inline-flex;
+  align-items: center;
+  transform: translateY(-50%);
+  color: var(--color-text-muted);
+}
+
+.mail-search-icon {
+  left: var(--space-3);
+  pointer-events: none;
+}
+
+.mail-search-clear {
+  right: var(--space-2);
+  padding: var(--space-1);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  cursor: pointer;
+}
+
+.mail-search-clear:hover {
+  color: var(--color-text);
+  background: var(--color-bg-muted);
+}
+
+.mail-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.chip-count {
+  margin-left: var(--space-2);
+  font-weight: var(--font-weight-regular, 400);
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+}
+
+.mail-empty {
+  padding: var(--space-6, 2rem) var(--space-4);
+}
+
 /* The state of the mailbox: quiet when idle, alive while it is being read. */
 .sync-card {
   position: relative;
