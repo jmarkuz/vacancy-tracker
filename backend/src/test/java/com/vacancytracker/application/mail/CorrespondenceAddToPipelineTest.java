@@ -35,7 +35,7 @@ class CorrespondenceAddToPipelineTest {
     private final CorrespondenceRepository repository = mock(CorrespondenceRepository.class);
     private final VacancyService vacancies = mock(VacancyService.class);
     private final CorrespondenceService service = new CorrespondenceService(mock(ImapMailReader.class), mock(MailParsers.class), repository,
-            vacancies, Clock.fixed(Instant.parse("2026-11-05T12:00:00Z"), ZoneOffset.UTC), "INBOX");
+            vacancies, Clock.fixed(Instant.parse("2026-11-05T12:00:00Z"), ZoneOffset.UTC), "INBOX", mock(MailSettings.class));
     private final UUID mailId = UUID.randomUUID();
 
     @AfterEach
