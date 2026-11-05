@@ -5,7 +5,9 @@ import com.vacancytracker.collection.mail.MailHandler;
 import com.vacancytracker.collection.mail.MailMessage;
 import com.vacancytracker.collection.mail.MailParsers;
 import com.vacancytracker.collection.mail.ParsedJob;
+import com.vacancytracker.common.CanonicalUrl;
 import com.vacancytracker.common.NotFoundException;
+import com.vacancytracker.vacancy.ImportedPosting;
 import com.vacancytracker.vacancy.StatusPath;
 import com.vacancytracker.vacancy.Vacancy;
 import com.vacancytracker.vacancy.VacancyService;
@@ -38,6 +40,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -363,7 +366,57 @@ public class CorrespondenceService {
     }
 
     public List<Correspondence> list(UUID vacancyId, boolean pendingOnly) {
-        return repository.list(vacancyId, pendingOnly, 200);
+        return withVacancies(repository.list(vacancyId, pendingOnly, 200));
+    }
+
+    /** Marks each posting of the digests with the vacancy it already is: one query for the links of all the mails. */
+    private List<Correspondence> withVacancies(List<Correspondence> mails) {
+        List<String> urls = mails.stream().flatMap(m -> m.jobs().stream()).map(Correspondence.DigestJob::url)
+                .filter(u -> u != null).distinct().toList();
+        if (urls.isEmpty()) {
+            return mails;
+        }
+        Map<String, UUID> known = vacancies.findIdsByUrls(urls);
+        if (known.isEmpty()) {
+            return mails;
+        }
+        return mails.stream().map(m -> m.jobs().isEmpty() ? m : m.withJobs(m.jobs().stream()
+                .map(j -> j.url() == null || !known.containsKey(j.url()) ? j
+                        : new Correspondence.DigestJob(j.title(), j.company(), j.location(), j.url(), known.get(j.url())))
+                .toList())).toList();
+    }
+
+    /**
+     * Adds one posting of a digest mail to the Pipeline as a New vacancy. Idempotent: a posting whose link is already a
+     * vacancy (added before, or found by an alert source) gives that vacancy back. The link is only compared, never
+     * fetched; anything but an http(s) address is refused.
+     */
+    public AddedJob addToPipeline(UUID mailId, int index) {
+        Correspondence c = get(mailId);
+        if (index < 0 || index >= c.jobs().size()) {
+            throw new NotFoundException("This mail has no posting number " + index);
+        }
+        Correspondence.DigestJob job = c.jobs().get(index);
+        String link = CanonicalUrl.webLink(job.url());
+        if (link == null) {
+            throw new IllegalArgumentException("This posting has no web link to add it by.");
+        }
+        Optional<UUID> existing = vacancies.findIdByUrl(link);
+        if (existing.isPresent()) {
+            return new AddedJob(existing.get(), false);
+        }
+        try {
+            Vacancy created = vacancies.createImported(link, new ImportedPosting(job.title(), job.company(), job.location(),
+                    null, null, null, null, null, null));
+            return new AddedJob(created.getId(), true);
+        } catch (DuplicateKeyException e) {
+            // A second click (or an alert source) stored the same link a moment ago: that vacancy is the answer.
+            return new AddedJob(vacancies.findIdByUrl(link).orElseThrow(() -> e), false);
+        }
+    }
+
+    /** The vacancy a posting is in the Pipeline; created is false when it was there already. */
+    public record AddedJob(UUID vacancyId, boolean created) {
     }
 
     /**
@@ -383,7 +436,8 @@ public class CorrespondenceService {
     }
 
     public Correspondence get(UUID id) {
-        return repository.find(id).orElseThrow(() -> new NotFoundException("Mail not found: " + id));
+        Correspondence c = repository.find(id).orElseThrow(() -> new NotFoundException("Mail not found: " + id));
+        return withVacancies(List.of(c)).get(0);
     }
 
     /** Applies the suggested status through allowed steps, noting the mail in the history. */
