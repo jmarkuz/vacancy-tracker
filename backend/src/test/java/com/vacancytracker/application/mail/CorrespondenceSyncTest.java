@@ -124,4 +124,77 @@ class CorrespondenceSyncTest {
         assertThat(service.status().lastError()).isEqualTo("Login failed");
         assertThat(service.status().lastResult().error()).isEqualTo("Login failed");
     }
+
+    @Test
+    void aRereadForgetsTheHandledMarksBeforeItReads() throws Exception {
+        when(reader.isConfigured()).thenReturn(true);
+        when(reader.forgetProcessed(CorrespondenceService.KEY_PREFIX)).thenReturn(7);
+        when(reader.readFolderDeferred(eq("INBOX"), any(), any())).thenReturn(read(3, null));
+
+        CorrespondenceService.SyncStart start = service.startReread();
+        waitUntilIdle();
+
+        assertThat(start.started()).isTrue();
+        var order = org.mockito.Mockito.inOrder(reader);
+        order.verify(reader).forgetProcessed("reply:");
+        order.verify(reader).readFolderDeferred(eq("INBOX"), eq("reply:"), any());
+        assertThat(service.status().lastResult().seen()).isEqualTo(3);
+    }
+
+    @Test
+    void anOrdinaryReadForgetsNothing() throws Exception {
+        when(reader.isConfigured()).thenReturn(true);
+        when(reader.readFolderDeferred(eq("INBOX"), any(), any())).thenReturn(read(1, null));
+
+        service.startSync();
+        waitUntilIdle();
+
+        org.mockito.Mockito.verify(reader, org.mockito.Mockito.never()).forgetProcessed(any());
+    }
+
+    @Test
+    void aRereadWithoutAMailboxIsRefusedAndForgetsNothing() {
+        when(reader.isConfigured()).thenReturn(false);
+
+        CorrespondenceService.SyncStart start = service.startReread();
+
+        assertThat(start.started()).isFalse();
+        assertThat(start.reason()).contains("not set up");
+        org.mockito.Mockito.verify(reader, org.mockito.Mockito.never()).forgetProcessed(any());
+    }
+
+    @Test
+    void aRereadWhileAReadRunsIsRefusedAndDoesNotDisturbIt() throws Exception {
+        CountDownLatch inside = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        when(reader.isConfigured()).thenReturn(true);
+        when(reader.readFolderDeferred(eq("INBOX"), any(), any())).thenAnswer(call -> {
+            inside.countDown();
+            release.await(5, TimeUnit.SECONDS);
+            return read(1, null);
+        });
+        assertThat(service.startSync().started()).isTrue();
+        assertThat(inside.await(5, TimeUnit.SECONDS)).isTrue();
+
+        CorrespondenceService.SyncStart again = service.startReread();
+
+        assertThat(again.started()).isFalse();
+        assertThat(again.reason()).contains("already running");
+        org.mockito.Mockito.verify(reader, org.mockito.Mockito.never()).forgetProcessed(any());
+        release.countDown();
+        waitUntilIdle();
+    }
+
+    @Test
+    void whenTheDatabaseRefusesToForgetNoReadFollowsAndTheResultSaysSo() throws Exception {
+        when(reader.isConfigured()).thenReturn(true);
+        when(reader.forgetProcessed(any())).thenThrow(new org.springframework.dao.DataAccessResourceFailureException("down"));
+
+        service.startReread();
+        waitUntilIdle();
+
+        org.mockito.Mockito.verify(reader, org.mockito.Mockito.never()).readFolderDeferred(any(), any(), any());
+        assertThat(service.status().lastResult().error()).contains("Could not start the re-read");
+        assertThat(service.status().lastError()).contains("Could not start the re-read");
+    }
 }

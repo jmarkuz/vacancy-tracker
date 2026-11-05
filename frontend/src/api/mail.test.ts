@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { CATEGORY_LABEL, type Mail, suggestionText } from "./mail";
+import { describe, expect, it, vi } from "vitest";
+import { CATEGORY_LABEL, type Mail, startMailReread, suggestionText } from "./mail";
 
 const mail = (patch: Partial<Mail>): Mail => ({
   id: "m",
@@ -31,5 +31,18 @@ describe("mail", () => {
     for (const code of ["rejection", "offer", "test_task", "interview", "application_viewed", "application_received", "recruiter_message", "other_job"]) {
       expect(CATEGORY_LABEL[code]).toBeTruthy();
     }
+  });
+});
+
+describe("startMailReread", () => {
+  it("posts to the re-read endpoint and returns what the server says", async () => {
+    const fetchMock = vi.fn(async () => ({ ok: true, status: 202, json: async () => ({ started: true, reason: null }), text: async () => "" }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(startMailReread()).resolves.toEqual({ started: true, reason: null });
+
+    expect((fetchMock.mock.calls[0] as unknown as [string, RequestInit])[0]).toBe("/api/mail/reread");
+    expect((fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].method).toBe("POST");
+    vi.unstubAllGlobals();
   });
 });

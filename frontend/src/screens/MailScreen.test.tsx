@@ -12,11 +12,13 @@ vi.mock("../api/mail", async (importOriginal) => ({
   getMailStatus: vi.fn(),
   listMail: vi.fn(),
   startMailSync: vi.fn(),
+  startMailReread: vi.fn(),
 }));
 
 const getStatus = vi.mocked(mailApi.getMailStatus);
 const listMail = vi.mocked(mailApi.listMail);
 const startSync = vi.mocked(mailApi.startMailSync);
+const startReread = vi.mocked(mailApi.startMailReread);
 
 const result = (patch: Partial<SyncResult> = {}): SyncResult => ({ configured: true, seen: 5, stored: 2, linked: 1, suggested: 1, error: null, ...patch });
 const status = (patch: Partial<MailStatus> = {}): MailStatus => ({
@@ -195,5 +197,90 @@ describe("MailScreen: the state of the mailbox", () => {
 
     expect(toggle().getAttribute("aria-pressed")).toBe("true");
     expect(listMail).toHaveBeenLastCalledWith({ pending: true }, expect.anything());
+  });
+});
+
+describe("MailScreen: Re-read mail", () => {
+  const rereadButton = () => [...host.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Re-read mail") as HTMLButtonElement;
+  const click = async (button: HTMLButtonElement) => {
+    await act(async () => {
+      button.click();
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+  };
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("asks first, and does nothing when the owner says no", async () => {
+    getStatus.mockResolvedValue(status());
+    await mount();
+    const confirm = vi.fn(() => false);
+    vi.stubGlobal("confirm", confirm);
+
+    await click(rereadButton());
+
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(String(confirm.mock.calls[0])).toContain("mails you deleted come back");
+    expect(startReread).not.toHaveBeenCalled();
+    expect(startSync).not.toHaveBeenCalled();
+  });
+
+  it("starts a re-read and follows it like a check, when the owner agrees", async () => {
+    getStatus.mockResolvedValueOnce(status());
+    await mount();
+    vi.stubGlobal("confirm", vi.fn(() => true));
+    startReread.mockResolvedValue({ started: true, reason: null });
+    getStatus.mockResolvedValue(status({ syncing: true }));
+
+    await click(rereadButton());
+
+    expect(startReread).toHaveBeenCalledTimes(1);
+    expect(startSync).not.toHaveBeenCalled();
+    expect(checkButton().textContent).toContain("Checking…");
+    expect(rereadButton().disabled).toBe(true);
+    expect(host.querySelector(".sync-card.is-syncing")).not.toBeNull();
+  });
+
+  it("follows a read that is already running instead of reporting a conflict", async () => {
+    getStatus.mockResolvedValueOnce(status());
+    await mount();
+    vi.stubGlobal("confirm", vi.fn(() => true));
+    startReread.mockRejectedValueOnce(new ApiError(409, "A read is already running"));
+    getStatus.mockResolvedValue(status({ syncing: true }));
+
+    await click(rereadButton());
+
+    expect(host.querySelector('[role="alert"]')).toBeNull();
+    expect(checkButton().textContent).toContain("Checking…");
+  });
+
+  it("shows the error when it cannot start", async () => {
+    getStatus.mockResolvedValue(status());
+    await mount();
+    vi.stubGlobal("confirm", vi.fn(() => true));
+    startReread.mockRejectedValueOnce(new ApiError(500, "Boom"));
+
+    await click(rereadButton());
+
+    expect(host.querySelector('[role="alert"]')?.textContent).toContain("Boom");
+  });
+
+  it("is disabled when no mailbox is set up", async () => {
+    getStatus.mockResolvedValue(status({ configured: false }));
+    await mount();
+
+    expect(rereadButton().disabled).toBe(true);
+  });
+
+  it("has the same look as the other buttons: a secondary pill with an icon", async () => {
+    getStatus.mockResolvedValue(status());
+    await mount();
+
+    expect(rereadButton().className).toBe("btn");
+    expect(rereadButton().querySelector('svg.icon[data-icon="history"]')).not.toBeNull();
   });
 });

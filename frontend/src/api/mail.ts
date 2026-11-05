@@ -88,6 +88,12 @@ export interface SyncStart {
 /** Starts reading the mailbox in the background and answers at once; the status says when it is done. */
 export const startMailSync = () => requestJson<SyncStart>("POST", "/api/mail/sync/start");
 
+/**
+ * Forgets which mails were handled and reads the mailbox again in the background. Stored mail is kept and gets
+ * what newer versions read from it (the vacancies of a digest); a mail you deleted comes back.
+ */
+export const startMailReread = () => requestJson<SyncStart>("POST", "/api/mail/reread");
+
 export const importEml = (file: File) =>
   requestJson<{ stored: boolean; reason: string; correspondence: Mail | null }>("POST", "/api/mail/import", file, "message/rfc822");
 
