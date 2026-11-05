@@ -40,6 +40,7 @@ Index:
 - ADR-046 Superhuman-inspired design, dark first
 - ADR-052 Beacon design, light first
 - ADR-053 Graphite: Apple, Uber and Bugatti references over Beacon
+- ADR-054 Liquid Glass over Graphite
 
 ---
 
@@ -819,3 +820,19 @@ Status: Accepted. Restyles ADR-052; its structure, keyboard rules and accessibil
 
 **Consequences.** Primary buttons no longer carry the section color (Beacon filled them green, purple or amber); the role is still visible on the section marker and in badges. Exact typefaces differ by platform. The manual checks named in ADR-052 still apply.
 
+## ADR-054 Liquid Glass over Graphite
+
+Status: Accepted. Restyles ADR-053 without changing layout, markup or the accessibility targets. Sources: Apple's WWDC25 session "Meet Liquid Glass" (read in full) and the Apple design analysis the owner delivered on 2026-11-03; the HIG Materials page could not be read (it is rendered by script), so no numeric value is taken from Apple: blur, opacities and radii are our own, tuned by eye.
+
+**Context.** The owner asked for the look of Apple's Liquid Glass. The app already had glass for a few floating things (the refresh popup, the toast).
+
+**Decision.** Follow Apple's rules for the material, in CSS, in one file (`liquid-glass.css`, loaded last) on top of `--lg-*` tokens in `tokens.css`:
+- **Where:** only the layer that floats above the content: the header, the sidebar (one floating rounded panel), the toolbars' controls, the Mail control bars, the vacancy sheet (inset, rounded all round), dialogs, the palette, toasts and popovers. Content (tables, cards, lists, text) stays solid, so hierarchy between content and controls is clear.
+- **No glass on glass:** a control on a glass surface gets the thin fill and no blur of its own. Blur is also only paid for where there is something to blur: controls on the canvas, not on a solid card.
+- **One variant (Regular)**, never mixed with a clear one. **Tint only the primary action** (the ink pill, now translucent with a sheen), not every control; colour stays in the content (role markers, badges).
+- **Material:** a blurred, saturated backdrop, a tint, a bright rim on the lit side and a dark one opposite, a specular highlight along the top, a shadow that deepens with size; a press lights the control from within; dialogs and the palette materialize (scale and unblur) instead of fading. The canvas carries faint pools of the four role colours so the glass has something to pick up (Apple's ambient colour).
+- **Shapes:** capsules and 28 px rounded forms; corners are concentric.
+- **Accessibility first:** the text tokens keep 7:1 on every fill, composited over the canvas and over the strongest ambient colour (`liquidGlass.test.ts`; it found and fixed a dark hover fill at 5.6:1). Glass turns solid with the system's Reduced transparency, with Increased contrast (which also restores the 3:1 control borders), in forced colours, and with the in-app switch Settings → Appearance → Glass effects (`data-glass="off"`, kept in this browser). Reduced motion removes the appearing animation.
+- **Not done:** real lensing (the bending of the background at the edge) and light that moves with the pointer or the device: CSS cannot do either across browsers. The rim, the highlight and the blur stand in for them.
+
+**Consequences.** Secondary controls no longer have the 3:1 outline in the default look: they are told apart by their rim, highlight and shadow, as in Apple's own interfaces; with Increased contrast (or the in-app switch) the outline is back. `backdrop-filter` costs on weak GPUs, which is why it is limited to a few surfaces and can be switched off. The manual checks named in ADR-052 (screen reader, real 200% zoom) still apply and have not been done for this change.

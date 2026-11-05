@@ -4,6 +4,9 @@
  */
 export type Theme = "light" | "dark" | "system";
 export type TextSize = "18" | "20" | "22";
+/** Liquid Glass: translucent, blurred surfaces ("on", the default) or plain solid ones ("off", like Reduce Transparency). */
+export type Glass = "on" | "off";
+const GLASS_KEY = "vt-glass";
 const KEY = "vt-theme";
 const SIZE_KEY = "vt-text-size";
 const ORDER: Theme[] = ["light", "dark", "system"];
@@ -54,4 +57,18 @@ export function applyTextSize(size: TextSize): void {
     document.documentElement.setAttribute("data-text-size", size);
   }
   write(SIZE_KEY, size);
+}
+
+export function readGlass(): Glass {
+  return read(GLASS_KEY) === "off" ? "off" : "on";
+}
+
+/** data-glass="off" on the root switches every blur and translucency off (liquid-glass.css); on removes the attribute. */
+export function applyGlass(glass: Glass): void {
+  if (glass === "off") {
+    document.documentElement.setAttribute("data-glass", "off");
+  } else {
+    document.documentElement.removeAttribute("data-glass");
+  }
+  write(GLASS_KEY, glass);
 }
