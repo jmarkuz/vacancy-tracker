@@ -1,5 +1,8 @@
 package com.vacancytracker.application.mail;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vacancytracker.vacancy.VacancyStatus;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -18,7 +21,10 @@ import org.springframework.stereotype.Repository;
 class CorrespondenceRepository {
 
     private static final String COLUMNS = "id, mail_key, folder, sender, sender_name, subject, received_at, snippet, category, vacancy_id,"
-            + " link_reason, suggested_status, suggestion_state, created_at";
+            + " link_reason, suggested_status, suggestion_state, created_at, jobs";
+    private static final TypeReference<List<Correspondence.DigestJob>> JOBS = new TypeReference<>() {
+    };
+    private static final ObjectMapper JSON = new ObjectMapper();
 
     private final JdbcClient jdbc;
 
@@ -29,7 +35,7 @@ class CorrespondenceRepository {
     /** Stores the mail unless one with the same key is stored already; answers whether it was new. */
     boolean insert(Correspondence c) {
         return jdbc.sql("INSERT INTO correspondence (" + COLUMNS + ") VALUES (:id, :key, :folder, :sender, :name, :subject, :received,"
-                        + " :snippet, :category, :vacancy, :reason, :suggested, :state, :created) ON CONFLICT (mail_key) DO NOTHING")
+                        + " :snippet, :category, :vacancy, :reason, :suggested, :state, :created, CAST(:jobs AS jsonb)) ON CONFLICT (mail_key) DO NOTHING")
                 .param("id", c.id())
                 .param("key", c.mailKey())
                 .param("folder", c.folder())
@@ -44,7 +50,36 @@ class CorrespondenceRepository {
                 .param("suggested", c.suggestedStatus())
                 .param("state", c.suggestionState())
                 .param("created", utc(c.createdAt()))
+                .param("jobs", jobsJson(c.jobs()))
                 .update() == 1;
+    }
+
+    /** Fills in the postings of a digest mail stored before they were read. */
+    void updateJobs(UUID id, List<Correspondence.DigestJob> jobs) {
+        jdbc.sql("UPDATE correspondence SET jobs = CAST(:jobs AS jsonb) WHERE id = :id")
+                .param("jobs", jobsJson(jobs)).param("id", id).update();
+    }
+
+    private static String jobsJson(List<Correspondence.DigestJob> jobs) {
+        if (jobs == null || jobs.isEmpty()) {
+            return null;
+        }
+        try {
+            return JSON.writeValueAsString(jobs);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Could not write the digest postings", e);
+        }
+    }
+
+    private static List<Correspondence.DigestJob> readJobs(String json) {
+        if (json == null || json.isBlank()) {
+            return List.of();
+        }
+        try {
+            return JSON.readValue(json, JOBS);
+        } catch (JsonProcessingException e) {
+            return List.of();
+        }
     }
 
     void updateLink(UUID id, UUID vacancyId, String reason, String suggested, String state) {
@@ -150,6 +185,6 @@ class CorrespondenceRepository {
                 rs.getString("sender_name"), rs.getString("subject"), received == null ? null : received.toInstant(), rs.getString("snippet"),
                 rs.getString("category"), rs.getObject("vacancy_id", UUID.class), rs.getString("link_reason"),
                 rs.getString("suggested_status"), rs.getString("suggestion_state"),
-                rs.getObject("created_at", OffsetDateTime.class).toInstant());
+                rs.getObject("created_at", OffsetDateTime.class).toInstant(), readJobs(rs.getString("jobs")));
     }
 }

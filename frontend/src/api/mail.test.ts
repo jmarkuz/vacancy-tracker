@@ -16,6 +16,7 @@ const mail = (patch: Partial<Mail>): Mail => ({
   suggestedStatus: "Interview",
   suggestionState: "pending",
   createdAt: "2026-11-02T10:00:00Z",
+  jobs: [],
   ...patch,
 });
 

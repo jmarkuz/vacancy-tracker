@@ -16,6 +16,16 @@ export interface Mail {
   suggestedStatus: string | null;
   suggestionState: "none" | "pending" | "accepted" | "dismissed";
   createdAt: string;
+  /** The vacancies listed in a digest mail (a job alert with several postings); empty for any other mail. */
+  jobs: DigestJob[];
+}
+
+/** One posting read out of a digest mail. company, location and url are null when the mail does not show them. */
+export interface DigestJob {
+  title: string;
+  company: string | null;
+  location: string | null;
+  url: string | null;
 }
 
 export interface MailStatus {
@@ -49,6 +59,11 @@ export const CATEGORY_LABEL: Record<string, string> = {
   recruiter_message: "Recruiter message",
   other_job: "Job mail",
 };
+
+/** A digest (two or more postings) is a job alert, whatever the server called it. */
+export const isDigest = (m: Mail): boolean => (m.jobs?.length ?? 0) >= 2;
+
+export const categoryLabel = (m: Mail): string => (isDigest(m) ? "Job alert" : (CATEGORY_LABEL[m.category] ?? m.category));
 
 export const getMailStatus = (signal?: AbortSignal) => getJson<MailStatus>("/api/mail/status", signal);
 

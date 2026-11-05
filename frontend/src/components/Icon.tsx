@@ -18,9 +18,39 @@ export type IconName =
   | "save"
   | "trash"
   | "close"
-  | "check";
+  | "check"
+  | "mail"
+  | "upload"
+  | "external"
+  | "link"
+  | "chevron-down";
 
 const SHAPES: Record<IconName, JSX.Element> = {
+  mail: (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="M3.5 7l8.5 6 8.5-6" />
+    </>
+  ),
+  upload: (
+    <>
+      <path d="M12 16V4M7 9l5-5 5 5" />
+      <path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4" />
+    </>
+  ),
+  external: (
+    <>
+      <path d="M14 4h6v6M20 4l-9 9" />
+      <path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
+    </>
+  ),
+  link: (
+    <>
+      <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" />
+      <path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
+    </>
+  ),
+  "chevron-down": <path d="M6 9l6 6 6-6" />,
   table: (
     <>
       <rect x="3" y="4" width="18" height="16" rx="2" />

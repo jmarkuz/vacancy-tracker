@@ -7,6 +7,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.vacancytracker.collection.mail.ImapMailReader;
+import com.vacancytracker.collection.mail.MailParsers;
 import com.vacancytracker.vacancy.VacancyService;
 import java.time.Clock;
 import java.time.Instant;
@@ -22,7 +23,7 @@ class CorrespondenceSyncTest {
 
     private final ImapMailReader reader = mock(ImapMailReader.class);
     private final CorrespondenceRepository repository = mock(CorrespondenceRepository.class);
-    private final CorrespondenceService service = new CorrespondenceService(reader, repository, mock(VacancyService.class),
+    private final CorrespondenceService service = new CorrespondenceService(reader, mock(MailParsers.class), repository, mock(VacancyService.class),
             Clock.fixed(Instant.parse("2026-11-03T12:00:00Z"), ZoneOffset.UTC), "INBOX");
 
     @AfterEach

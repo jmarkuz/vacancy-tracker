@@ -3,6 +3,8 @@ package com.vacancytracker.application.mail;
 import com.vacancytracker.collection.mail.ImapMailReader;
 import com.vacancytracker.collection.mail.MailHandler;
 import com.vacancytracker.collection.mail.MailMessage;
+import com.vacancytracker.collection.mail.MailParsers;
+import com.vacancytracker.collection.mail.ParsedJob;
 import com.vacancytracker.common.NotFoundException;
 import com.vacancytracker.vacancy.StatusPath;
 import com.vacancytracker.vacancy.Vacancy;
@@ -80,6 +82,7 @@ public class CorrespondenceService {
     }
 
     private final ImapMailReader reader;
+    private final MailParsers parsers;
     private final CorrespondenceRepository repository;
     private final VacancyService vacancies;
     private final Clock clock;
@@ -94,9 +97,10 @@ public class CorrespondenceService {
         return t;
     });
 
-    public CorrespondenceService(ImapMailReader reader, CorrespondenceRepository repository, VacancyService vacancies, Clock clock,
-                                 @Value("${app.mail.replies.folders:INBOX}") String folders) {
+    public CorrespondenceService(ImapMailReader reader, MailParsers parsers, CorrespondenceRepository repository, VacancyService vacancies,
+                                 Clock clock, @Value("${app.mail.replies.folders:INBOX}") String folders) {
         this.reader = reader;
+        this.parsers = parsers;
         this.repository = repository;
         this.vacancies = vacancies;
         this.clock = clock;
@@ -218,6 +222,13 @@ public class CorrespondenceService {
         }
         Optional<Correspondence> known = repository.findByKey(mail.key());
         if (known.isPresent()) {
+            if (known.get().jobs().isEmpty()) {
+                // A digest stored before its postings were read (or imported again by hand) gets them now.
+                List<Correspondence.DigestJob> jobs = digestJobs(mail);
+                if (!jobs.isEmpty()) {
+                    repository.updateJobs(known.get().id(), jobs);
+                }
+            }
             return new Outcome(false, "already stored", known.get());
         }
         Optional<MailLinker.Link> link = MailLinker.link(mail, repository.candidates());
@@ -229,9 +240,31 @@ public class CorrespondenceService {
         Correspondence c = new Correspondence(UUID.randomUUID(), mail.key(), folder, mail.from(), mail.senderName(),
                 mail.subject(), mail.receivedAt(), MailClassifier.snippet(mail, SNIPPET), category.code(),
                 link.map(MailLinker.Link::vacancyId).orElse(null), link.map(MailLinker.Link::reason).orElse(null), s.status(), s.state(),
-                clock.instant());
+                clock.instant(), digestJobs(mail));
         repository.insert(c);
         return new Outcome(true, category.code(), c);
+    }
+
+    /** Most postings kept from one digest: a longer list is cut, the mail itself is still there. */
+    static final int MAX_DIGEST_JOBS = 30;
+
+    /**
+     * The postings of a digest mail: a mail from a job site whose parser finds two or more. One posting is not a digest
+     * (a single-vacancy notice, for example "your application was sent", says more as plain text). A layout the parser
+     * does not know gives an empty list; the parser never fails the mail.
+     */
+    List<Correspondence.DigestJob> digestJobs(MailMessage mail) {
+        try {
+            List<ParsedJob> parsed = parsers.forMessage(mail).map(p -> p.parse(mail)).orElse(List.of());
+            if (parsed.size() < 2) {
+                return List.of();
+            }
+            return parsed.stream().limit(MAX_DIGEST_JOBS)
+                    .map(j -> new Correspondence.DigestJob(j.title(), j.company(), j.location(), j.url())).toList();
+        } catch (IllegalArgumentException | IllegalStateException | IndexOutOfBoundsException e) {
+            LOG.warn("Mail: the postings of a digest could not be read: {}", e.toString());
+            return List.of();
+        }
     }
 
     private record Suggestion(String status, String state) {

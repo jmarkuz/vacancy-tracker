@@ -151,3 +151,49 @@ describe("MailScreen: Check mail now runs in the background", () => {
     expect(host.querySelector('[role="alert"]')?.textContent).toContain("Server error");
   });
 });
+
+describe("MailScreen: the state of the mailbox", () => {
+  it("shows a quiet card when idle and a live one, with the arrows turning, while it reads", async () => {
+    getStatus.mockResolvedValue(status({ lastSync: "2026-11-05T08:16:00Z" }));
+    await mount();
+
+    const card = () => host.querySelector(".sync-card") as HTMLElement;
+    expect(card().textContent).toContain("Mailbox connected");
+    expect(card().classList.contains("is-syncing")).toBe(false);
+    expect(host.querySelector(".sync-bar")).toBeNull();
+    expect(checkButton().classList.contains("is-refreshing")).toBe(false);
+
+    getStatus.mockResolvedValue(status({ syncing: true }));
+    await act(async () => {
+      checkButton().click();
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    expect(card().classList.contains("is-syncing")).toBe(true);
+    expect(card().textContent).toContain("Checking the mailbox…");
+    expect(card().querySelector(".sync-bar")).not.toBeNull();
+    expect(card().querySelector(".icon-spin")).not.toBeNull();
+    expect(checkButton().classList.contains("is-refreshing")).toBe(true);
+    expect(checkButton().querySelector(".icon-spin")).not.toBeNull();
+  });
+
+  it("filters to the suggestions with a toggle button", async () => {
+    getStatus.mockResolvedValue(status({ pending: 2 }));
+    await mount();
+    const toggle = () => [...host.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Only suggestions") as HTMLButtonElement;
+
+    expect(toggle().getAttribute("aria-pressed")).toBe("false");
+    expect(host.textContent).toContain("2 to decide");
+    await act(async () => {
+      toggle().click();
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    expect(toggle().getAttribute("aria-pressed")).toBe("true");
+    expect(listMail).toHaveBeenLastCalledWith({ pending: true }, expect.anything());
+  });
+});
