@@ -7,6 +7,7 @@ import com.vacancytracker.vacancy.VacancyStatus;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Collection;
@@ -21,7 +22,7 @@ import org.springframework.stereotype.Repository;
 class CorrespondenceRepository {
 
     private static final String COLUMNS = "id, mail_key, folder, sender, sender_name, subject, received_at, snippet, category, vacancy_id,"
-            + " link_reason, suggested_status, suggestion_state, created_at, jobs";
+            + " link_reason, suggested_status, suggestion_state, created_at, jobs, event_at, event_zone_known, event_text";
     private static final TypeReference<List<Correspondence.DigestJob>> JOBS = new TypeReference<>() {
     };
     private static final ObjectMapper JSON = new ObjectMapper();
@@ -35,7 +36,8 @@ class CorrespondenceRepository {
     /** Stores the mail unless one with the same key is stored already; answers whether it was new. */
     boolean insert(Correspondence c) {
         return jdbc.sql("INSERT INTO correspondence (" + COLUMNS + ") VALUES (:id, :key, :folder, :sender, :name, :subject, :received,"
-                        + " :snippet, :category, :vacancy, :reason, :suggested, :state, :created, CAST(:jobs AS jsonb)) ON CONFLICT (mail_key) DO NOTHING")
+                        + " :snippet, :category, :vacancy, :reason, :suggested, :state, :created, CAST(:jobs AS jsonb),"
+                        + " :eventAt, :eventZone, :eventText) ON CONFLICT (mail_key) DO NOTHING")
                 .param("id", c.id())
                 .param("key", c.mailKey())
                 .param("folder", c.folder())
@@ -51,7 +53,16 @@ class CorrespondenceRepository {
                 .param("state", c.suggestionState())
                 .param("created", utc(c.createdAt()))
                 .param("jobs", jobsJson(c.jobs()))
+                .param("eventAt", c.event() == null ? null : c.event().start())
+                .param("eventZone", c.event() == null ? null : c.event().zoneKnown())
+                .param("eventText", c.event() == null ? null : c.event().text())
                 .update() == 1;
+    }
+
+    /** Fills in the event of a mail stored before events were read. */
+    void updateEvent(UUID id, Correspondence.Event event) {
+        jdbc.sql("UPDATE correspondence SET event_at = :at, event_zone_known = :zone, event_text = :text WHERE id = :id")
+                .param("at", event.start()).param("zone", event.zoneKnown()).param("text", event.text()).param("id", id).update();
     }
 
     /** Fills in the postings of a digest mail stored before they were read. */
@@ -185,6 +196,11 @@ class CorrespondenceRepository {
                 rs.getString("sender_name"), rs.getString("subject"), received == null ? null : received.toInstant(), rs.getString("snippet"),
                 rs.getString("category"), rs.getObject("vacancy_id", UUID.class), rs.getString("link_reason"),
                 rs.getString("suggested_status"), rs.getString("suggestion_state"),
-                rs.getObject("created_at", OffsetDateTime.class).toInstant(), readJobs(rs.getString("jobs")));
+                rs.getObject("created_at", OffsetDateTime.class).toInstant(), readJobs(rs.getString("jobs")), readEvent(rs));
+    }
+
+    private static Correspondence.Event readEvent(ResultSet rs) throws SQLException {
+        LocalDateTime at = rs.getObject("event_at", LocalDateTime.class);
+        return at == null ? null : new Correspondence.Event(at, rs.getBoolean("event_zone_known"), rs.getString("event_text"));
     }
 }

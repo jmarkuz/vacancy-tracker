@@ -3,7 +3,7 @@ import { act } from "preact/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Icon, type IconName } from "./Icon";
 
-const NAMES: IconName[] = ["table", "board", "columns", "plus", "filter", "refresh", "chevron-left", "chevron-right", "bookmark", "save", "trash", "close", "check"];
+const NAMES: IconName[] = ["table", "board", "columns", "plus", "filter", "refresh", "chevron-left", "chevron-right", "bookmark", "save", "trash", "close", "check", "calendar"];
 
 let host: HTMLElement;
 
