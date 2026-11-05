@@ -17,3 +17,34 @@ describe("syncSummary", () => {
     expect(syncSummary(result({}))).toBe("Read 0 mails: 0 about jobs, 0 linked, 0 suggestions.");
   });
 });
+
+describe("mail display helpers", () => {
+  it("joins the company and the place, leaving out what is missing", async () => {
+    const { jobMeta } = await import("./mail");
+    expect(jobMeta({ company: "Elastic", location: "Greece" })).toBe("Elastic · Greece");
+    expect(jobMeta({ company: "Elastic", location: null })).toBe("Elastic");
+    expect(jobMeta({ company: null, location: "  " })).toBe("");
+  });
+
+  it("counts the vacancies in a digest", async () => {
+    const { digestHeading } = await import("./mail");
+    expect(digestHeading(4)).toBe("4 vacancies in this mail");
+    expect(digestHeading(1)).toBe("1 vacancy in this mail");
+  });
+
+  it("follows only plain web addresses", async () => {
+    const { safeHref } = await import("./mail");
+    expect(safeHref("https://www.linkedin.com/jobs/view/1/")).toBe("https://www.linkedin.com/jobs/view/1/");
+    expect(safeHref("http://example.com")).toBe("http://example.com");
+    expect(safeHref("javascript:alert(1)")).toBeNull();
+    expect(safeHref(null)).toBeNull();
+  });
+
+  it("splits a text into paragraphs and says when it is long", async () => {
+    const { bodyParagraphs } = await import("./mail");
+    expect(bodyParagraphs("Hi\n\nThanks\n")).toEqual({ paragraphs: ["Hi", "Thanks"], long: false });
+    expect(bodyParagraphs("a\nb\nc\nd\ne").long).toBe(true);
+    expect(bodyParagraphs("x".repeat(400)).long).toBe(true);
+    expect(bodyParagraphs(null)).toEqual({ paragraphs: [], long: false });
+  });
+});

@@ -3,14 +3,17 @@ import { ApiError } from "../api/client";
 import {
   acceptSuggestion,
   type ApplicationOption,
-  CATEGORY_LABEL,
+  categoryLabel,
   dismissSuggestion,
+  isDigest,
   listApplications,
   type Mail,
   relinkMail,
   suggestionText,
 } from "../api/mail";
+import { bodyParagraphs, digestHeading, jobMeta, safeHref } from "../domain/mail";
 import { formatDate } from "../screens/columns";
+import { Icon } from "./Icon";
 
 interface Props {
   items: Mail[];
@@ -21,6 +24,56 @@ interface Props {
   /** With these, each mail gets a checkbox (the Mail screen deletes the chosen ones). */
   selected?: ReadonlySet<string>;
   onToggle?: (id: string) => void;
+}
+
+/** The vacancies of a digest mail, one row each: what the job is, where, and a link to its page. */
+function DigestJobs({ jobs }: { jobs: Mail["jobs"] }) {
+  return (
+    <div class="digest">
+      <p class="digest-heading">{digestHeading(jobs.length)}</p>
+      <ul class="digest-list">
+        {jobs.map((job, i) => {
+          const href = safeHref(job.url);
+          const meta = jobMeta(job);
+          return (
+            <li key={`${job.url ?? job.title}-${i}`} class="digest-job">
+              <div class="digest-text">
+                <span class="digest-title">{job.title}</span>
+                {meta && <span class="digest-meta">{meta}</span>}
+              </div>
+              {href && (
+                <a class="digest-link" href={href} target="_blank" rel="noopener noreferrer" aria-label={`View ${job.title} (opens a new tab)`}>
+                  View
+                  <Icon name="external" />
+                </a>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+/** The start of a mail's text as paragraphs; a long one is folded to a few lines with a button to unfold it. */
+function MailBody({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  const { paragraphs, long } = bodyParagraphs(text);
+  return (
+    <div class="mail-body">
+      <div class={`mail-text${long && !open ? " folded" : ""}`}>
+        {paragraphs.map((p, i) => (
+          <p key={i}>{p}</p>
+        ))}
+      </div>
+      {long && (
+        <button class="mail-more" type="button" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+          {open ? "Show less" : "Show more"}
+          <Icon name="chevron-down" />
+        </button>
+      )}
+    </div>
+  );
 }
 
 /** Job mail with its category, the application it belongs to and the suggested status, to accept or dismiss. */
@@ -105,17 +158,17 @@ export function MailList({ items, showVacancyLink = false, onChanged, selected, 
                   onChange={() => onToggle(m.id)}
                 />
               )}
-              <span class={`mail-category cat-${m.category}`}>{CATEGORY_LABEL[m.category] ?? m.category}</span>
-              <strong class="mail-subject">{m.subject ?? "(no subject)"}</strong>
-              <span class="muted small num">{formatDate(m.receivedAt)}</span>
+              <span class={`mail-category cat-${isDigest(m) ? "digest" : m.category}`}>{categoryLabel(m)}</span>
+              <span class="mail-date num">{formatDate(m.receivedAt)}</span>
             </div>
-            <div class="muted small">
+            <strong class="mail-subject">{m.subject ?? "(no subject)"}</strong>
+            <div class="mail-from">
               {m.senderName ? `${m.senderName} · ` : ""}
               {m.sender}
             </div>
-            {m.snippet && <p class="mail-snippet">{m.snippet}</p>}
+            {isDigest(m) ? <DigestJobs jobs={m.jobs} /> : m.snippet && <MailBody text={m.snippet} />}
             {m.vacancyId ? (
-              <p class="small">
+              <p class="mail-link small">
                 {showVacancyLink && (
                   <>
                     <a href={`#/pipeline?open=${encodeURIComponent(m.vacancyId)}`}>Open the application</a> ·{" "}
@@ -124,11 +177,12 @@ export function MailList({ items, showVacancyLink = false, onChanged, selected, 
                 <span class="muted">{m.linkReason}</span>
               </p>
             ) : (
-              <p class="small muted">Not linked to an application.</p>
+              <p class="mail-link small muted">Not linked to an application.</p>
             )}
             {linking === m.id ? (
-              <div class="drawer-row">
+              <div class="mail-actions">
                 <select
+                  class="input"
                   aria-label="Application for this mail"
                   disabled={busy !== null || options === null}
                   value=""
@@ -147,29 +201,31 @@ export function MailList({ items, showVacancyLink = false, onChanged, selected, 
                     </option>
                   ))}
                 </select>
-                <button class="btn ghost" type="button" onClick={() => setLinking(null)}>
+                <button class="btn" type="button" onClick={() => setLinking(null)}>
                   Cancel
                 </button>
               </div>
             ) : (
-              <p class="small">
-                <button class="btn ghost" type="button" disabled={busy !== null} onClick={() => void startLinking(m)}>
+              <div class="mail-actions">
+                <button class="btn" type="button" disabled={busy !== null} onClick={() => void startLinking(m)}>
+                  <Icon name="link" />
                   {m.vacancyId ? "Change application" : "Link to an application"}
                 </button>
                 {m.vacancyId && (
-                  <button class="btn ghost" type="button" disabled={busy !== null} onClick={() => void link(m, null)}>
+                  <button class="btn" type="button" disabled={busy !== null} onClick={() => void link(m, null)}>
                     Unlink
                   </button>
                 )}
-              </p>
+              </div>
             )}
             {suggestionText(m) && (
-              <div class="drawer-row">
-                <span>{suggestionText(m)}</span>
+              <div class="mail-suggestion">
+                <span class="mail-suggestion-text">{suggestionText(m)}</span>
                 <button class="btn primary" data-role="green" type="button" disabled={busy !== null} onClick={() => act(m, true)}>
+                  <Icon name="check" />
                   Accept
                 </button>
-                <button class="btn ghost" type="button" disabled={busy !== null} onClick={() => act(m, false)}>
+                <button class="btn" type="button" disabled={busy !== null} onClick={() => act(m, false)}>
                   Dismiss
                 </button>
               </div>

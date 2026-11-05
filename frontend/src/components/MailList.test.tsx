@@ -30,6 +30,7 @@ const mail = (patch: Partial<Mail> = {}): Mail => ({
   suggestedStatus: null,
   suggestionState: "none",
   createdAt: "2026-11-03T10:00:00Z",
+  jobs: [],
   ...patch,
 });
 
@@ -173,5 +174,83 @@ describe("MailList: link a mail to an application", () => {
     const labels = [...select().options].map((o) => o.textContent ?? "");
     expect(labels.some((l) => l.includes("Fresh Role"))).toBe(true);
     expect(labels.some((l) => l.includes("Stale Role"))).toBe(false);
+  });
+});
+
+const posting = (n: number, patch: Partial<mailApi.DigestJob> = {}): mailApi.DigestJob => ({
+  title: `Java Developer ${n}`,
+  company: `Company ${n}`,
+  location: "Berlin",
+  url: `https://www.linkedin.com/jobs/view/${n}/`,
+  ...patch,
+});
+
+describe("MailList: a digest mail lists its vacancies", () => {
+  it("shows each vacancy with its company and place and a link to its page, instead of the text", async () => {
+    await show([mail({ category: "other_job", snippet: "raw text of the digest", jobs: [posting(1), posting(2), posting(3)] })]);
+
+    expect(host.querySelector(".mail-category")?.textContent).toBe("Job alert");
+    expect(host.querySelector(".digest-heading")?.textContent).toBe("3 vacancies in this mail");
+    const rows = [...host.querySelectorAll(".digest-job")];
+    expect(rows.length).toBe(3);
+    expect(rows[1].querySelector(".digest-title")?.textContent).toBe("Java Developer 2");
+    expect(rows[1].querySelector(".digest-meta")?.textContent).toBe("Company 2 · Berlin");
+    const link = rows[1].querySelector("a") as HTMLAnchorElement;
+    expect(link.getAttribute("href")).toBe("https://www.linkedin.com/jobs/view/2/");
+    expect(link.getAttribute("target")).toBe("_blank");
+    expect(link.getAttribute("rel")).toContain("noopener");
+    expect(link.getAttribute("aria-label")).toContain("Java Developer 2");
+    expect(host.textContent).not.toContain("raw text of the digest");
+  });
+
+  it("leaves out the link of a posting whose address is not a web address, and the company it does not have", async () => {
+    await show([mail({ jobs: [posting(1, { url: "javascript:alert(1)", location: null }), posting(2, { url: null, company: null })] })]);
+
+    expect(host.querySelectorAll(".digest-link").length).toBe(0);
+    expect(host.querySelectorAll(".digest-job")[0].querySelector(".digest-meta")?.textContent).toBe("Company 1");
+    expect(host.querySelectorAll(".digest-job")[1].querySelector(".digest-meta")?.textContent).toBe("Berlin");
+  });
+
+  it("treats one posting as an ordinary mail", async () => {
+    await show([mail({ snippet: "Hello there", jobs: [posting(1)] })]);
+
+    expect(host.querySelector(".digest")).toBeNull();
+    expect(host.querySelector(".mail-category")?.textContent).toBe("Recruiter message");
+    expect(host.querySelector(".mail-text")?.textContent).toBe("Hello there");
+  });
+});
+
+describe("MailList: the text of an ordinary mail", () => {
+  it("is shown as paragraphs", async () => {
+    await show([mail({ snippet: "Hi Jane,\nWe would like to talk.\nBest," })]);
+
+    expect([...host.querySelectorAll(".mail-text p")].map((p) => p.textContent)).toEqual(["Hi Jane,", "We would like to talk.", "Best,"]);
+    expect(host.querySelector(".mail-more")).toBeNull();
+  });
+
+  it("is folded when long, and unfolds and folds again with the button", async () => {
+    await show([mail({ snippet: "line\n".repeat(8) })]);
+
+    expect(host.querySelector(".mail-text")?.classList.contains("folded")).toBe(true);
+    const more = host.querySelector(".mail-more") as HTMLButtonElement;
+    expect(more.textContent?.trim()).toBe("Show more");
+    expect(more.getAttribute("aria-expanded")).toBe("false");
+
+    await act(async () => {
+      more.click();
+    });
+    expect(host.querySelector(".mail-text")?.classList.contains("folded")).toBe(false);
+    expect((host.querySelector(".mail-more") as HTMLButtonElement).textContent?.trim()).toBe("Show less");
+
+    await act(async () => {
+      (host.querySelector(".mail-more") as HTMLButtonElement).click();
+    });
+    expect(host.querySelector(".mail-text")?.classList.contains("folded")).toBe(true);
+  });
+
+  it("is left out when the mail has no text", async () => {
+    await show([mail({ snippet: null })]);
+
+    expect(host.querySelector(".mail-body")).toBeNull();
   });
 });

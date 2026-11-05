@@ -8,3 +8,20 @@ export function syncSummary(r: SyncResult): string {
 
 /** How often the screen asks whether a running read has finished. */
 export const SYNC_POLL_MS = 1500;
+
+/** "Company · Place" for a posting, leaving out what the mail does not say. */
+export function jobMeta(job: { company: string | null; location: string | null }): string {
+  return [job.company, job.location].filter((part): part is string => !!part && part.trim().length > 0).join(" · ");
+}
+
+/** "3 vacancies in this mail". */
+export const digestHeading = (count: number): string => `${count} ${count === 1 ? "vacancy" : "vacancies"} in this mail`;
+
+/** A link from a mail is only followed when it is a plain web address. */
+export const safeHref = (url: string | null): string | null => (url && /^https?:\/\//i.test(url) ? url : null);
+
+/** The paragraphs of a mail's text (one per line), and whether it is long enough to fold. */
+export function bodyParagraphs(text: string | null): { paragraphs: string[]; long: boolean } {
+  const paragraphs = (text ?? "").split(/\n+/).map((p) => p.trim()).filter((p) => p.length > 0);
+  return { paragraphs, long: paragraphs.length > 4 || (text ?? "").length > 320 };
+}
