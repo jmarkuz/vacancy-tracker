@@ -23,7 +23,8 @@ export type IconName =
   | "upload"
   | "external"
   | "link"
-  | "chevron-down";
+  | "chevron-down"
+  | "history";
 
 const SHAPES: Record<IconName, JSX.Element> = {
   mail: (
@@ -51,6 +52,13 @@ const SHAPES: Record<IconName, JSX.Element> = {
     </>
   ),
   "chevron-down": <path d="M6 9l6 6 6-6" />,
+  history: (
+    <>
+      <path d="M3 12a9 9 0 1 0 3-6.7" />
+      <path d="M3 4v5h5" />
+      <path d="M12 7.5V12l3 2" />
+    </>
+  ),
   table: (
     <>
       <rect x="3" y="4" width="18" height="16" rx="2" />

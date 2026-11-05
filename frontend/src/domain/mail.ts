@@ -25,3 +25,8 @@ export function bodyParagraphs(text: string | null): { paragraphs: string[]; lon
   const paragraphs = (text ?? "").split(/\n+/).map((p) => p.trim()).filter((p) => p.length > 0);
   return { paragraphs, long: paragraphs.length > 4 || (text ?? "").length > 320 };
 }
+
+/** What the owner is asked before a re-read starts. */
+export const REREAD_CONFIRM =
+  "Read your mailbox again? Mails already here are kept and get their vacancy lists; mails you deleted come back. " +
+  "Your mailbox itself is not changed.";
