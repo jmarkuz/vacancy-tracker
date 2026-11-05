@@ -80,6 +80,12 @@ public class MailController {
         return new AcceptResponse(mail.get(id).vacancyId(), mail.accept(id).getStatus().label(), mail.get(id));
     }
 
+    /** Adds posting number index of a digest mail to the Pipeline (or answers the vacancy it already is); 404 for an unknown mail or index. */
+    @PostMapping("/api/mail/{id}/jobs/{index}/add")
+    public CorrespondenceService.AddedJob addJob(@PathVariable UUID id, @PathVariable int index) {
+        return mail.addToPipeline(id, index);
+    }
+
     @PostMapping("/api/mail/{id}/dismiss")
     public Correspondence dismiss(@PathVariable UUID id) {
         return mail.dismiss(id);

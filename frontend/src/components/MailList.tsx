@@ -2,6 +2,7 @@ import { useRef, useState } from "preact/hooks";
 import { ApiError } from "../api/client";
 import {
   acceptSuggestion,
+  addDigestJob,
   type ApplicationOption,
   categoryLabel,
   dismissSuggestion,
@@ -26,27 +27,85 @@ interface Props {
   onToggle?: (id: string) => void;
 }
 
-/** The vacancies of a digest mail, one row each: what the job is, where, and a link to its page. */
-function DigestJobs({ jobs }: { jobs: Mail["jobs"] }) {
+/**
+ * The vacancies of a digest mail, one row each: what the job is, where, a link to its page and its place in the
+ * Pipeline. A posting is added by its link (that is how the server finds out it is there already), so only a posting
+ * with a web link and a company (a vacancy needs one) gets the button.
+ */
+function DigestJobs({ mailId, jobs }: { mailId: string; jobs: Mail["jobs"] }) {
+  const [added, setAdded] = useState<Record<number, string>>({});
+  const [adding, setAdding] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  // A second click before the first answer arrives must not send a second request.
+  const inFlight = useRef(new Set<number>());
+
+  const add = async (index: number) => {
+    if (inFlight.current.has(index)) {
+      return;
+    }
+    inFlight.current.add(index);
+    setAdding(index);
+    setError(null);
+    try {
+      const r = await addDigestJob(mailId, index);
+      setAdded((prev) => ({ ...prev, [index]: r.vacancyId }));
+    } catch (e: unknown) {
+      setError(e instanceof ApiError ? e.message : "Could not add the vacancy to the Pipeline.");
+    } finally {
+      inFlight.current.delete(index);
+      setAdding(null);
+    }
+  };
+
   return (
     <div class="digest">
       <p class="digest-heading">{digestHeading(jobs.length)}</p>
+      {error && (
+        <div class="notice error" role="alert">
+          {error}
+        </div>
+      )}
       <ul class="digest-list">
         {jobs.map((job, i) => {
           const href = safeHref(job.url);
           const meta = jobMeta(job);
+          const vacancyId = added[i] ?? job.vacancyId ?? null;
           return (
             <li key={`${job.url ?? job.title}-${i}`} class="digest-job">
               <div class="digest-text">
                 <span class="digest-title">{job.title}</span>
                 {meta && <span class="digest-meta">{meta}</span>}
               </div>
-              {href && (
-                <a class="digest-link" href={href} target="_blank" rel="noopener noreferrer" aria-label={`View ${job.title} (opens a new tab)`}>
-                  View
-                  <Icon name="external" />
-                </a>
-              )}
+              <div class="digest-actions">
+                {href && (
+                  <a class="digest-link" href={href} target="_blank" rel="noopener noreferrer" aria-label={`View ${job.title} (opens a new tab)`}>
+                    View
+                    <Icon name="external" />
+                  </a>
+                )}
+                {vacancyId ? (
+                  <>
+                    <span class="digest-state">In Pipeline</span>
+                    <a class="digest-link" href={`#/pipeline?open=${encodeURIComponent(vacancyId)}`} aria-label={`Open ${job.title} in the Pipeline`}>
+                      Open
+                    </a>
+                  </>
+                ) : (
+                  href &&
+                  job.company && (
+                    <button
+                      class="btn digest-add"
+                      type="button"
+                      disabled={adding === i}
+                      aria-label={`Add ${job.title} to Pipeline`}
+                      onClick={() => void add(i)}
+                    >
+                      <Icon name="plus" />
+                      {adding === i ? "Adding…" : "Add to Pipeline"}
+                    </button>
+                  )
+                )}
+              </div>
             </li>
           );
         })}
@@ -166,7 +225,7 @@ export function MailList({ items, showVacancyLink = false, onChanged, selected, 
               {m.senderName ? `${m.senderName} · ` : ""}
               {m.sender}
             </div>
-            {isDigest(m) ? <DigestJobs jobs={m.jobs} /> : m.snippet && <MailBody text={m.snippet} />}
+            {isDigest(m) ? <DigestJobs mailId={m.id} jobs={m.jobs} /> : m.snippet && <MailBody text={m.snippet} />}
             {m.vacancyId ? (
               <p class="mail-link small">
                 {showVacancyLink && (

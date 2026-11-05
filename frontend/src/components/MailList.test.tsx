@@ -10,10 +10,12 @@ vi.mock("../api/mail", async (importOriginal) => ({
   ...(await importOriginal<typeof mailApi>()),
   listApplications: vi.fn(),
   relinkMail: vi.fn(),
+  addDigestJob: vi.fn(),
 }));
 
 const listApplications = vi.mocked(mailApi.listApplications);
 const relinkMail = vi.mocked(mailApi.relinkMail);
+const addDigestJob = vi.mocked(mailApi.addDigestJob);
 
 const mail = (patch: Partial<Mail> = {}): Mail => ({
   id: "m1",
@@ -217,6 +219,83 @@ describe("MailList: a digest mail lists its vacancies", () => {
     expect(host.querySelector(".digest")).toBeNull();
     expect(host.querySelector(".mail-category")?.textContent).toBe("Recruiter message");
     expect(host.querySelector(".mail-text")?.textContent).toBe("Hello there");
+  });
+});
+
+describe("MailList: a digest vacancy goes to the Pipeline", () => {
+  const addButton = (row: number) => host.querySelectorAll(".digest-job")[row].querySelector("button.digest-add") as HTMLButtonElement | null;
+
+  it("adds the posting, then shows In Pipeline with an Open link to the new vacancy", async () => {
+    addDigestJob.mockResolvedValue({ vacancyId: "v-new", created: true });
+    await show([mail({ id: "m7", jobs: [posting(1), posting(2)] })]);
+    expect(addButton(1)?.textContent).toBe("Add to Pipeline");
+    expect(addButton(1)?.getAttribute("aria-label")).toBe("Add Java Developer 2 to Pipeline");
+
+    await act(async () => addButton(1)?.click());
+
+    expect(addDigestJob).toHaveBeenCalledWith("m7", 1);
+    const row = host.querySelectorAll(".digest-job")[1];
+    expect(row.querySelector(".digest-state")?.textContent).toBe("In Pipeline");
+    expect(row.querySelector("button")).toBeNull();
+    const open = [...row.querySelectorAll("a")].find((a) => a.textContent === "Open") as HTMLAnchorElement;
+    expect(open.getAttribute("href")).toBe("#/pipeline?open=v-new");
+    expect(addButton(0)?.textContent).toBe("Add to Pipeline");
+  });
+
+  it("disables the button while it works and sends one request for a double click", async () => {
+    let finish: (v: { vacancyId: string; created: boolean }) => void = () => undefined;
+    addDigestJob.mockReturnValue(new Promise((resolve) => (finish = resolve)));
+    await show([mail({ jobs: [posting(1), posting(2)] })]);
+
+    await act(async () => {
+      addButton(0)?.click();
+      addButton(0)?.click();
+    });
+    expect(addDigestJob).toHaveBeenCalledTimes(1);
+    expect(addButton(0)?.disabled).toBe(true);
+    expect(addButton(0)?.textContent).toBe("Adding…");
+
+    await act(async () => finish({ vacancyId: "v1", created: true }));
+    expect(addButton(0)).toBeNull();
+  });
+
+  it("shows the error and lets the owner try again", async () => {
+    addDigestJob.mockRejectedValueOnce(new ApiError(500, "Boom")).mockResolvedValueOnce({ vacancyId: "v2", created: false });
+    await show([mail({ jobs: [posting(1), posting(2)] })]);
+
+    await act(async () => addButton(0)?.click());
+    expect(host.querySelector(".digest .notice.error")?.textContent).toContain("Boom");
+    expect(addButton(0)?.disabled).toBe(false);
+
+    await act(async () => addButton(0)?.click());
+    expect(host.querySelector(".digest .notice.error")).toBeNull();
+    expect(host.querySelectorAll(".digest-state").length).toBe(1);
+  });
+
+  it("uses a generic message when the failure is not an API error", async () => {
+    addDigestJob.mockRejectedValue(new Error("network"));
+    await show([mail({ jobs: [posting(1), posting(2)] })]);
+
+    await act(async () => addButton(0)?.click());
+
+    expect(host.querySelector(".digest .notice.error")?.textContent).toBe("Could not add the vacancy to the Pipeline.");
+  });
+
+  it("shows In Pipeline at once for a posting the server found among the vacancies", async () => {
+    await show([mail({ jobs: [posting(1, { vacancyId: "v9" }), posting(2, { vacancyId: null })] })]);
+
+    const first = host.querySelectorAll(".digest-job")[0];
+    expect(first.querySelector(".digest-state")?.textContent).toBe("In Pipeline");
+    expect(first.querySelector("button")).toBeNull();
+    expect([...first.querySelectorAll("a")].some((a) => a.getAttribute("href") === "#/pipeline?open=v9")).toBe(true);
+    expect(addButton(1)).not.toBeNull();
+  });
+
+  it("offers no button for a posting without a web link or a company, since it could not be matched or saved", async () => {
+    await show([mail({ jobs: [posting(1, { url: null }), posting(2, { company: null }), posting(3, { url: "javascript:alert(1)" })] })]);
+
+    expect(host.querySelectorAll("button.digest-add").length).toBe(0);
+    expect(host.querySelectorAll(".digest-state").length).toBe(0);
   });
 });
 

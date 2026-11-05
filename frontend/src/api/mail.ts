@@ -26,6 +26,8 @@ export interface DigestJob {
   company: string | null;
   location: string | null;
   url: string | null;
+  /** The vacancy of the Pipeline this posting already is (same link), or null/absent when it is not there yet. */
+  vacancyId?: string | null;
 }
 
 export interface MailStatus {
@@ -104,6 +106,10 @@ export const dismissSuggestion = (id: string) => requestJson<Mail>("POST", `/api
 
 export const relinkMail = (id: string, vacancyId: string | null) =>
   requestJson<Mail>("PUT", `/api/mail/${encodeURIComponent(id)}/vacancy`, { vacancyId });
+
+/** Adds posting number `index` of a digest mail to the Pipeline; idempotent (an existing vacancy is returned, created is false). */
+export const addDigestJob = (mailId: string, index: number) =>
+  requestJson<{ vacancyId: string; created: boolean }>("POST", `/api/mail/${encodeURIComponent(mailId)}/jobs/${index}/add`);
 
 /** Deletes stored mails from the app. The mailbox itself is not touched. */
 export const deleteMail = (ids: string[]) => requestJson<{ deleted: number }>("POST", "/api/mail/delete", { ids });

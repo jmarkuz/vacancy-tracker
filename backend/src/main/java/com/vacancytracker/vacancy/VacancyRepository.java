@@ -142,6 +142,19 @@ public class VacancyRepository {
                 .optional();
     }
 
+    /** The vacancies stored under any of these canonical URLs, by URL, in one query. */
+    public java.util.Map<String, UUID> findIdsByCanonicalUrls(java.util.Collection<String> canonicalUrls) {
+        java.util.Map<String, UUID> found = new java.util.HashMap<>();
+        if (canonicalUrls.isEmpty()) {
+            return found;
+        }
+        jdbc.sql("SELECT canonical_url, id FROM vacancy WHERE canonical_url IN (:urls)")
+                .param("urls", canonicalUrls)
+                .query((rs, n) -> found.put(rs.getString("canonical_url"), rs.getObject("id", UUID.class)))
+                .list();
+        return found;
+    }
+
     public Optional<UUID> findIdBySource(String adapter, String externalId) {
         return jdbc.sql("SELECT vacancy_id FROM vacancy_source WHERE adapter = :adapter AND external_id = :ext")
                 .param("adapter", adapter)
