@@ -74,7 +74,7 @@ public abstract class LinkAlertParser implements MailParser {
     private List<ParsedJob> parseHtml(String html) {
         Document doc = Jsoup.parse(html);
         Map<String, Element> first = new LinkedHashMap<>();
-        Map<String, String> titles = new LinkedHashMap<>();
+        Map<String, List<Element>> anchors = new LinkedHashMap<>();
         Map<String, String> hrefs = new LinkedHashMap<>();
         for (Element a : doc.select("a[href]")) {
             Matcher m = jobLink.matcher(a.attr("href"));
@@ -85,26 +85,76 @@ public abstract class LinkAlertParser implements MailParser {
             String text = a.text().trim();
             first.putIfAbsent(id, a);
             hrefs.putIfAbsent(id, a.attr("href"));
-            if (!text.isEmpty() && !generic.contains(text.toLowerCase(java.util.Locale.ROOT)) && !titles.containsKey(id)) {
-                titles.put(id, text);
-                first.put(id, a);
-                hrefs.put(id, a.attr("href"));
+            if (!text.isEmpty() && !generic.contains(text.toLowerCase(java.util.Locale.ROOT))) {
+                List<Element> titled = anchors.computeIfAbsent(id, k -> new ArrayList<>());
+                if (titled.isEmpty()) {
+                    first.put(id, a);
+                    hrefs.put(id, a.attr("href"));
+                }
+                titled.add(a);
             }
         }
         List<ParsedJob> jobs = new ArrayList<>();
-        for (Map.Entry<String, String> entry : titles.entrySet()) {
-            List<String> around = linesAround(first.get(entry.getKey()), entry.getValue(), first.values());
-            String company = around.isEmpty() ? null : around.get(0);
-            String location = around.size() > 1 ? around.get(1) : null;
-            if (company != null && location == null && company.contains(" · ")) {
-                String[] parts = company.split(" · ", 2);
-                company = parts[0].trim();
-                location = parts[1].trim();
-            }
-            jobs.add(new ParsedJob(entry.getKey(), plain(entry.getKey(), hrefs.get(entry.getKey())), entry.getValue(), company, location));
+        for (Map.Entry<String, List<Element>> entry : anchors.entrySet()) {
+            String id = entry.getKey();
+            Card card = card(entry.getValue());
+            List<String> around = card.details().isEmpty() ? linesAround(first.get(id), card.title(), first.values()) : card.details();
+            String[] place = companyAndLocation(around);
+            jobs.add(new ParsedJob(id, plain(id, hrefs.get(id)), card.title(), place[0], place[1]));
         }
         return jobs;
     }
+
+    /** A posting as its link(s) show it: the title, and the lines that came with it inside the link (company, place). */
+    private record Card(String title, List<String> details) {
+    }
+
+    /**
+     * Some templates make the whole card one link, so the link text is "Title Company · Place" (one text, or one line
+     * per element). The title is then the shortest link text of the posting; what follows it in a longer link text, or
+     * the lines after the first one inside a single link, is the company and the place. Templates that link only the
+     * title give no details here, and the lines around the link are read instead.
+     */
+    private Card card(List<Element> links) {
+        String title = links.stream().map(a -> a.text().trim()).min(java.util.Comparator.comparingInt(String::length)).orElseThrow();
+        for (Element a : links) {
+            String text = a.text().trim();
+            if (text.length() > title.length() && text.startsWith(title)) {
+                String rest = text.substring(title.length()).trim();
+                if (!rest.isEmpty() && !generic.contains(rest.toLowerCase(java.util.Locale.ROOT))) {
+                    return new Card(title, List.of(rest));
+                }
+            }
+        }
+        if (links.size() == 1) {
+            List<String> lines = leafLines(links.get(0)).stream().filter(l -> !generic.contains(l.toLowerCase(java.util.Locale.ROOT))).toList();
+            if (lines.size() >= 2) {
+                return new Card(lines.get(0), lines.subList(1, lines.size()));
+            }
+        }
+        return new Card(title, List.of());
+    }
+
+    /**
+     * Company and place from the lines that follow the title: either "Company" and "Place" on two lines, or one line
+     * "Company · Place" (the separator LinkedIn uses). A "Company · Place" line wins over any line after it, which is
+     * a badge ("Actively hiring"), not the place.
+     */
+    static String[] companyAndLocation(List<String> lines) {
+        if (lines.isEmpty()) {
+            return new String[] {null, null};
+        }
+        String head = lines.get(0);
+        int dot = head.indexOf(SEPARATOR);
+        if (dot > 0) {
+            String company = head.substring(0, dot).trim();
+            String place = head.substring(dot + SEPARATOR.length()).trim();
+            return new String[] {company.isEmpty() ? null : company, place.isEmpty() ? null : place};
+        }
+        return new String[] {head, lines.size() > 1 ? lines.get(1) : null};
+    }
+
+    private static final String SEPARATOR = " · ";
 
     /**
      * The text lines of the smallest enclosing block that has more than the title, with the title and generic
@@ -192,7 +242,8 @@ public abstract class LinkAlertParser implements MailParser {
             if (!line.startsWith("http") || !m.find() || i < 3 || jobs.containsKey(m.group(1))) {
                 continue;
             }
-            jobs.put(m.group(1), new ParsedJob(m.group(1), plain(m.group(1), line), lines.get(i - 3), lines.get(i - 2), lines.get(i - 1)));
+            String[] place = companyAndLocation(List.of(lines.get(i - 2), lines.get(i - 1)));
+            jobs.put(m.group(1), new ParsedJob(m.group(1), plain(m.group(1), line), lines.get(i - 3), place[0], place[1]));
         }
         return List.copyOf(jobs.values());
     }
