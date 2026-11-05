@@ -42,7 +42,7 @@ The Beacon design in its graphite (monochrome) variant, light and dark. Source i
 - Filters and saved views using the same rule model as search profiles
 - Full-text search and Ctrl/Cmd+K command palette
 - Export to CSV (UTF-8 with BOM), XLSX and full JSON backup; import with per-row error reports (a CSV import merges into existing vacancies and keeps the fields you edited by hand)
-- Optional Telegram digest after a run (disabled by default)
+- Optional Telegram digest after a run, and an optional message when new mail suggests a status change (both disabled by default)
 - Beacon design (design/README.md): calm, high-contrast, light first with a dark theme, 18 px text that can be raised to 22 px, four color roles with one meaning each, keyboard-first screens
 
 ## Sources
