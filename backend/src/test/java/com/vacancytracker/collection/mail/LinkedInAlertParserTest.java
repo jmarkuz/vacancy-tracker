@@ -107,4 +107,72 @@ class LinkedInAlertParserTest {
         assertThat(jobs).extracting(ParsedJob::company).containsExactly("Northwind", "Vantage");
         assertThat(jobs).extracting(ParsedJob::location).containsExactly("Prague", "Remote");
     }
+
+    private static ParsedJob byId(List<ParsedJob> jobs, String id) {
+        return jobs.stream().filter(j -> j.externalId().equals(id)).findFirst().orElseThrow();
+    }
+
+    @Test
+    void aCardThatIsOneLinkGivesTheTitleAloneAndTheCompanyAndPlaceApart() throws IOException {
+        List<ParsedJob> jobs = parser.parse(mail("jobalerts-noreply@linkedin.com", null, fixture("linkedin-alert-cards.html")));
+
+        assertThat(jobs).hasSize(4);
+        ParsedJob lines = byId(jobs, "4300000001");
+        assertThat(lines.title()).isEqualTo("Java Developer (43917)");
+        assertThat(lines.company()).isEqualTo("CoolPeople Technology");
+        assertThat(lines.location()).isEqualTo("Prague");
+    }
+
+    @Test
+    void aCardWithASingleTextIsSplitAfterItsTitleOnlyWhenTheTitleIsKnown() throws IOException {
+        List<ParsedJob> jobs = parser.parse(mail("jobalerts-noreply@linkedin.com", null, fixture("linkedin-alert-cards.html")));
+
+        // One link with one text: no way to tell where the title ends, so nothing is invented; the whole text stays the title.
+        ParsedJob single = byId(jobs, "4300000002");
+        assertThat(single.title()).startsWith("Senior Java Developer Barclays");
+        assertThat(single.company()).isNull();
+    }
+
+    @Test
+    void theShorterTitleLinkNamesTheTitleAndTheLongerCardLinkGivesTheCompanyAndPlace() throws IOException {
+        List<ParsedJob> jobs = parser.parse(mail("jobalerts-noreply@linkedin.com", null, fixture("linkedin-alert-cards.html")));
+
+        ParsedJob both = byId(jobs, "4300000003");
+        assertThat(both.title()).isEqualTo("Platform Engineer (Java)");
+        assertThat(both.company()).isEqualTo("Revolut");
+        assertThat(both.location()).isEqualTo("Moravia-Silesia, Czechia (Віддалена робота)");
+    }
+
+    @Test
+    void aCompanyAndPlaceLineIsSplitEvenWhenABadgeLineFollowsIt() throws IOException {
+        List<ParsedJob> jobs = parser.parse(mail("jobalerts-noreply@linkedin.com", null, fixture("linkedin-alert-cards.html")));
+
+        ParsedJob badge = byId(jobs, "4300000004");
+        assertThat(badge.title()).isEqualTo("Java Developer");
+        assertThat(badge.company()).isEqualTo("Playtech");
+        assertThat(badge.location()).isEqualTo("Kyiv, Ukraine (Віддалена робота)");
+    }
+
+    @Test
+    void companyAndLocationReadsTwoLinesOrOneLineWithTheSeparator() {
+        assertThat(LinkAlertParser.companyAndLocation(List.of("Acme", "Berlin"))).containsExactly("Acme", "Berlin");
+        assertThat(LinkAlertParser.companyAndLocation(List.of("Acme · Berlin"))).containsExactly("Acme", "Berlin");
+        assertThat(LinkAlertParser.companyAndLocation(List.of("Acme · Berlin", "Actively hiring"))).containsExactly("Acme", "Berlin");
+        assertThat(LinkAlertParser.companyAndLocation(List.of("Acme"))).containsExactly("Acme", null);
+        assertThat(LinkAlertParser.companyAndLocation(List.of("Acme · "))).containsExactly("Acme", null);
+        assertThat(LinkAlertParser.companyAndLocation(List.of())).containsExactly(null, null);
+        assertThat(LinkAlertParser.companyAndLocation(List.of("Acme Pay · Co · Berlin"))).containsExactly("Acme Pay", "Co · Berlin");
+    }
+
+    @Test
+    void theTextVersionAlsoSplitsACompanyAndPlaceLine() {
+        String text = "Backend Engineer\nAcme · Berlin\nHybrid\nhttps://www.linkedin.com/jobs/view/4300000009/\n";
+
+        List<ParsedJob> jobs = parser.parse(mail("jobalerts-noreply@linkedin.com", text, null));
+
+        assertThat(jobs).hasSize(1);
+        assertThat(jobs.get(0).title()).isEqualTo("Backend Engineer");
+        assertThat(jobs.get(0).company()).isEqualTo("Acme");
+        assertThat(jobs.get(0).location()).isEqualTo("Berlin");
+    }
 }
