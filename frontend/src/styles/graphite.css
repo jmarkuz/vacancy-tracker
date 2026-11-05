@@ -1581,3 +1581,50 @@ tbody tr:hover {
     align-items: flex-start;
   }
 }
+
+/* The note under an unfolded text that was cut when it was stored. */
+.mail-rest {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* The in-app confirmation (replaces window.confirm): a glass card centred over a scrim. */
+.confirm-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  background: var(--overlay-backdrop);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+.confirm-dialog {
+  display: grid;
+  gap: var(--space-3);
+  width: min(420px, 100%);
+  padding: var(--space-6);
+  border-radius: var(--radius-xl);
+}
+
+.confirm-dialog h2 {
+  margin: 0;
+  font-size: var(--font-size-lg, var(--font-size-md));
+}
+
+.confirm-dialog p {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}

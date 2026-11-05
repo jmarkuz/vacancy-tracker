@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SyncResult } from "../api/mail";
-import { syncSummary } from "./mail";
+import { deleteConfirmText, deletingText, MAIL_REST_NOTE, olderThan, syncSummary, textWasCut } from "./mail";
 
 const result = (patch: Partial<SyncResult>): SyncResult => ({ configured: true, seen: 0, stored: 0, linked: 0, suggested: 0, error: null, ...patch });
 
@@ -46,5 +46,41 @@ describe("mail display helpers", () => {
     expect(bodyParagraphs("a\nb\nc\nd\ne").long).toBe(true);
     expect(bodyParagraphs("x".repeat(400)).long).toBe(true);
     expect(bodyParagraphs(null)).toEqual({ paragraphs: [], long: false });
+  });
+});
+
+describe("cut text and delete helpers", () => {
+  it("knows a text the server cut by its closing mark", () => {
+    expect(textWasCut("Hello there…")).toBe(true);
+    expect(textWasCut("Hello there…\n")).toBe(true);
+    expect(textWasCut("Hello there.")).toBe(false);
+    expect(textWasCut(null)).toBe(false);
+    expect(MAIL_REST_NOTE).toBe("The rest is in your mailbox.");
+  });
+
+  it("counts the listed mails older than N days and skips undated ones", () => {
+    const now = Date.parse("2026-11-20T00:00:00Z");
+    const items = [
+      { id: "a", receivedAt: "2026-11-01T00:00:00Z" },
+      { id: "b", receivedAt: "2026-11-19T00:00:00Z" },
+      { id: "c", receivedAt: null },
+    ];
+    expect(olderThan(items, 14, now)).toEqual(["a"]);
+    expect(olderThan(items, 30, now)).toEqual([]);
+  });
+
+  it("words the confirmation and the waiting toast for one, many and old mails", () => {
+    expect(deleteConfirmText(1, null)).toMatchObject({ title: "Delete 1 mail?", action: "Delete" });
+    expect(deleteConfirmText(1, null).body).toContain("It is removed");
+    expect(deleteConfirmText(3, null)).toMatchObject({ title: "Delete 3 mails?" });
+    expect(deleteConfirmText(3, null).body).toContain("They are removed");
+    expect(deleteConfirmText(2, 30)).toMatchObject({ title: "Delete mails older than 30 days?", action: "Delete old" });
+    expect(deleteConfirmText(2, 30).body).toContain("2 mails in the list are older than 30 days");
+    expect(deleteConfirmText(1, 30).body).toContain("1 mail in the list is older");
+    expect(deleteConfirmText(0, 30).body).toContain("Every stored mail older than 30 days");
+    expect(deletingText(1, null)).toBe("Deleting 1 mail…");
+    expect(deletingText(3, null)).toBe("Deleting 3 mails…");
+    expect(deletingText(4, 30)).toBe("Deleting 4 mails older than 30 days…");
+    expect(deletingText(0, 30)).toBe("Deleting mails older than 30 days…");
   });
 });

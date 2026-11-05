@@ -53,7 +53,13 @@ public class CorrespondenceService {
 
     private static final Logger LOG = LoggerFactory.getLogger(CorrespondenceService.class);
     static final String KEY_PREFIX = "reply:";
-    static final int SNIPPET = 600;
+    /**
+     * How much of a mail's readable text is stored (the column is TEXT). The Mail card folds a long text and unfolds it
+     * with "Show more", so the stored text must be long enough for that to show real content (a typical recruiter
+     * message fits in 4000 characters); the full mailbox message stays in the mailbox. Mails stored earlier keep the
+     * shorter text they were stored with.
+     */
+    static final int SNIPPET = 4000;
     static final String LINKED_BY_YOU = "Linked by you.";
     static final String SAME_SENDER = "Same sender as a mail you linked.";
     static final int MAX_EML_BYTES = 5 * 1024 * 1024;
