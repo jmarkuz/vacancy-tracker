@@ -407,7 +407,21 @@ public class CorrespondenceService {
     }
 
     public List<Correspondence> list(UUID vacancyId, boolean pendingOnly) {
-        return withVacancies(repository.list(vacancyId, pendingOnly, 200));
+        return list(MailFilter.of(vacancyId, pendingOnly));
+    }
+
+    public List<Correspondence> list(MailFilter filter) {
+        return withVacancies(repository.list(filter, 200));
+    }
+
+    /** The mails each category chip would show under the other conditions of the filter, and their sum. */
+    public Counts counts(MailFilter filter) {
+        Map<String, Long> byCategory = repository.bucketCounts(filter);
+        return new Counts(byCategory.values().stream().mapToLong(Long::longValue).sum(), byCategory);
+    }
+
+    /** `total` is every mail matching the filter without its categories; `categories` splits it by bucket. */
+    public record Counts(long total, Map<String, Long> categories) {
     }
 
     /** Marks each posting of the digests with the vacancy it already is: one query for the links of all the mails. */

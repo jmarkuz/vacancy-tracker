@@ -11,7 +11,9 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -140,14 +142,27 @@ class CorrespondenceRepository {
                 .query(CorrespondenceRepository::map).optional();
     }
 
-    List<Correspondence> list(UUID vacancyId, boolean pendingOnly, int limit) {
-        String where = (vacancyId == null ? "TRUE" : "vacancy_id = :v") + (pendingOnly ? " AND suggestion_state = 'pending'" : "");
-        var query = jdbc.sql("SELECT " + COLUMNS + " FROM correspondence WHERE " + where
-                + " ORDER BY received_at DESC NULLS LAST, created_at DESC LIMIT :limit").param("limit", limit);
-        if (vacancyId != null) {
-            query = query.param("v", vacancyId);
-        }
-        return query.query(CorrespondenceRepository::map).list();
+    List<Correspondence> list(MailFilter filter, int limit) {
+        MailFilter.Where where = filter.where(true);
+        return jdbc.sql("SELECT " + COLUMNS + " FROM correspondence WHERE " + where.sql()
+                        + " ORDER BY received_at DESC NULLS LAST, created_at DESC LIMIT :limit")
+                .params(where.params()).param("limit", limit).query(CorrespondenceRepository::map).list();
+    }
+
+    /**
+     * How many mails each bucket holds under every condition of the filter except its own categories, so a chip shows
+     * what picking it would give. Buckets with no mail are 0.
+     */
+    Map<String, Long> bucketCounts(MailFilter filter) {
+        MailFilter.Where where = filter.where(false);
+        Map<String, Long> counts = new LinkedHashMap<>();
+        MailFilter.BUCKETS.forEach(name -> counts.put(name, 0L));
+        jdbc.sql("SELECT " + MailFilter.BUCKET_SQL + " AS bucket, count(*) AS n FROM correspondence WHERE " + where.sql() + " GROUP BY 1")
+                .params(where.params()).query((rs, n) -> {
+                    counts.put(rs.getString("bucket"), rs.getLong("n"));
+                    return null;
+                }).list();
+        return counts;
     }
 
     /** Removes the stored mails with these ids; answers how many existed. */

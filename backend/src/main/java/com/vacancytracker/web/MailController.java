@@ -2,6 +2,7 @@ package com.vacancytracker.web;
 
 import com.vacancytracker.application.mail.Correspondence;
 import com.vacancytracker.application.mail.CorrespondenceService;
+import com.vacancytracker.application.mail.MailFilter;
 import com.vacancytracker.application.mail.MailSettings;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
@@ -51,8 +52,29 @@ public class MailController {
     }
 
     @GetMapping("/api/mail")
-    public List<Correspondence> list(@RequestParam(required = false) UUID vacancyId, @RequestParam(defaultValue = "false") boolean pending) {
-        return mail.list(vacancyId, pending);
+    public List<Correspondence> list(@RequestParam(required = false) UUID vacancyId, @RequestParam(defaultValue = "false") boolean pending,
+            @RequestParam(required = false) List<String> category, @RequestParam(required = false) Boolean linked,
+            @RequestParam(required = false) String q) {
+        return mail.list(filter(vacancyId, pending, category, linked, q));
+    }
+
+    /**
+     * How many mails each category holds under the other filters (category is ignored here), for the filter chips;
+     * 400 for an unknown category or a search text over 200 characters.
+     */
+    @GetMapping("/api/mail/counts")
+    public CorrespondenceService.Counts counts(@RequestParam(required = false) UUID vacancyId, @RequestParam(defaultValue = "false") boolean pending,
+            @RequestParam(required = false) List<String> category, @RequestParam(required = false) Boolean linked,
+            @RequestParam(required = false) String q) {
+        return mail.counts(filter(vacancyId, pending, category, linked, q));
+    }
+
+    private static MailFilter filter(UUID vacancyId, boolean pending, List<String> category, Boolean linked, String q) {
+        try {
+            return MailFilter.parse(vacancyId, pending, category, linked, q);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
     }
 
     /** The applications a mail can be linked to by hand. */
