@@ -1,10 +1,20 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { ApiError } from "../api/client";
-import { deleteMail, deleteOldMail, getMailStatus, importEml, listMail, type Mail, type MailStatus, startMailSync } from "../api/mail";
+import {
+  deleteMail,
+  deleteOldMail,
+  getMailStatus,
+  importEml,
+  listMail,
+  type Mail,
+  type MailStatus,
+  startMailReread,
+  startMailSync,
+} from "../api/mail";
 import { Icon } from "../components/Icon";
 import { MailList } from "../components/MailList";
 import { Toast } from "../components/Toast";
-import { SYNC_POLL_MS, syncSummary } from "../domain/mail";
+import { REREAD_CONFIRM, SYNC_POLL_MS, syncSummary } from "../domain/mail";
 import { formatDate } from "./columns";
 
 /**
@@ -80,6 +90,28 @@ export function MailScreen({ dataVersion = 0 }: { dataVersion?: number }) {
     }
   };
 
+  /** Starts a read in the background (a plain one, or a re-read) and follows it; a read already running is just followed. */
+  const startRead = (start: () => Promise<unknown>) =>
+    run(async () => {
+      setSyncError(null);
+      try {
+        await start();
+      } catch (e: unknown) {
+        // 409: a read is already running; just follow it.
+        if (!(e instanceof ApiError && e.status === 409)) {
+          throw e;
+        }
+      }
+      setStatus(await getMailStatus());
+      return "Checking the mailbox…";
+    });
+
+  const reread = () => {
+    if (window.confirm(REREAD_CONFIRM)) {
+      void startRead(startMailReread);
+    }
+  };
+
   const toggle = (id: string) =>
     setSelected((prev) => {
       const next = new Set(prev);
@@ -136,26 +168,22 @@ export function MailScreen({ dataVersion = 0 }: { dataVersion?: number }) {
           />
         </label>
         <button
+          class="btn"
+          type="button"
+          disabled={busy || !status?.configured || syncing}
+          title={status?.configured ? "Forget which mails were read and read the mailbox again" : "Set up IMAP first (docs/deployment.md)"}
+          onClick={reread}
+        >
+          <Icon name="history" />
+          Re-read mail
+        </button>
+        <button
           class={`btn primary${syncing ? " is-refreshing" : ""}`}
           type="button"
           disabled={busy || !status?.configured || syncing}
           title={status?.configured ? undefined : "Set up IMAP first (docs/deployment.md)"}
           aria-busy={syncing}
-          onClick={() =>
-            run(async () => {
-              setSyncError(null);
-              try {
-                await startMailSync();
-              } catch (e: unknown) {
-                // 409: a read is already running; just follow it.
-                if (!(e instanceof ApiError && e.status === 409)) {
-                  throw e;
-                }
-              }
-              setStatus(await getMailStatus());
-              return "Checking the mailbox…";
-            })
-          }
+          onClick={() => void startRead(startMailSync)}
         >
           <Icon name="refresh" spin={syncing} />
           {syncing ? "Checking…" : "Check mail now"}

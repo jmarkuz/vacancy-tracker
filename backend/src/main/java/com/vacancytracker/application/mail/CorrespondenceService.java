@@ -36,6 +36,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataAccessException;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -117,6 +118,21 @@ public class CorrespondenceService {
      * shows lastResult.
      */
     public SyncStart startSync() {
+        return start(false);
+    }
+
+    /**
+     * Like {@link #startSync()}, but first forgets which messages the mail tracker has handled, so the read offers
+     * every message of the window again. Stored mail is kept (a digest stored earlier gets its postings; a mail the
+     * owner deleted comes back); it is never duplicated, because a mail is stored once per Message-ID. The forgetting
+     * happens inside the background run, after the one-at-a-time flag is held, so a read that is already running is
+     * never disturbed.
+     */
+    public SyncStart startReread() {
+        return start(true);
+    }
+
+    private SyncStart start(boolean reread) {
         if (!reader.isConfigured()) {
             return new SyncStart(false, "The mailbox is not set up");
         }
@@ -126,7 +142,9 @@ public class CorrespondenceService {
         try {
             syncExecutor.submit(() -> {
                 try {
-                    syncHoldingFlag();
+                    if (!reread || forgetHandled()) {
+                        syncHoldingFlag();
+                    }
                 } finally {
                     syncing.set(false);
                 }
@@ -162,6 +180,19 @@ public class CorrespondenceService {
             return syncHoldingFlag();
         } finally {
             syncing.set(false);
+        }
+    }
+
+    /** Forgets the mail tracker's handled marks; when the database refuses, the result says so and no read follows. */
+    private boolean forgetHandled() {
+        try {
+            LOG.info("Mail: re-reading the window, {} handled marks forgotten", reader.forgetProcessed(KEY_PREFIX));
+            return true;
+        } catch (DataAccessException e) {
+            LOG.warn("Mail: could not forget the handled marks: {}", e.toString());
+            lastError = "Could not start the re-read: the database did not answer.";
+            lastResult = new SyncResult(true, 0, 0, 0, 0, lastError);
+            return false;
         }
     }
 

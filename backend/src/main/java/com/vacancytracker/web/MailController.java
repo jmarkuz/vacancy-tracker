@@ -50,6 +50,16 @@ public class MailController {
         return ResponseEntity.status(start.started() ? HttpStatus.ACCEPTED : HttpStatus.CONFLICT).body(start);
     }
 
+    /**
+     * Forgets which mails were handled and reads the mailbox again in the background (same answers as sync/start).
+     * Stored mail is kept and gets what newer versions read from it, such as the postings of a digest.
+     */
+    @PostMapping("/api/mail/reread")
+    public ResponseEntity<CorrespondenceService.SyncStart> reread() {
+        CorrespondenceService.SyncStart start = mail.startReread();
+        return ResponseEntity.status(start.started() ? HttpStatus.ACCEPTED : HttpStatus.CONFLICT).body(start);
+    }
+
     @PostMapping("/api/mail/sync")
     public CorrespondenceService.SyncResult sync() {
         return mail.sync();

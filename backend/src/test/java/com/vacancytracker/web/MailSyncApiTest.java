@@ -36,4 +36,12 @@ class MailSyncApiTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.syncing").value(false))
                 .andExpect(jsonPath("$.lastResult").doesNotExist());
     }
+
+    @Test
+    void aRereadWithoutAMailboxIsRefusedWithTheReason() throws Exception {
+        mvc.perform(post("/api/mail/reread"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.started").value(false))
+                .andExpect(jsonPath("$.reason").value("The mailbox is not set up"));
+    }
 }

@@ -5,6 +5,7 @@ All notable changes are recorded here. Format: date, task ID, short description.
 ## [Unreleased]
 
 ### 2026-11-05 — Owner requests
+- Re-read mail. A button on the Mail screen (and `POST /api/mail/reread`) forgets which mails the mail tracker has handled and reads the mailbox again in the background, within the usual window (`APP_MAIL_IMAP_MAX_AGE_DAYS`). Stored mail is kept and never duplicated; a digest stored earlier gets its vacancy list; a mail the owner deleted comes back. It asks first, never disturbs a read that is running, and does not touch the alert sources' own handled marks (only keys starting with `reply:`).
 - Mail redesign and digests. A job alert that lists several vacancies (LinkedIn, in any language) is stored with its postings read out of the mail (`correspondence.jobs`, V25) and the Mail screen lists them one by one: title, company and place, with a link to the posting; a digest stored earlier gets its postings when the same mail is seen or imported again. Other mail shows its text as paragraphs, folded to about four lines with Show more. One family of controls on the screen (pill buttons with icons, the same fields, a toggle for Only suggestions), and a mailbox card that shows a moving bar and turning arrows while the mail is being read. Tests: CorrespondenceDigestTest, MailDigestApiTest, and the Mail components.
 
 ### 2026-11-03 — Owner requests
