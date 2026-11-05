@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { ApiError } from "../api/client";
 import { deleteMail, deleteOldMail, getMailStatus, importEml, listMail, type Mail, type MailStatus, startMailSync } from "../api/mail";
+import { Icon } from "../components/Icon";
 import { MailList } from "../components/MailList";
 import { Toast } from "../components/Toast";
 import { SYNC_POLL_MS, syncSummary } from "../domain/mail";
@@ -103,41 +104,18 @@ export function MailScreen({ dataVersion = 0 }: { dataVersion?: number }) {
     run(async () => `Deleted ${(await deleteOldMail(days)).deleted} mails older than ${days} days.`);
   };
 
+  const syncing = !!status?.syncing;
   return (
-    <section aria-labelledby="mail-title" class="stack">
+    <section aria-labelledby="mail-title" class="stack mail-screen">
       <div class="toolbar">
         <h1 id="mail-title">Mail</h1>
         <span class="grow" />
-        {status && status.pending > 0 && <span class="muted small num">{status.pending} to decide</span>}
-        <label class="inline small">
-          <input type="checkbox" checked={pendingOnly} onChange={(e) => setPendingOnly((e.target as HTMLInputElement).checked)} /> Only
-          suggestions
-        </label>
-        <button
-          class="btn"
-          type="button"
-          disabled={busy || !status?.configured || status.syncing}
-          title={status?.configured ? undefined : "Set up IMAP first (docs/deployment.md)"}
-          aria-busy={status?.syncing}
-          onClick={() =>
-            run(async () => {
-              setSyncError(null);
-              try {
-                await startMailSync();
-              } catch (e: unknown) {
-                // 409: a read is already running; just follow it.
-                if (!(e instanceof ApiError && e.status === 409)) {
-                  throw e;
-                }
-              }
-              setStatus(await getMailStatus());
-              return "Checking the mailbox…";
-            })
-          }
-        >
-          {status?.syncing ? "Checking…" : "Check mail now"}
+        {status && status.pending > 0 && <span class="badge num">{status.pending} to decide</span>}
+        <button class="chip" type="button" aria-pressed={pendingOnly} onClick={() => setPendingOnly((v) => !v)}>
+          Only suggestions
         </button>
-        <label class="btn ghost file-button">
+        <label class="btn file-button">
+          <Icon name="upload" />
           Import .eml
           <input
             class="sr-only"
@@ -157,6 +135,31 @@ export function MailScreen({ dataVersion = 0 }: { dataVersion?: number }) {
             }}
           />
         </label>
+        <button
+          class={`btn primary${syncing ? " is-refreshing" : ""}`}
+          type="button"
+          disabled={busy || !status?.configured || syncing}
+          title={status?.configured ? undefined : "Set up IMAP first (docs/deployment.md)"}
+          aria-busy={syncing}
+          onClick={() =>
+            run(async () => {
+              setSyncError(null);
+              try {
+                await startMailSync();
+              } catch (e: unknown) {
+                // 409: a read is already running; just follow it.
+                if (!(e instanceof ApiError && e.status === 409)) {
+                  throw e;
+                }
+              }
+              setStatus(await getMailStatus());
+              return "Checking the mailbox…";
+            })
+          }
+        >
+          <Icon name="refresh" spin={syncing} />
+          {syncing ? "Checking…" : "Check mail now"}
+        </button>
       </div>
 
       {status && !status.configured && (
@@ -166,11 +169,20 @@ export function MailScreen({ dataVersion = 0 }: { dataVersion?: number }) {
         </div>
       )}
       {status?.configured && (
-        <p class="muted small">
-          Reading {status.folders.join(", ")} every 15 minutes, read-only. Only job mail is kept.
-          {status.lastSync && <> Last check {formatDate(status.lastSync)}.</>}
-          {status.lastError && <> Last error: {status.lastError}</>}
-        </p>
+        <div class={`sync-card${syncing ? " is-syncing" : ""}`} role="status" aria-live="polite">
+          <span class="sync-icon" aria-hidden="true">
+            <Icon name={syncing ? "refresh" : "mail"} spin={syncing} />
+          </span>
+          <div class="sync-text">
+            <strong>{syncing ? "Checking the mailbox…" : "Mailbox connected"}</strong>
+            <span class="muted">
+              Reading {status.folders.join(", ")} every 15 minutes, read-only. Only job mail is kept.
+              {status.lastSync && <> Last check {formatDate(status.lastSync)}.</>}
+              {status.lastError && <> Last error: {status.lastError}</>}
+            </span>
+          </div>
+          {syncing && <span class="sync-bar" aria-hidden="true" />}
+        </div>
       )}
       {(error ?? syncError) && (
         <div class="notice error" role="alert">
@@ -179,34 +191,41 @@ export function MailScreen({ dataVersion = 0 }: { dataVersion?: number }) {
       )}
 
       {items.length > 0 && (
-        <div class="toolbar">
-          <button
-            class="btn ghost"
-            type="button"
-            disabled={busy}
-            onClick={() => setSelected(selected.size === items.length ? new Set() : new Set(items.map((m) => m.id)))}
-          >
-            {selected.size === items.length ? "Clear selection" : "Select all"}
-          </button>
-          <button class="btn" type="button" disabled={busy || selected.size === 0} onClick={removeSelected}>
-            Delete selected{selected.size > 0 ? ` (${selected.size})` : ""}
-          </button>
-          <span class="grow" />
-          <label class="inline small">
-            Older than
-            <input
-              type="number"
-              min={1}
-              value={olderDays}
-              aria-label="Days"
-              style="width: 5rem"
-              onInput={(e) => setOlderDays(Number((e.target as HTMLInputElement).value))}
-            />
-            days
-          </label>
-          <button class="btn" type="button" disabled={busy || !(olderDays >= 1)} onClick={removeOld}>
-            Delete old
-          </button>
+        <div class="mail-tools">
+          <div class="mail-tools-group">
+            <button
+              class="btn"
+              type="button"
+              disabled={busy}
+              onClick={() => setSelected(selected.size === items.length ? new Set() : new Set(items.map((m) => m.id)))}
+            >
+              <Icon name="check" />
+              {selected.size === items.length ? "Clear selection" : "Select all"}
+            </button>
+            <button class="btn" type="button" disabled={busy || selected.size === 0} onClick={removeSelected}>
+              <Icon name="trash" />
+              Delete selected{selected.size > 0 ? ` (${selected.size})` : ""}
+            </button>
+          </div>
+          <div class="mail-tools-group">
+            <label class="mail-older">
+              <span class="muted">Older than</span>
+              <input
+                class="input"
+                type="number"
+                min={1}
+                inputMode="numeric"
+                value={olderDays}
+                aria-label="Days"
+                onInput={(e) => setOlderDays(Number((e.target as HTMLInputElement).value))}
+              />
+              <span class="muted">days</span>
+            </label>
+            <button class="btn" type="button" disabled={busy || !(olderDays >= 1)} onClick={removeOld}>
+              <Icon name="trash" />
+              Delete old
+            </button>
+          </div>
         </div>
       )}
 

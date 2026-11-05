@@ -1248,3 +1248,336 @@ tbody tr:hover {
 .drawer-body p {
   margin: 0;
 }
+
+/* ---------- Mail ----------
+   One family: pill buttons with an icon, fields like every other field, cards with a clear head (kind, date), a
+   subject, the sender, then the body. A digest mail lists its vacancies one by one. */
+.mail-screen {
+  gap: var(--space-4);
+}
+
+.mail-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-5);
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width) solid var(--color-hairline);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+}
+
+.mail-tools-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.mail-older {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+}
+
+.mail-older .input {
+  width: 4.5rem;
+  min-height: var(--control-height);
+  padding: var(--space-1) var(--space-3);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The state of the mailbox: quiet when idle, alive while it is being read. */
+.sync-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  overflow: hidden;
+  border: var(--border-width) solid var(--color-hairline);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  transition: border-color var(--duration-base) var(--ease-out);
+}
+
+.sync-card.is-syncing {
+  border-color: var(--color-border-strong);
+}
+
+.sync-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: var(--color-bg-muted);
+  font-size: 1.1rem;
+}
+
+.sync-card.is-syncing .sync-icon {
+  background: var(--color-ink);
+  color: var(--color-on-ink);
+}
+
+.sync-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.45;
+}
+
+.sync-text strong {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+}
+
+.sync-bar {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--color-ink) 10%, transparent);
+}
+
+.sync-bar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 35%;
+  border-radius: 3px;
+  background: var(--color-ink);
+  animation: sync-slide 1.3s var(--ease-out) infinite;
+}
+
+@keyframes sync-slide {
+  from {
+    left: -35%;
+  }
+
+  to {
+    left: 100%;
+  }
+}
+
+.mail-list {
+  gap: var(--space-3);
+}
+
+.mail-item {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+}
+
+.mail-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.mail-head input[type="checkbox"] {
+  flex: none;
+}
+
+.mail-date {
+  margin-left: auto;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}
+
+.mail-category {
+  flex: none;
+  font-size: var(--font-size-sm);
+}
+
+.cat-digest {
+  color: var(--color-info);
+}
+
+.mail-subject {
+  display: block;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.mail-from {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.mail-body {
+  display: grid;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+}
+
+.mail-text {
+  display: grid;
+  gap: var(--space-2);
+  color: var(--color-text);
+  font-size: var(--font-size-md);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.mail-text p {
+  margin: 0;
+}
+
+/* A long text is folded to about four lines and fades out. */
+.mail-text.folded {
+  max-height: 6.4em;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent);
+  mask-image: linear-gradient(180deg, #000 55%, transparent);
+}
+
+.mail-more,
+.digest-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.mail-more {
+  justify-self: start;
+  padding: var(--space-1) 0;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.mail-more[aria-expanded="true"] .icon {
+  transform: rotate(180deg);
+}
+
+/* The vacancies of a digest. */
+.digest {
+  display: grid;
+  margin-top: var(--space-1);
+}
+
+.digest-heading {
+  margin: 0 0 var(--space-1);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-label);
+  letter-spacing: var(--letter-spacing-label);
+  text-transform: uppercase;
+}
+
+.digest-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.digest-job {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) 0;
+  border-top: var(--border-width) solid var(--color-hairline);
+}
+
+.digest-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.digest-title {
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.digest-meta {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.digest-link {
+  flex: none;
+  padding: var(--space-1) var(--space-4);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+  transition: background var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out);
+}
+
+.digest-link:hover {
+  border-color: var(--color-text);
+  background: var(--color-bg-muted);
+}
+
+.mail-link {
+  margin: 0;
+}
+
+.mail-actions,
+.mail-suggestion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.mail-actions select.input {
+  min-height: var(--control-height);
+  padding: var(--space-1) var(--space-3);
+}
+
+.mail-suggestion {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg, var(--radius-md));
+  background: var(--color-bg-muted);
+}
+
+.mail-suggestion-text {
+  margin-right: auto;
+  font-weight: var(--font-weight-semibold);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sync-bar::after {
+    left: 0;
+    width: 100%;
+    opacity: 0.4;
+    animation: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .mail-tools,
+  .mail-tools-group {
+    width: 100%;
+  }
+
+  .digest-job {
+    align-items: flex-start;
+  }
+}
