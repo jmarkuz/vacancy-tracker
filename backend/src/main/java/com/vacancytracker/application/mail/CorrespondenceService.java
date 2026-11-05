@@ -20,6 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -81,7 +82,8 @@ public class CorrespondenceService {
 
     /** syncing is true while a read of the mailbox runs; lastResult is what the last one did (null before the first). */
     public record Status(boolean configured, List<String> folders, long pending, Instant lastSync, String lastError,
-                         boolean syncing, SyncResult lastResult) {
+                         boolean syncing, SyncResult lastResult, int intervalMinutes,
+                         Instant nextCheck) {
     }
 
     /** started is false when a read was already running or the mailbox is not set up. */
@@ -94,6 +96,7 @@ public class CorrespondenceService {
     private final VacancyService vacancies;
     private final Clock clock;
     private final List<String> folders;
+    private final MailSettings settings;
     private volatile Instant lastSync;
     private volatile String lastError;
     private volatile SyncResult lastResult;
@@ -105,17 +108,30 @@ public class CorrespondenceService {
     });
 
     public CorrespondenceService(ImapMailReader reader, MailParsers parsers, CorrespondenceRepository repository, VacancyService vacancies,
-                                 Clock clock, @Value("${app.mail.replies.folders:INBOX}") String folders) {
+                                 Clock clock, @Value("${app.mail.replies.folders:INBOX}") String folders, MailSettings settings) {
         this.reader = reader;
         this.parsers = parsers;
         this.repository = repository;
         this.vacancies = vacancies;
         this.clock = clock;
+        this.settings = settings;
         this.folders = Arrays.stream(folders.split(",")).map(String::strip).filter(f -> !f.isEmpty()).toList();
     }
 
     public Status status() {
-        return new Status(reader.isConfigured(), folders, repository.pendingCount(), lastSync, lastError, syncing.get(), lastResult);
+        boolean configured = reader.isConfigured();
+        int minutes = settings.intervalMinutes();
+        Instant next = configured && lastSync != null ? lastSync.plus(Duration.ofMinutes(minutes)) : null;
+        return new Status(configured, folders, repository.pendingCount(), lastSync, lastError, syncing.get(), lastResult, minutes, next);
+    }
+
+    public int intervalMinutes() {
+        return settings.intervalMinutes();
+    }
+
+    /** Sets how often the mailbox is read; only the steps in {@link MailSettings#ALLOWED_MINUTES} are accepted. */
+    public int setIntervalMinutes(int minutes) {
+        return settings.setIntervalMinutes(minutes);
     }
 
     /**
@@ -167,10 +183,18 @@ public class CorrespondenceService {
         syncExecutor.shutdownNow();
     }
 
-    @Scheduled(initialDelayString = "${app.mail.replies.initial-delay:PT1M}", fixedDelayString = "${app.mail.replies.interval:PT15M}")
+    /** Ticks every minute and reads the mailbox when the chosen interval has passed since the last read (or none ran yet). */
+    @Scheduled(initialDelayString = "${app.mail.replies.initial-delay:PT1M}", fixedDelayString = "${app.mail.replies.tick:PT1M}")
     void scheduledSync() {
-        if (reader.isConfigured()) {
-            sync();
+        if (!reader.isConfigured()) {
+            return;
+        }
+        try {
+            if (MailSettings.due(lastSync, settings.interval(), clock.instant())) {
+                sync();
+            }
+        } catch (DataAccessException e) {
+            LOG.warn("Mail: could not read the interval setting: {}", e.toString());
         }
     }
 
@@ -355,7 +379,7 @@ public class CorrespondenceService {
         if (days < 1) {
             throw new IllegalArgumentException("days must be at least 1");
         }
-        return repository.deleteBefore(clock.instant().minus(java.time.Duration.ofDays(days)));
+        return repository.deleteBefore(clock.instant().minus(Duration.ofDays(days)));
     }
 
     public Correspondence get(UUID id) {

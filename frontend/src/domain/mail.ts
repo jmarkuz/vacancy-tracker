@@ -66,3 +66,30 @@ export function deleteConfirmText(count: number, olderDays: number | null): { ti
 /** The toast while a delete waits for its Undo. */
 export const deletingText = (count: number, olderDays: number | null): string =>
   olderDays === null ? `Deleting ${mails(count)}…` : count > 0 ? `Deleting ${mails(count)} older than ${olderDays} days…` : `Deleting mails older than ${olderDays} days…`;
+/** The steps of the "how often" slider, in minutes: the slider moves over their indexes. */
+export const SYNC_INTERVAL_STEPS = [5, 10, 15, 30, 45, 60] as const;
+
+/** The default of the server, shown until the status says otherwise. */
+export const DEFAULT_SYNC_MINUTES = 15;
+
+/** Index of a number of minutes among the steps; an unknown value goes to the nearest step. */
+export function intervalStepIndex(minutes: number): number {
+  let best = 0;
+  SYNC_INTERVAL_STEPS.forEach((m, i) => {
+    if (Math.abs(m - minutes) < Math.abs(SYNC_INTERVAL_STEPS[best] - minutes)) {
+      best = i;
+    }
+  });
+  return best;
+}
+
+/** "every 15 minutes", "every hour". */
+export const intervalPhrase = (minutes: number): string => (minutes === 60 ? "every hour" : `every ${minutes} minutes`);
+
+/** Label under the slider: the bare number of minutes ("5", "60"); the slider's own label says "minutes". */
+export const intervalTick = (minutes: number): string => String(minutes);
+
+/** "10:45 AM" (in the viewer's locale) for the next check. */
+export function formatClock(iso: string): string {
+  return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}

@@ -38,7 +38,17 @@ const mail = (id: string, receivedAt = "2026-11-19T10:00:00Z"): Mail => ({
   createdAt: receivedAt,
   jobs: [],
 });
-const status: MailStatus = { configured: true, folders: ["INBOX"], pending: 0, lastSync: null, lastError: null, syncing: false, lastResult: null };
+const status: MailStatus = {
+  configured: true,
+  folders: ["INBOX"],
+  pending: 0,
+  lastSync: null,
+  lastError: null,
+  syncing: false,
+  lastResult: null,
+  intervalMinutes: 15,
+  nextCheck: null,
+};
 
 let host: HTMLElement;
 
