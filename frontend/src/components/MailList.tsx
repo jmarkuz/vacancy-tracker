@@ -11,7 +11,7 @@ import {
   relinkMail,
   suggestionText,
 } from "../api/mail";
-import { bodyParagraphs, digestHeading, jobMeta, safeHref } from "../domain/mail";
+import { bodyParagraphs, digestHeading, jobMeta, MAIL_REST_NOTE, safeHref, textWasCut } from "../domain/mail";
 import { formatDate } from "../screens/columns";
 import { Icon } from "./Icon";
 
@@ -66,6 +66,7 @@ function MailBody({ text }: { text: string }) {
           <p key={i}>{p}</p>
         ))}
       </div>
+      {open && textWasCut(text) && <p class="mail-rest muted">{MAIL_REST_NOTE}</p>}
       {long && (
         <button class="mail-more" type="button" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
           {open ? "Show less" : "Show more"}
