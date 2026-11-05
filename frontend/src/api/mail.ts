@@ -73,7 +73,16 @@ export const categoryLabel = (m: Mail): string => (isDigest(m) ? "Job alert" : (
 
 export const getMailStatus = (signal?: AbortSignal) => getJson<MailStatus>("/api/mail/status", signal);
 
-export const listMail = (opts: { vacancyId?: string; pending?: boolean } = {}, signal?: AbortSignal) => {
+export interface MailQuery {
+  vacancyId?: string;
+  pending?: boolean;
+  /** Kinds of mail (job_alert, interview, offer, rejection, test_task, recruiter_message, other); none = all. */
+  categories?: string[];
+  linked?: boolean;
+  q?: string;
+}
+
+function mailQuery(opts: MailQuery, withCategories: boolean): string {
   const query = new URLSearchParams();
   if (opts.vacancyId) {
     query.set("vacancyId", opts.vacancyId);
@@ -81,8 +90,28 @@ export const listMail = (opts: { vacancyId?: string; pending?: boolean } = {}, s
   if (opts.pending) {
     query.set("pending", "true");
   }
-  return getJson<Mail[]>(`/api/mail${query.toString() ? `?${query}` : ""}`, signal);
-};
+  if (withCategories && opts.categories && opts.categories.length > 0) {
+    query.set("category", opts.categories.join(","));
+  }
+  if (opts.linked !== undefined) {
+    query.set("linked", String(opts.linked));
+  }
+  if (opts.q?.trim()) {
+    query.set("q", opts.q.trim());
+  }
+  return query.toString() ? `?${query}` : "";
+}
+
+export const listMail = (opts: MailQuery = {}, signal?: AbortSignal) => getJson<Mail[]>(`/api/mail${mailQuery(opts, true)}`, signal);
+
+/** How many mails each kind holds under the other filters (the chosen categories are ignored), and their sum. */
+export interface MailCounts {
+  total: number;
+  categories: Record<string, number>;
+}
+
+export const getMailCounts = (opts: MailQuery = {}, signal?: AbortSignal) =>
+  getJson<MailCounts>(`/api/mail/counts${mailQuery(opts, false)}`, signal);
 
 /** Saves how often the mailbox is read; the server accepts only 5, 10, 15, 30, 45 and 60. */
 export const setMailInterval = (intervalMinutes: number) =>

@@ -24,7 +24,8 @@ export type IconName =
   | "external"
   | "link"
   | "chevron-down"
-  | "history";
+  | "history"
+  | "search";
 
 const SHAPES: Record<IconName, JSX.Element> = {
   mail: (
@@ -52,6 +53,12 @@ const SHAPES: Record<IconName, JSX.Element> = {
     </>
   ),
   "chevron-down": <path d="M6 9l6 6 6-6" />,
+  search: (
+    <>
+      <circle cx="11" cy="11" r="6.5" />
+      <path d="M16 16l4.5 4.5" />
+    </>
+  ),
   history: (
     <>
       <path d="M3 12a9 9 0 1 0 3-6.7" />
