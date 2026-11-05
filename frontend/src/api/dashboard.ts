@@ -51,3 +51,24 @@ export interface Dashboard {
 }
 
 export const getDashboard = (signal?: AbortSignal) => getJson<Dashboard>("/api/dashboard", signal);
+
+/** Linked mails of the applications in the period, by outcome. */
+export interface ReplyOutcomes {
+  interview: number;
+  testTask: number;
+  offer: number;
+  rejection: number;
+  other: number;
+}
+
+/** Of the applications sent in the last `days` days: how many got a mail, how fast, and what the mails were. */
+export interface Replies {
+  days: number;
+  applied: number;
+  replied: number;
+  /** Median days from Applied to the first mail; null when no application has a reply. */
+  medianDays: number | null;
+  outcomes: ReplyOutcomes;
+}
+
+export const getReplies = (days: number, signal?: AbortSignal) => getJson<Replies>(`/api/dashboard/replies?days=${days}`, signal);

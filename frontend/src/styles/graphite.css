@@ -1897,3 +1897,85 @@ tbody tr:hover {
     flex-direction: column;
   }
 }
+
+/* An interview or deadline date read from a mail: the line and its two actions. */
+.mail-event {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.mail-event-when {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.mail-event-when .muted {
+  font-weight: 400;
+  white-space: pre;
+}
+
+.mail-event-done {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+  color: var(--color-success, var(--color-text-muted));
+}
+
+.mail-event-error {
+  flex-basis: 100%;
+  font-size: var(--font-size-sm);
+  color: var(--color-danger, #b3261e);
+
+/* ---------- Dashboard: Replies card ---------- */
+
+.replies-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.replies-head h2 {
+  margin: 0;
+}
+
+.replies-periods {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.replies-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-4) 0;
+}
+
+.replies-stats dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.replies-stats dd {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.replies-outcomes {
+  width: 100%;
+}
+
+.replies-outcomes th.num,
+.replies-outcomes td.num {
+  text-align: right;
+}
