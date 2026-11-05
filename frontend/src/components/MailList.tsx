@@ -1,4 +1,4 @@
-import { useRef, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { ApiError } from "../api/client";
 import {
   acceptSuggestion,
@@ -13,6 +13,8 @@ import {
   suggestionText,
 } from "../api/mail";
 import { bodyParagraphs, digestHeading, jobMeta, MAIL_REST_NOTE, safeHref, textWasCut } from "../domain/mail";
+import { mailKeyFromEvent } from "../domain/mailKeys";
+import { moveSelection, selectionAfterRemoval } from "../domain/triage";
 import { formatDate } from "../screens/columns";
 import { Icon } from "./Icon";
 
@@ -25,6 +27,8 @@ interface Props {
   /** With these, each mail gets a checkbox (the Mail screen deletes the chosen ones). */
   selected?: ReadonlySet<string>;
   onToggle?: (id: string) => void;
+  /** Turns on the keyboard (J/K, X, A, D, L, O, Enter): the Mail screen does, the drawer does not. */
+  keyboard?: boolean;
 }
 
 /**
@@ -115,8 +119,7 @@ function DigestJobs({ mailId, jobs }: { mailId: string; jobs: Mail["jobs"] }) {
 }
 
 /** The start of a mail's text as paragraphs; a long one is folded to a few lines with a button to unfold it. */
-function MailBody({ text }: { text: string }) {
-  const [open, setOpen] = useState(false);
+function MailBody({ text, open, onToggle }: { text: string; open: boolean; onToggle: () => void }) {
   const { paragraphs, long } = bodyParagraphs(text);
   return (
     <div class="mail-body">
@@ -127,7 +130,7 @@ function MailBody({ text }: { text: string }) {
       </div>
       {open && textWasCut(text) && <p class="mail-rest muted">{MAIL_REST_NOTE}</p>}
       {long && (
-        <button class="mail-more" type="button" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        <button class="mail-more" type="button" aria-expanded={open} onClick={onToggle}>
           {open ? "Show less" : "Show more"}
           <Icon name="chevron-down" />
         </button>
@@ -137,7 +140,7 @@ function MailBody({ text }: { text: string }) {
 }
 
 /** Job mail with its category, the application it belongs to and the suggested status, to accept or dismiss. */
-export function MailList({ items, showVacancyLink = false, onChanged, selected, onToggle }: Props) {
+export function MailList({ items, showVacancyLink = false, onChanged, selected, onToggle, keyboard = false }: Props) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [linking, setLinking] = useState<string | null>(null);
@@ -178,6 +181,17 @@ export function MailList({ items, showVacancyLink = false, onChanged, selected, 
     }
   };
 
+  // The mails whose folded text is unfolded (kept here, so the Enter key can do what the button does).
+  const [unfolded, setUnfolded] = useState<ReadonlySet<string>>(new Set());
+  const toggleUnfolded = (id: string) =>
+    setUnfolded((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(id)) {
+        next.add(id);
+      }
+      return next;
+    });
+
   const act = async (m: Mail, accept: boolean) => {
     setBusy(m.id);
     setError(null);
@@ -196,6 +210,98 @@ export function MailList({ items, showVacancyLink = false, onChanged, selected, 
     }
   };
 
+  // The current mail of the keyboard: remembered by id, so it stays put when the list changes. When it is gone (deleted
+  // or accepted out of a filtered list), the cursor stays at the same place.
+  const [currentId, setCurrentId] = useState<string | null>(null);
+  const lastIndex = useRef(-1);
+  const found = items.findIndex((m) => m.id === currentId);
+  const current = currentId === null ? -1 : found >= 0 ? found : selectionAfterRemoval(lastIndex.current, items.length);
+  lastIndex.current = current;
+  const listRef = useRef<HTMLUListElement>(null);
+  const focusSelect = useRef(false);
+
+  // Registered once and reading a ref, so a key pressed right after another sees what that one did.
+  const live = useRef({ items, current, busy, linking, selected, onToggle, act, startLinking, toggleUnfolded, unfolded, keyboard });
+  live.current = { items, current, busy, linking, selected, onToggle, act, startLinking, toggleUnfolded, unfolded, keyboard };
+
+  const moveTo = (index: number, focus: boolean) => {
+    const m = live.current.items[index];
+    if (!m) {
+      return;
+    }
+    setCurrentId(m.id);
+    const card = listRef.current?.children[index] as HTMLElement | undefined;
+    if (card) {
+      // The focus follows the cursor, so a screen reader reads the new mail.
+      if (focus) {
+        card.focus({ preventScroll: true });
+      }
+      const calm = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      card.scrollIntoView?.({ block: "nearest", behavior: calm ? "auto" : "smooth" });
+    }
+  };
+
+  useEffect(() => {
+    if (!keyboard) {
+      return undefined;
+    }
+    const onKey = (e: KeyboardEvent) => {
+      const action = mailKeyFromEvent(e);
+      const { items: list, current: at, busy: working, linking: openFor, selected: chosen, onToggle: toggleChoice } = live.current;
+      if (!action || action === "help" || action === "escape" || list.length === 0) {
+        return;
+      }
+      if (action === "next" || action === "previous") {
+        e.preventDefault();
+        moveTo(moveSelection(at, action === "next" ? 1 : -1, list.length), true);
+        return;
+      }
+      if (action === "first" || action === "last") {
+        e.preventDefault();
+        moveTo(action === "first" ? 0 : list.length - 1, true);
+        return;
+      }
+      const m = list[at];
+      if (!m) {
+        return;
+      }
+      e.preventDefault();
+      if (action === "toggle-select") {
+        if (chosen && toggleChoice) {
+          toggleChoice(m.id);
+        }
+      } else if (action === "accept" || action === "dismiss") {
+        // Only a mail with a suggestion to decide, and not while another request runs.
+        if (suggestionText(m) && working === null && !e.repeat) {
+          void live.current.act(m, action === "accept");
+        }
+      } else if (action === "link") {
+        if (working === null && openFor !== m.id && !e.repeat) {
+          focusSelect.current = true;
+          void live.current.startLinking(m);
+        }
+      } else if (action === "open-application") {
+        if (m.vacancyId) {
+          window.location.hash = `#/pipeline?open=${encodeURIComponent(m.vacancyId)}`;
+        }
+      } else if (action === "toggle-more") {
+        if (!isDigest(m) && m.snippet && bodyParagraphs(m.snippet).long && !e.repeat) {
+          live.current.toggleUnfolded(m.id);
+        }
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [keyboard]);
+
+  // After L the picker opens and its list loads; the focus goes to it so the choice can be made with the keys.
+  useEffect(() => {
+    if (focusSelect.current && options !== null) {
+      focusSelect.current = false;
+      listRef.current?.querySelector<HTMLSelectElement>("select")?.focus();
+    }
+  }, [options]);
+
   if (items.length === 0) {
     return <p class="muted">No job mail yet.</p>;
   }
@@ -206,9 +312,18 @@ export function MailList({ items, showVacancyLink = false, onChanged, selected, 
           {error}
         </div>
       )}
-      <ul class="mail-list">
-        {items.map((m) => (
-          <li key={m.id} class={`mail-item${m.suggestionState === "pending" ? " pending" : ""}`}>
+      <ul class="mail-list" ref={listRef}>
+        {items.map((m, i) => (
+          <li
+            key={m.id}
+            id={`mail-${m.id}`}
+            class={`mail-item${m.suggestionState === "pending" ? " pending" : ""}${keyboard && i === current ? " is-current" : ""}`}
+            // One tab stop for the list (roving tabindex): the current mail, or the first one before any is chosen.
+            tabIndex={keyboard ? (i === (current < 0 ? 0 : current) ? 0 : -1) : undefined}
+            aria-current={keyboard && i === current ? "true" : undefined}
+            // Tabbing to a button of a mail, or a click on it, makes it the current one.
+            onFocusIn={keyboard ? () => setCurrentId(m.id) : undefined}
+          >
             <div class="mail-head">
               {selected && onToggle && (
                 <input
@@ -226,7 +341,7 @@ export function MailList({ items, showVacancyLink = false, onChanged, selected, 
               {m.senderName ? `${m.senderName} · ` : ""}
               {m.sender}
             </div>
-            {isDigest(m) ? <DigestJobs mailId={m.id} jobs={m.jobs} /> : m.snippet && <MailBody text={m.snippet} />}
+            {isDigest(m) ? <DigestJobs mailId={m.id} jobs={m.jobs} /> : m.snippet && <MailBody text={m.snippet} open={unfolded.has(m.id)} onToggle={() => toggleUnfolded(m.id)} />}
             {m.vacancyId ? (
               <p class="mail-link small">
                 {showVacancyLink && (
@@ -246,6 +361,13 @@ export function MailList({ items, showVacancyLink = false, onChanged, selected, 
                   aria-label="Application for this mail"
                   disabled={busy !== null || options === null}
                   value=""
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") {
+                      e.stopPropagation();
+                      setLinking(null);
+                      document.getElementById(`mail-${m.id}`)?.focus({ preventScroll: true });
+                    }
+                  }}
                   onChange={(e) => {
                     const v = (e.currentTarget as HTMLSelectElement).value;
                     if (v) {
