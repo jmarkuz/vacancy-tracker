@@ -18,6 +18,18 @@ export interface Mail {
   createdAt: string;
   /** The vacancies listed in a digest mail (a job alert with several postings); empty for any other mail. */
   jobs: DigestJob[];
+  /** The date and time of the interview or test-task deadline the mail names; null/absent when it names none. */
+  event?: MailEvent | null;
+}
+
+/**
+ * startsAt is "2026-11-12T13:30:00Z" when the mail named its time zone, and "2026-11-12T14:30:00" (no zone) when it did
+ * not: then it is the owner's local time. text is the part of the mail it was read from.
+ */
+export interface MailEvent {
+  startsAt: string;
+  zoneKnown: boolean;
+  text: string;
 }
 
 /** One posting read out of a digest mail. company, location and url are null when the mail does not show them. */
