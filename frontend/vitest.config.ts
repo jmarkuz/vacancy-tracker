@@ -15,8 +15,9 @@ export default defineConfig({
     environment: "jsdom",
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
     pool: "forks",
-    // The contrast test reads tokens.css as text (?raw); other styles stay out of the tests.
-    css: { include: [/tokens\.css/] },
+    // The style files are read as text (?raw) by the contrast, Liquid Glass and syntax tests; Vitest hands any other CSS
+    // over as an empty string, which would leave those tests with nothing to check. Components do not import CSS.
+    css: { include: [/src\/styles\/.*\.css/] },
     poolOptions: { forks: { execArgv } },
     // `npm run test:coverage` (and CI) fail when coverage drops. The floors sit just under today's numbers and
     // only go up: the pure rules in src/domain are tested almost completely, the screens and components are
