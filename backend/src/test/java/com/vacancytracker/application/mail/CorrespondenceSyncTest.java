@@ -24,7 +24,7 @@ class CorrespondenceSyncTest {
     private final ImapMailReader reader = mock(ImapMailReader.class);
     private final CorrespondenceRepository repository = mock(CorrespondenceRepository.class);
     private final CorrespondenceService service = new CorrespondenceService(reader, mock(MailParsers.class), repository, mock(VacancyService.class),
-            Clock.fixed(Instant.parse("2026-11-03T12:00:00Z"), ZoneOffset.UTC), "INBOX");
+            Clock.fixed(Instant.parse("2026-11-03T12:00:00Z"), ZoneOffset.UTC), "INBOX", mock(MailSettings.class));
 
     @AfterEach
     void stop() {
