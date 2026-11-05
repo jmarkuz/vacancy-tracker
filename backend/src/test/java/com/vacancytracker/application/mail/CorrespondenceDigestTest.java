@@ -37,7 +37,7 @@ class CorrespondenceDigestTest {
     private final CorrespondenceRepository repository = mock(CorrespondenceRepository.class);
     private final CorrespondenceService service = new CorrespondenceService(mock(ImapMailReader.class),
             new MailParsers(List.of(new LinkedInAlertParser())), repository, mock(VacancyService.class),
-            Clock.fixed(Instant.parse("2026-11-05T12:00:00Z"), ZoneOffset.UTC), "INBOX");
+            Clock.fixed(Instant.parse("2026-11-05T12:00:00Z"), ZoneOffset.UTC), "INBOX", mock(MailSettings.class));
 
     @AfterEach
     void stop() {
@@ -97,7 +97,7 @@ class CorrespondenceDigestTest {
         when(broken.accepts(any())).thenReturn(true);
         when(broken.parse(any())).thenThrow(new IllegalStateException("template changed"));
         CorrespondenceService fragile = new CorrespondenceService(mock(ImapMailReader.class), new MailParsers(List.of(broken)), repository,
-                mock(VacancyService.class), Clock.systemUTC(), "INBOX");
+                mock(VacancyService.class), Clock.systemUTC(), "INBOX", mock(MailSettings.class));
         try {
             assertThat(fragile.digestJobs(digest("<d5@x>", LINKEDIN, "<p>x</p>"))).isEmpty();
         } finally {
