@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { CATEGORY_LABEL, type Mail, startMailReread, suggestionText } from "./mail";
+import { CATEGORY_LABEL, type Mail, setMailInterval, startMailReread, suggestionText } from "./mail";
 
 const mail = (patch: Partial<Mail>): Mail => ({
   id: "m",
@@ -43,6 +43,21 @@ describe("startMailReread", () => {
 
     expect((fetchMock.mock.calls[0] as unknown as [string, RequestInit])[0]).toBe("/api/mail/reread");
     expect((fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].method).toBe("POST");
+    vi.unstubAllGlobals();
+  });
+});
+
+describe("setMailInterval", () => {
+  it("puts the minutes to the settings endpoint", async () => {
+    const fetchMock = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ intervalMinutes: 45 }), text: async () => "" }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(setMailInterval(45)).resolves.toEqual({ intervalMinutes: 45 });
+
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("/api/mail/settings");
+    expect(init.method).toBe("PUT");
+    expect(init.body).toBe('{"intervalMinutes":45}');
     vi.unstubAllGlobals();
   });
 });

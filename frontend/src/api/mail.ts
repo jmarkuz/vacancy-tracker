@@ -40,6 +40,10 @@ export interface MailStatus {
   syncing: boolean;
   /** What the last read did; null before the first one. */
   lastResult: SyncResult | null;
+  /** How often the mailbox is read, in minutes (5, 10, 15, 30, 45 or 60). */
+  intervalMinutes: number;
+  /** When the schedule reads next; null before the first read. */
+  nextCheck: string | null;
 }
 
 export interface SyncResult {
@@ -79,6 +83,10 @@ export const listMail = (opts: { vacancyId?: string; pending?: boolean } = {}, s
   }
   return getJson<Mail[]>(`/api/mail${query.toString() ? `?${query}` : ""}`, signal);
 };
+
+/** Saves how often the mailbox is read; the server accepts only 5, 10, 15, 30, 45 and 60. */
+export const setMailInterval = (intervalMinutes: number) =>
+  requestJson<{ intervalMinutes: number }>("PUT", "/api/mail/settings", { intervalMinutes });
 
 export const syncMail = () => requestJson<SyncResult>("POST", "/api/mail/sync");
 

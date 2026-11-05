@@ -332,4 +332,24 @@ describe("MailList: the text of an ordinary mail", () => {
 
     expect(host.querySelector(".mail-body")).toBeNull();
   });
+
+  it("tells under an unfolded cut text that the rest is in the mailbox, and not for a whole text", async () => {
+    await show([mail({ snippet: "line\n".repeat(8) + "last words…" }), mail({ id: "m2", mailKey: "k2", snippet: "line\n".repeat(8) })]);
+    expect(host.querySelector(".mail-rest")).toBeNull();
+
+    const more = host.querySelectorAll<HTMLButtonElement>(".mail-more");
+    await act(async () => {
+      more[0].click();
+      more[1].click();
+    });
+
+    const notes = host.querySelectorAll(".mail-rest");
+    expect(notes).toHaveLength(1);
+    expect(notes[0].textContent).toBe("The rest is in your mailbox.");
+
+    await act(async () => {
+      host.querySelectorAll<HTMLButtonElement>(".mail-more")[0].click();
+    });
+    expect(host.querySelector(".mail-rest")).toBeNull();
+  });
 });

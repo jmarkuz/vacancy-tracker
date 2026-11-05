@@ -2,6 +2,7 @@ package com.vacancytracker.web;
 
 import com.vacancytracker.application.mail.Correspondence;
 import com.vacancytracker.application.mail.CorrespondenceService;
+import com.vacancytracker.application.mail.MailSettings;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.List;
@@ -30,6 +31,23 @@ public class MailController {
     @GetMapping("/api/mail/status")
     public CorrespondenceService.Status status() {
         return mail.status();
+    }
+
+    @GetMapping("/api/mail/settings")
+    public SettingsResponse settings() {
+        return new SettingsResponse(mail.intervalMinutes());
+    }
+
+    /** Sets how often the mailbox is read; 400 for a value that is not one of 5, 10, 15, 30, 45, 60. */
+    @PutMapping("/api/mail/settings")
+    public SettingsResponse updateSettings(@RequestBody SettingsRequest request) {
+        if (request == null || request.intervalMinutes() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Give intervalMinutes.");
+        }
+        if (!MailSettings.ALLOWED_MINUTES.contains(request.intervalMinutes())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The interval must be one of " + MailSettings.ALLOWED_MINUTES + " minutes.");
+        }
+        return new SettingsResponse(mail.setIntervalMinutes(request.intervalMinutes()));
     }
 
     @GetMapping("/api/mail")
@@ -112,6 +130,12 @@ public class MailController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Give a number of days of at least 1.");
         }
         return new DeleteResponse(mail.deleteOlderThan(request.days()));
+    }
+
+    public record SettingsRequest(Integer intervalMinutes) {
+    }
+
+    public record SettingsResponse(int intervalMinutes) {
     }
 
     public record DeleteRequest(List<UUID> ids) {

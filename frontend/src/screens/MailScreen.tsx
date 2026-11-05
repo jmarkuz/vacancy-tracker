@@ -1,21 +1,42 @@
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { ApiError } from "../api/client";
 import {
   deleteMail,
   deleteOldMail,
   getMailStatus,
   importEml,
+  setMailInterval,
   listMail,
   type Mail,
   type MailStatus,
   startMailReread,
   startMailSync,
 } from "../api/mail";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 import { Icon } from "../components/Icon";
 import { MailList } from "../components/MailList";
 import { Toast } from "../components/Toast";
-import { REREAD_CONFIRM, SYNC_POLL_MS, syncSummary } from "../domain/mail";
+import {
+  DEFAULT_SYNC_MINUTES,
+  DELETE_UNDO_MS,
+  deleteConfirmText,
+  deletingText,
+  formatClock,
+  intervalPhrase,
+  intervalStepIndex,
+  intervalTick,
+  olderThan,
+  REREAD_CONFIRM,
+  SYNC_INTERVAL_STEPS,
+  SYNC_POLL_MS,
+  syncSummary,
+} from "../domain/mail";
 import { formatDate } from "./columns";
+
+/** The slider saves this long after the last move, so dragging over several steps sends one request. */
+const INTERVAL_SAVE_DELAY_MS = 400;
+
+const addMinutes = (iso: string, minutes: number): string => new Date(new Date(iso).getTime() + minutes * 60_000).toISOString();
 
 /**
  * Mail (T-086, T-087): employers' answers and other job mail from your mailbox, each linked to its application, with
@@ -34,12 +55,26 @@ export function MailScreen({ dataVersion = 0 }: { dataVersion?: number }) {
   const [reload, setReload] = useState(0);
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const [olderDays, setOlderDays] = useState(14);
+  // A delete the owner is asked about (`days` is set for "Delete old"), and the mails of a confirmed delete that wait
+  // for their Undo: they are hidden from the list at once and come back on Undo or on failure.
+  const [confirming, setConfirming] = useState<{ ids: string[]; days: number | null } | null>(null);
+  const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set());
+  const [undoToast, setUndoToast] = useState<{ message: string; undo: () => void } | null>(null);
+  const pending = useRef<{ timer: ReturnType<typeof setTimeout>; send: () => Promise<void> } | null>(null);
+  const mounted = useRef(true);
+  // Deleted mails stay hidden until the next list no longer has them, so they do not flash back.
+  const released = useRef<string[]>([]);
 
   useEffect(() => {
     const controller = new AbortController();
     Promise.all([listMail({ pending: pendingOnly }, controller.signal), getMailStatus(controller.signal)])
       .then(([list, s]) => {
         setItems(list);
+        if (released.current.length > 0) {
+          const done = released.current;
+          released.current = [];
+          setHidden((prev) => new Set([...prev].filter((id) => !done.includes(id))));
+        }
         // Keep only the choices that are still on the screen.
         setSelected((prev) => new Set(list.filter((m) => prev.has(m.id)).map((m) => m.id)));
         setStatus(s);
@@ -121,22 +156,122 @@ export function MailScreen({ dataVersion = 0 }: { dataVersion?: number }) {
       return next;
     });
 
-  const removeSelected = () => {
-    if (selected.size === 0 || !window.confirm(`Delete ${selected.size} mail${selected.size === 1 ? "" : "s"} from this app? Your mailbox is not touched.`)) {
-      return;
+  /** Sends the waiting delete now (Undo is no longer possible). */
+  const flush = () => {
+    const entry = pending.current;
+    if (entry) {
+      clearTimeout(entry.timer);
+      pending.current = null;
+      void entry.send();
     }
-    run(async () => `Deleted ${(await deleteMail([...selected])).deleted} mails.`);
+  };
+
+  // Leaving the screen must not lose a delete the owner confirmed.
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      flush();
+    };
+  }, []);
+
+  const askDelete = (ids: string[], days: number | null) => {
+    setConfirming({ ids, days });
+  };
+
+  const removeSelected = () => {
+    if (selected.size > 0) {
+      askDelete([...selected], null);
+    }
   };
 
   const removeOld = () => {
     const days = Math.floor(olderDays);
-    if (!(days >= 1) || !window.confirm(`Delete every stored mail older than ${days} days from this app? Your mailbox is not touched.`)) {
-      return;
+    if (days >= 1) {
+      askDelete(olderThan(items, days, Date.now()), days);
     }
-    run(async () => `Deleted ${(await deleteOldMail(days)).deleted} mails older than ${days} days.`);
+  };
+
+  /** The owner confirmed: hide the mails, show Undo, and send the delete after the delay. */
+  const startDelete = ({ ids, days }: { ids: string[]; days: number | null }) => {
+    setConfirming(null);
+    flush();
+    const gone = new Set(ids);
+    setHidden((prev) => new Set([...prev, ...gone]));
+    setSelected((prev) => new Set([...prev].filter((id) => !gone.has(id))));
+    const show = (ids2: string[]) => setHidden((prev) => new Set([...prev].filter((id) => !ids2.includes(id))));
+    const send = async () => {
+      if (mounted.current) {
+        setUndoToast(null);
+      }
+      try {
+        const deleted = (days === null ? await deleteMail(ids) : await deleteOldMail(days)).deleted;
+        if (mounted.current) {
+          setToast(days === null ? `Deleted ${deleted} mails.` : `Deleted ${deleted} mails older than ${days} days.`);
+          released.current = [...released.current, ...ids];
+          setReload((n) => n + 1);
+        }
+      } catch (e: unknown) {
+        if (mounted.current) {
+          show(ids);
+          setError(e instanceof ApiError ? e.message : "That did not work.");
+        }
+      }
+    };
+    pending.current = { timer: setTimeout(() => flush(), DELETE_UNDO_MS), send };
+    setToast(null);
+    setUndoToast({
+      message: deletingText(ids.length, days),
+      undo: () => {
+        if (pending.current) {
+          clearTimeout(pending.current.timer);
+          pending.current = null;
+        }
+        show(ids);
+        setSelected((prev) => new Set([...prev, ...ids]));
+        setUndoToast(null);
+      },
+    });
+  };
+
+  const visible = useMemo(() => items.filter((m) => !hidden.has(m.id)), [items, hidden]);
+  const confirmText = confirming ? deleteConfirmText(confirming.ids.length, confirming.days) : null;
+
+  // The slider shows its own position while the choice is saved, and goes back to the saved one when saving fails.
+  const [pickedStep, setPickedStep] = useState<number | null>(null);
+  const [intervalError, setIntervalError] = useState<string | null>(null);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+    }
+  }, []);
+
+  const pickInterval = (step: number) => {
+    setPickedStep(step);
+    setIntervalError(null);
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+    }
+    saveTimer.current = setTimeout(() => {
+      const minutes = SYNC_INTERVAL_STEPS[step];
+      setMailInterval(minutes)
+        .then((saved) => {
+          setStatus((s) => (s ? { ...s, intervalMinutes: saved.intervalMinutes, nextCheck: s.lastSync ? addMinutes(s.lastSync, saved.intervalMinutes) : null } : s));
+          setPickedStep(null);
+          setToast(`Saved: reading the mailbox ${intervalPhrase(saved.intervalMinutes)}.`);
+        })
+        .catch((e: unknown) => {
+          setPickedStep(null);
+          setIntervalError(e instanceof ApiError ? e.message : "Could not save how often the mailbox is read.");
+        });
+    }, INTERVAL_SAVE_DELAY_MS);
   };
 
   const syncing = !!status?.syncing;
+  const savedMinutes = status?.intervalMinutes ?? DEFAULT_SYNC_MINUTES;
+  const step = pickedStep ?? intervalStepIndex(savedMinutes);
+  const shownMinutes = SYNC_INTERVAL_STEPS[step];
   return (
     <section aria-labelledby="mail-title" class="stack mail-screen">
       <div class="toolbar">
@@ -197,17 +332,39 @@ export function MailScreen({ dataVersion = 0 }: { dataVersion?: number }) {
         </div>
       )}
       {status?.configured && (
-        <div class={`sync-card${syncing ? " is-syncing" : ""}`} role="status" aria-live="polite">
+        <div class={`sync-card${syncing ? " is-syncing" : ""}`}>
           <span class="sync-icon" aria-hidden="true">
             <Icon name={syncing ? "refresh" : "mail"} spin={syncing} />
           </span>
-          <div class="sync-text">
+          <div class="sync-text" role="status" aria-live="polite">
             <strong>{syncing ? "Checking the mailbox…" : "Mailbox connected"}</strong>
             <span class="muted">
-              Reading {status.folders.join(", ")} every 15 minutes, read-only. Only job mail is kept.
+              Reading {status.folders.join(", ")} {intervalPhrase(savedMinutes)}, read-only. Only job mail is kept.
               {status.lastSync && <> Last check {formatDate(status.lastSync)}.</>}
+              {status.nextCheck && !syncing && <> Next check {formatClock(status.nextCheck)}.</>}
               {status.lastError && <> Last error: {status.lastError}</>}
             </span>
+          </div>
+          <div class="sync-interval">
+            <label class="sync-interval-label" for="sync-interval">Read every, minutes</label>
+            <input
+              id="sync-interval"
+              class="slider"
+              type="range"
+              min={0}
+              max={SYNC_INTERVAL_STEPS.length - 1}
+              step={1}
+              value={step}
+              aria-label="How often to read the mailbox"
+              aria-valuetext={intervalPhrase(shownMinutes)}
+              onInput={(e) => pickInterval(Number(e.currentTarget.value))}
+            />
+            <div class="slider-ticks" aria-hidden="true">
+              {SYNC_INTERVAL_STEPS.map((m, i) => (
+                <span key={m} class={i === step ? "is-current" : undefined}>{intervalTick(m)}</span>
+              ))}
+            </div>
+            {intervalError && <p class="sync-interval-error" role="alert">{intervalError}</p>}
           </div>
           {syncing && <span class="sync-bar" aria-hidden="true" />}
         </div>
@@ -218,17 +375,17 @@ export function MailScreen({ dataVersion = 0 }: { dataVersion?: number }) {
         </div>
       )}
 
-      {items.length > 0 && (
+      {visible.length > 0 && (
         <div class="mail-tools">
           <div class="mail-tools-group">
             <button
               class="btn"
               type="button"
               disabled={busy}
-              onClick={() => setSelected(selected.size === items.length ? new Set() : new Set(items.map((m) => m.id)))}
+              onClick={() => setSelected(selected.size === visible.length ? new Set() : new Set(visible.map((m) => m.id)))}
             >
               <Icon name="check" />
-              {selected.size === items.length ? "Clear selection" : "Select all"}
+              {selected.size === visible.length ? "Clear selection" : "Select all"}
             </button>
             <button class="btn" type="button" disabled={busy || selected.size === 0} onClick={removeSelected}>
               <Icon name="trash" />
@@ -257,8 +414,21 @@ export function MailScreen({ dataVersion = 0 }: { dataVersion?: number }) {
         </div>
       )}
 
-      <MailList items={items} showVacancyLink selected={selected} onToggle={toggle} onChanged={(message) => { setToast(message); setReload((n) => n + 1); }} />
-      {toast && <Toast message={toast} tone="info" onDismiss={() => setToast(null)} />}
+      <MailList items={visible} showVacancyLink selected={selected} onToggle={toggle} onChanged={(message) => { setToast(message); setReload((n) => n + 1); }} />
+      {confirming && confirmText && (
+        <ConfirmDialog
+          title={confirmText.title}
+          message={confirmText.body}
+          confirmLabel={confirmText.action}
+          onConfirm={() => startDelete(confirming)}
+          onCancel={() => setConfirming(null)}
+        />
+      )}
+      {undoToast ? (
+        <Toast message={undoToast.message} tone="info" action={{ label: "Undo", onClick: undoToast.undo }} onDismiss={() => setUndoToast(null)} />
+      ) : (
+        toast && <Toast message={toast} tone="info" onDismiss={() => setToast(null)} />
+      )}
     </section>
   );
 }

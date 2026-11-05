@@ -13,12 +13,14 @@ vi.mock("../api/mail", async (importOriginal) => ({
   listMail: vi.fn(),
   startMailSync: vi.fn(),
   startMailReread: vi.fn(),
+  setMailInterval: vi.fn(),
 }));
 
 const getStatus = vi.mocked(mailApi.getMailStatus);
 const listMail = vi.mocked(mailApi.listMail);
 const startSync = vi.mocked(mailApi.startMailSync);
 const startReread = vi.mocked(mailApi.startMailReread);
+const setInterval_ = vi.mocked(mailApi.setMailInterval);
 
 const result = (patch: Partial<SyncResult> = {}): SyncResult => ({ configured: true, seen: 5, stored: 2, linked: 1, suggested: 1, error: null, ...patch });
 const status = (patch: Partial<MailStatus> = {}): MailStatus => ({
@@ -29,6 +31,8 @@ const status = (patch: Partial<MailStatus> = {}): MailStatus => ({
   lastError: null,
   syncing: false,
   lastResult: null,
+  intervalMinutes: 15,
+  nextCheck: null,
   ...patch,
 });
 
@@ -282,5 +286,117 @@ describe("MailScreen: Re-read mail", () => {
 
     expect(rereadButton().className).toBe("btn");
     expect(rereadButton().querySelector('svg.icon[data-icon="history"]')).not.toBeNull();
+  });
+});
+
+describe("MailScreen: how often the mailbox is read", () => {
+  const slider = () => host.querySelector("input.slider") as HTMLInputElement;
+  const move = async (step: number) => {
+    await act(async () => {
+      slider().value = String(step);
+      slider().dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+  };
+
+  it("is a native range over the six steps, set to the saved interval, with a readable value and a label", async () => {
+    getStatus.mockResolvedValue(status({ intervalMinutes: 30 }));
+    await mount();
+
+    expect(slider().type).toBe("range");
+    expect([slider().min, slider().max, slider().step]).toEqual(["0", "5", "1"]);
+    expect(slider().value).toBe("3");
+    expect(slider().getAttribute("aria-valuetext")).toBe("every 30 minutes");
+    expect(slider().getAttribute("aria-label")).toBe("How often to read the mailbox");
+    expect(host.querySelector(".slider-ticks")?.textContent).toBe("51015304560");
+  });
+
+  it("says the real interval in the text and the time of the next check", async () => {
+    const next = new Date(2026, 10, 5, 10, 45).toISOString();
+    getStatus.mockResolvedValue(status({ intervalMinutes: 30, nextCheck: next, lastSync: new Date(2026, 10, 5, 10, 15).toISOString() }));
+    await mount();
+
+    const text = host.querySelector(".sync-text")?.textContent ?? "";
+    expect(text).toContain("Reading INBOX every 30 minutes, read-only.");
+    expect(text).toMatch(/Next check \d{1,2}:45/);
+    expect(text).not.toContain("15 minutes");
+  });
+
+  it("names the hour step and leaves out the next check when none is known", async () => {
+    getStatus.mockResolvedValue(status({ intervalMinutes: 60 }));
+    await mount();
+
+    expect(host.querySelector(".sync-text")?.textContent).toContain("every hour");
+    expect(host.querySelector(".sync-text")?.textContent).not.toContain("Next check");
+    expect(slider().value).toBe("5");
+  });
+
+  it("maps the steps to minutes, saves once after the last move and says it is saved", async () => {
+    getStatus.mockResolvedValue(status());
+    setInterval_.mockResolvedValue({ intervalMinutes: 5 });
+    await mount();
+
+    await act(async () => {
+      slider().value = "4";
+      slider().dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    expect(setInterval_).not.toHaveBeenCalled();
+    await move(0);
+
+    expect(setInterval_).toHaveBeenCalledTimes(1);
+    expect(setInterval_).toHaveBeenCalledWith(5);
+    expect(host.querySelector(".toast")?.textContent).toContain("Saved: reading the mailbox every 5 minutes.");
+    expect(host.querySelector(".sync-text")?.textContent).toContain("every 5 minutes");
+    expect(slider().getAttribute("aria-valuetext")).toBe("every 5 minutes");
+  });
+
+  it.each([
+    [0, 5],
+    [1, 10],
+    [2, 15],
+    [3, 30],
+    [4, 45],
+    [5, 60],
+  ])("step %i is %i minutes", async (step, minutes) => {
+    getStatus.mockResolvedValue(status({ intervalMinutes: step === 2 ? 5 : 15 }));
+    setInterval_.mockResolvedValue({ intervalMinutes: minutes });
+    await mount();
+
+    await move(step);
+
+    expect(setInterval_).toHaveBeenCalledWith(minutes);
+  });
+
+  it("shows the error and goes back to the saved interval when saving fails", async () => {
+    getStatus.mockResolvedValue(status({ intervalMinutes: 15 }));
+    setInterval_.mockRejectedValue(new ApiError(400, "The interval must be one of [5, 10, 15, 30, 45, 60] minutes."));
+    await mount();
+
+    await move(5);
+
+    expect(setInterval_).toHaveBeenCalledWith(60);
+    expect(host.querySelector(".sync-interval-error")?.textContent).toContain("must be one of");
+    expect(slider().value).toBe("2");
+    expect(slider().getAttribute("aria-valuetext")).toBe("every 15 minutes");
+    expect(host.querySelector(".toast")).toBeNull();
+  });
+
+  it("uses a general message when the failure has no text of its own", async () => {
+    getStatus.mockResolvedValue(status());
+    setInterval_.mockRejectedValue(new Error("offline"));
+    await mount();
+
+    await move(1);
+
+    expect(host.querySelector(".sync-interval-error")?.textContent).toBe("Could not save how often the mailbox is read.");
+  });
+
+  it("is not shown without a mailbox", async () => {
+    getStatus.mockResolvedValue(status({ configured: false }));
+    await mount();
+
+    expect(slider()).toBeNull();
   });
 });
