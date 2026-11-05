@@ -483,6 +483,7 @@ Status: Accepted (T-067)
 - Only vacancies first seen in the last `max-age-days` (3) are included, so enabling the digest does not send the whole backlog.
 - The bot token is part of Telegram's request address, so it is never logged: errors show only the exception type or Telegram's own description.
 - The digest runs in its own thread after the run is finished; it never delays or fails a run.
+- Mail suggestions (M8): with `app.notifications.telegram.mail-suggestions=true` (env `APP_NOTIFICATIONS_TELEGRAM_MAIL_SUGGESTIONS`, off by default, same token and chat as above), a mailbox read that stored new mails with a pending status suggestion sends one plain-text message: category, vacancy title, company and the suggested status, offers and interviews first, at most 10 lines then "…and N more". Only mails stored by that read count, so a mail seen again is never announced twice. The mail text is never sent. A failed send is logged without the token and does not affect the read.
 
 **Consequences.** Whoever can read the chat sees the vacancy titles. A vacancy that scores above its threshold only after a later recalculation is announced after the next run. There is no "send a test message" button yet.
 
