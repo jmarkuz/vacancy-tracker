@@ -31,6 +31,7 @@ import {
   SYNC_POLL_MS,
   syncSummary,
 } from "../domain/mail";
+import { MAIL_SHORTCUTS, mailKeyFromEvent } from "../domain/mailKeys";
 import { formatDate } from "./columns";
 
 /** The slider saves this long after the last move, so dragging over several steps sends one request. */
@@ -52,6 +53,7 @@ export function MailScreen({ dataVersion = 0 }: { dataVersion?: number }) {
   // The mailbox's own error from the last read: kept apart from `error`, which every reload of the list clears.
   const [syncError, setSyncError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [reload, setReload] = useState(0);
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const [olderDays, setOlderDays] = useState(14);
@@ -111,6 +113,24 @@ export function MailScreen({ dataVersion = 0 }: { dataVersion?: number }) {
     }, SYNC_POLL_MS);
     return () => clearTimeout(timer);
   }, [status]);
+
+  // ? shows or hides the list of keys, Escape hides it. The other keys belong to the list (MailList).
+  const helpRef = useRef(helpOpen);
+  helpRef.current = helpOpen;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const action = mailKeyFromEvent(e);
+      if (action === "help") {
+        e.preventDefault();
+        setHelpOpen((open) => !open);
+      } else if (action === "escape" && helpRef.current) {
+        e.preventDefault();
+        setHelpOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const run = async (action: () => Promise<string>) => {
     setBusy(true);
@@ -278,6 +298,10 @@ export function MailScreen({ dataVersion = 0 }: { dataVersion?: number }) {
         <h1 id="mail-title">Mail</h1>
         <span class="grow" />
         {status && status.pending > 0 && <span class="badge num">{status.pending} to decide</span>}
+        <button class="btn ghost" type="button" aria-expanded={helpOpen} aria-controls="mail-shortcuts" onClick={() => setHelpOpen((o) => !o)}>
+          <Icon name="keyboard" />
+          Keyboard shortcuts
+        </button>
         <button class="chip" type="button" aria-pressed={pendingOnly} onClick={() => setPendingOnly((v) => !v)}>
           Only suggestions
         </button>
@@ -324,6 +348,26 @@ export function MailScreen({ dataVersion = 0 }: { dataVersion?: number }) {
           {syncing ? "Checking…" : "Check mail now"}
         </button>
       </div>
+
+      {helpOpen && (
+        <div id="mail-shortcuts" class="shortcut-help" role="group" aria-label="Keyboard shortcuts of the Mail tab">
+          <dl>
+            {MAIL_SHORTCUTS.map((row) => (
+              <div key={row.does}>
+                <dt>
+                  {row.keys.map((k) => (
+                    <kbd key={k}>{k}</kbd>
+                  ))}
+                </dt>
+                <dd>{row.does}</dd>
+              </div>
+            ))}
+          </dl>
+          <button class="btn ghost" type="button" onClick={() => setHelpOpen(false)}>
+            Close
+          </button>
+        </div>
+      )}
 
       {status && !status.configured && (
         <div class="notice">
@@ -414,7 +458,7 @@ export function MailScreen({ dataVersion = 0 }: { dataVersion?: number }) {
         </div>
       )}
 
-      <MailList items={visible} showVacancyLink selected={selected} onToggle={toggle} onChanged={(message) => { setToast(message); setReload((n) => n + 1); }} />
+      <MailList items={visible} showVacancyLink keyboard selected={selected} onToggle={toggle} onChanged={(message) => { setToast(message); setReload((n) => n + 1); }} />
       {confirming && confirmText && (
         <ConfirmDialog
           title={confirmText.title}

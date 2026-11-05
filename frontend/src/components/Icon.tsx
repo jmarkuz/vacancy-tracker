@@ -24,7 +24,8 @@ export type IconName =
   | "external"
   | "link"
   | "chevron-down"
-  | "history";
+  | "history"
+  | "keyboard";
 
 const SHAPES: Record<IconName, JSX.Element> = {
   mail: (
@@ -49,6 +50,12 @@ const SHAPES: Record<IconName, JSX.Element> = {
     <>
       <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" />
       <path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
+    </>
+  ),
+  keyboard: (
+    <>
+      <rect x="2.5" y="6" width="19" height="12" rx="2" />
+      <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10" />
     </>
   ),
   "chevron-down": <path d="M6 9l6 6 6-6" />,
