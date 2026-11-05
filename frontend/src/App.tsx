@@ -21,7 +21,7 @@ import { logFailure } from "./api/logFailure";
 import { useScreenAnnouncement } from "./screenFocus";
 import { listProfiles } from "./api/profiles";
 import { wizardSkipped } from "./domain/firstRun";
-import { applyTextSize, applyTheme, nextTheme, readTextSize, readTheme, type Theme } from "./theme";
+import { applyGlass, applyTextSize, applyTheme, nextTheme, readGlass, readTextSize, readTheme, type Theme } from "./theme";
 import { LogoMark } from "./components/LogoMark";
 import { ThemeIcon } from "./components/ThemeIcon";
 
@@ -92,6 +92,8 @@ export function App() {
   useEffect(() => applyTheme(theme), [theme]);
   // The base text size chosen in Settings (18, 20 or 22 px); Settings applies changes itself.
   useEffect(() => applyTextSize(readTextSize()), []);
+  // Glass effects (translucent glass) on or off, as the owner chose in Settings.
+  useEffect(() => applyGlass(readGlass()), []);
 
   // Ctrl/Cmd+K works from anywhere, including inside a text box, and replaces the browser's own binding.
   useEffect(() => {
