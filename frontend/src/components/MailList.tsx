@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { ApiError } from "../api/client";
+import { getVacancy, patchVacancy } from "../api/vacancies";
 import {
   acceptSuggestion,
   addDigestJob,
@@ -12,6 +13,7 @@ import {
   relinkMail,
   suggestionText,
 } from "../api/mail";
+import { buildIcs, downloadFile, eventInstant, formatEventTime, icsFileName } from "../domain/calendar";
 import { bodyParagraphs, digestHeading, jobMeta, MAIL_REST_NOTE, safeHref, textWasCut } from "../domain/mail";
 import { mailKeyFromEvent } from "../domain/mailKeys";
 import { moveSelection, selectionAfterRemoval } from "../domain/triage";
@@ -114,6 +116,92 @@ function DigestJobs({ mailId, jobs }: { mailId: string; jobs: Mail["jobs"] }) {
           );
         })}
       </ul>
+    </div>
+  );
+}
+
+/**
+ * The date and time a mail names (an interview, a call, a test-task deadline): shown as a line with two actions. "Set as
+ * next action" writes it to the linked application; "Add to calendar" downloads an .ics file made in the browser.
+ */
+function EventLine({ mail }: { mail: Mail }) {
+  const event = mail.event;
+  const [state, setState] = useState<"idle" | "saving" | "done">("idle");
+  const [error, setError] = useState<string | null>(null);
+  const when = event ? formatEventTime(event) : null;
+  if (!event || !when) {
+    return null;
+  }
+
+  const setNextAction = async () => {
+    const at = eventInstant(event);
+    if (!mail.vacancyId || !at || state === "saving") {
+      return;
+    }
+    setState("saving");
+    setError(null);
+    try {
+      await patchVacancy(mail.vacancyId, {
+        nextActionAt: at,
+        nextActionNote: `${mail.category === "test_task" ? "Test task" : "Interview"} — from mail`,
+      });
+      setState("done");
+    } catch (e: unknown) {
+      setState("idle");
+      setError(e instanceof ApiError ? e.message : "Could not set the next action.");
+    }
+  };
+
+  const addToCalendar = async () => {
+    setError(null);
+    // The vacancy's title makes the better summary; the mail's subject does when it cannot be read.
+    let title = mail.subject ?? "(no subject)";
+    if (mail.vacancyId) {
+      try {
+        title = (await getVacancy(mail.vacancyId)).title || title;
+      } catch {
+        /* keep the subject */
+      }
+    }
+    const ics = buildIcs({
+      uid: `${mail.id}@vacancy-tracker`,
+      summary: `Interview: ${title}`,
+      description: `From: ${mail.senderName ? `${mail.senderName} <${mail.sender}>` : (mail.sender ?? "unknown")}\nSubject: ${mail.subject ?? "(no subject)"}`,
+      event,
+      now: new Date(),
+    });
+    if (ics) {
+      downloadFile(icsFileName(event), ics);
+    }
+  };
+
+  return (
+    <div class="mail-event">
+      <span class="mail-event-when" title={event.text}>
+        <Icon name="calendar" />
+        <span class="num">{when}</span>
+        {!event.zoneKnown && <span class="muted"> (local time)</span>}
+      </span>
+      {mail.vacancyId &&
+        (state === "done" ? (
+          <span class="mail-event-done" role="status">
+            <Icon name="check" />
+            Next action set
+          </span>
+        ) : (
+          <button class="btn" type="button" disabled={state === "saving"} onClick={() => void setNextAction()}>
+            {state === "saving" ? "Setting…" : "Set as next action"}
+          </button>
+        ))}
+      <button class="btn" type="button" onClick={() => void addToCalendar()}>
+        <Icon name="calendar" />
+        Add to calendar
+      </button>
+      {error && (
+        <span class="mail-event-error" role="alert">
+          {error}
+        </span>
+      )}
     </div>
   );
 }
@@ -341,6 +429,7 @@ export function MailList({ items, showVacancyLink = false, onChanged, selected, 
               {m.senderName ? `${m.senderName} · ` : ""}
               {m.sender}
             </div>
+            <EventLine mail={m} />
             {isDigest(m) ? <DigestJobs mailId={m.id} jobs={m.jobs} /> : m.snippet && <MailBody text={m.snippet} open={unfolded.has(m.id)} onToggle={() => toggleUnfolded(m.id)} />}
             {m.vacancyId ? (
               <p class="mail-link small">
