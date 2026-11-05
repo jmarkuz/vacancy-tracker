@@ -310,7 +310,7 @@ describe("MailScreen: how often the mailbox is read", () => {
     expect(slider().value).toBe("3");
     expect(slider().getAttribute("aria-valuetext")).toBe("every 30 minutes");
     expect(slider().getAttribute("aria-label")).toBe("How often to read the mailbox");
-    expect(host.querySelector(".slider-ticks")?.textContent).toBe("5 min10 min15 min30 min45 min1 h");
+    expect(host.querySelector(".slider-ticks")?.textContent).toBe("51015304560");
   });
 
   it("says the real interval in the text and the time of the next check", async () => {

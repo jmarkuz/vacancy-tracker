@@ -51,8 +51,8 @@ export function intervalStepIndex(minutes: number): number {
 /** "every 15 minutes", "every hour". */
 export const intervalPhrase = (minutes: number): string => (minutes === 60 ? "every hour" : `every ${minutes} minutes`);
 
-/** Label under the slider: "5 min", "1 h". */
-export const intervalTick = (minutes: number): string => (minutes === 60 ? "1 h" : `${minutes} min`);
+/** Label under the slider: the bare number of minutes ("5", "60"); the slider's own label says "minutes". */
+export const intervalTick = (minutes: number): string => String(minutes);
 
 /** "10:45 AM" (in the viewer's locale) for the next check. */
 export function formatClock(iso: string): string {

@@ -64,8 +64,8 @@ describe("the sync interval steps", () => {
   it("are worded for the text, the value and the tick labels", () => {
     expect(intervalPhrase(15)).toBe("every 15 minutes");
     expect(intervalPhrase(60)).toBe("every hour");
-    expect(intervalTick(5)).toBe("5 min");
-    expect(intervalTick(60)).toBe("1 h");
+    expect(intervalTick(5)).toBe("5");
+    expect(intervalTick(60)).toBe("60");
   });
 
   it("show the clock time of the next check", () => {

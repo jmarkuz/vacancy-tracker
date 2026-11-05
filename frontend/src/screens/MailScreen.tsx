@@ -261,7 +261,7 @@ export function MailScreen({ dataVersion = 0 }: { dataVersion?: number }) {
             </span>
           </div>
           <div class="sync-interval">
-            <label class="sync-interval-label" for="sync-interval">How often to read</label>
+            <label class="sync-interval-label" for="sync-interval">Read every, minutes</label>
             <input
               id="sync-interval"
               class="slider"
