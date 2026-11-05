@@ -6,6 +6,7 @@ import com.vacancytracker.collection.mail.MailMessage;
 import com.vacancytracker.collection.mail.MailParsers;
 import com.vacancytracker.collection.mail.ParsedJob;
 import com.vacancytracker.common.CanonicalUrl;
+import com.vacancytracker.common.MailSuggestionsEvent;
 import com.vacancytracker.common.NotFoundException;
 import com.vacancytracker.vacancy.ImportedPosting;
 import com.vacancytracker.vacancy.StatusPath;
@@ -38,7 +39,9 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -100,6 +103,7 @@ public class CorrespondenceService {
     private final Clock clock;
     private final List<String> folders;
     private final MailSettings settings;
+    private ApplicationEventPublisher events;
     private volatile Instant lastSync;
     private volatile String lastError;
     private volatile SyncResult lastResult;
@@ -119,6 +123,12 @@ public class CorrespondenceService {
         this.clock = clock;
         this.settings = settings;
         this.folders = Arrays.stream(folders.split(",")).map(String::strip).filter(f -> !f.isEmpty()).toList();
+    }
+
+    /** Setter injection keeps the constructor as it was; without a publisher (plain unit tests) nothing is announced. */
+    @Autowired(required = false)
+    void setEvents(ApplicationEventPublisher events) {
+        this.events = events;
     }
 
     public Status status() {
@@ -239,6 +249,7 @@ public class CorrespondenceService {
         int stored = 0;
         int linked = 0;
         int suggested = 0;
+        List<MailSuggestionsEvent.Item> pending = new ArrayList<>();
         String error = null;
         for (String folder : folders) {
             List<Outcome> outcomes = new ArrayList<>();
@@ -257,7 +268,11 @@ public class CorrespondenceService {
                 if (o.stored()) {
                     stored++;
                     linked += o.correspondence().vacancyId() == null ? 0 : 1;
-                    suggested += "pending".equals(o.correspondence().suggestionState()) ? 1 : 0;
+                    if ("pending".equals(o.correspondence().suggestionState())) {
+                        suggested++;
+                        pending.add(new MailSuggestionsEvent.Item(o.correspondence().category(), o.correspondence().suggestedStatus(),
+                                o.correspondence().vacancyId(), o.correspondence().subject()));
+                    }
                 }
             }
         }
@@ -268,7 +283,15 @@ public class CorrespondenceService {
         }
         SyncResult result = new SyncResult(true, seen, stored, linked, suggested, error);
         lastResult = result;
+        announce(pending);
         return result;
+    }
+
+    /** One event per read, only for mails this read stored; the listener hands off to its own thread and never throws into the read. */
+    private void announce(List<MailSuggestionsEvent.Item> pending) {
+        if (events != null && !pending.isEmpty()) {
+            events.publishEvent(new MailSuggestionsEvent(pending));
+        }
     }
 
     /** One mail: classified, and stored with its link and suggestion when it is about jobs. */
