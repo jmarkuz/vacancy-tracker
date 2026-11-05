@@ -116,7 +116,7 @@ class CorrespondenceAddToPipelineTest {
         UUID known = UUID.randomUUID();
         Correspondence mail = mailWith(new Correspondence.DigestJob("A", "B", null, URL),
                 new Correspondence.DigestJob("C", "D", null, "https://x.example/2"), new Correspondence.DigestJob("E", "F", null, null));
-        when(repository.list(null, false, 200)).thenReturn(List.of(mail));
+        when(repository.list(MailFilter.of(null, false), 200)).thenReturn(List.of(mail));
         when(vacancies.findIdsByUrls(List.of(URL, "https://x.example/2"))).thenReturn(Map.of(URL, known));
 
         List<Correspondence.DigestJob> jobs = service.list(null, false).get(0).jobs();

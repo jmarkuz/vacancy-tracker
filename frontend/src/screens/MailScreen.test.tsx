@@ -200,7 +200,7 @@ describe("MailScreen: the state of the mailbox", () => {
     });
 
     expect(toggle().getAttribute("aria-pressed")).toBe("true");
-    expect(listMail).toHaveBeenLastCalledWith({ pending: true }, expect.anything());
+    expect(listMail).toHaveBeenLastCalledWith(expect.objectContaining({ pending: true }), expect.anything());
   });
 });
 

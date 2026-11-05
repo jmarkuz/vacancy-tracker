@@ -6,7 +6,9 @@ import {
   getMailStatus,
   importEml,
   setMailInterval,
+  getMailCounts,
   listMail,
+  type MailCounts,
   type Mail,
   type MailStatus,
   startMailReread,
@@ -14,6 +16,7 @@ import {
 } from "../api/mail";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { Icon } from "../components/Icon";
+import { MailFilterBar } from "../components/MailFilterBar";
 import { MailList } from "../components/MailList";
 import { Toast } from "../components/Toast";
 import {
@@ -31,7 +34,9 @@ import {
   SYNC_POLL_MS,
   syncSummary,
 } from "../domain/mail";
+import { hasMailFilters, linkedParam, mailFilterQuery, type MailFilters, parseMailFilters } from "../domain/mailFilter";
 import { MAIL_SHORTCUTS, mailKeyFromEvent } from "../domain/mailKeys";
+import { setQuery, useRoute } from "../router";
 import { formatDate } from "./columns";
 
 /** The slider saves this long after the last move, so dragging over several steps sends one request. */
@@ -48,6 +53,15 @@ export function MailScreen({ dataVersion = 0 }: { dataVersion?: number }) {
   const [items, setItems] = useState<Mail[]>([]);
   const [status, setStatus] = useState<MailStatus | null>(null);
   const [pendingOnly, setPendingOnly] = useState(false);
+  // Kind, linked state and search text live in the URL (#/mail?cat=offer&linked=false&q=acme), so a filtered view survives a reload.
+  const { params } = useRoute();
+  const filterKey = [params.get("cat"), params.get("linked"), params.get("q")].join("|");
+  // The key stands for the three parameters, so the filters keep their identity while other parameters change.
+  const filters = useMemo(() => parseMailFilters(params), [filterKey]);
+  const filtered = hasMailFilters(filters) || pendingOnly;
+  const [counts, setCounts] = useState<MailCounts | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const changeFilters = (next: MailFilters) => setQuery({ ...mailFilterQuery(next) });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // The mailbox's own error from the last read: kept apart from `error`, which every reload of the list clears.
@@ -69,9 +83,13 @@ export function MailScreen({ dataVersion = 0 }: { dataVersion?: number }) {
 
   useEffect(() => {
     const controller = new AbortController();
-    Promise.all([listMail({ pending: pendingOnly }, controller.signal), getMailStatus(controller.signal)])
+    const query = { pending: pendingOnly, categories: filters.categories, linked: linkedParam(filters.linked), q: filters.q };
+    // The chip counts are a nicety: when they cannot be loaded the chips show no numbers.
+    getMailCounts(query, controller.signal).then(setCounts).catch(() => undefined);
+    Promise.all([listMail(query, controller.signal), getMailStatus(controller.signal)])
       .then(([list, s]) => {
         setItems(list);
+        setLoaded(true);
         if (released.current.length > 0) {
           const done = released.current;
           released.current = [];
@@ -88,7 +106,7 @@ export function MailScreen({ dataVersion = 0 }: { dataVersion?: number }) {
         }
       });
     return () => controller.abort();
-  }, [pendingOnly, reload, dataVersion]);
+  }, [pendingOnly, reload, dataVersion, filters]);
 
   // A read of the mailbox runs in the background (started here, or by the schedule): ask until it is done, then show
   // what it found and load the new mail.
@@ -208,7 +226,9 @@ export function MailScreen({ dataVersion = 0 }: { dataVersion?: number }) {
   const removeOld = () => {
     const days = Math.floor(olderDays);
     if (days >= 1) {
-      askDelete(olderThan(items, days, Date.now()), days);
+      // "Delete old" by age deletes every old mail on the server; with a filter only the mails on the screen are meant.
+      const old = olderThan(visible, days, Date.now());
+      askDelete(old, filtered ? null : days);
     }
   };
 
@@ -419,6 +439,8 @@ export function MailScreen({ dataVersion = 0 }: { dataVersion?: number }) {
         </div>
       )}
 
+      <MailFilterBar filters={filters} counts={counts} onChange={changeFilters} />
+
       {visible.length > 0 && (
         <div class="mail-tools">
           <div class="mail-tools-group">
@@ -458,7 +480,17 @@ export function MailScreen({ dataVersion = 0 }: { dataVersion?: number }) {
         </div>
       )}
 
-      <MailList items={visible} showVacancyLink keyboard selected={selected} onToggle={toggle} onChanged={(message) => { setToast(message); setReload((n) => n + 1); }} />
+      {loaded && visible.length === 0 && hasMailFilters(filters) ? (
+        <div class="panel empty-state mail-empty">
+          <h2>No mail matches these filters</h2>
+          <p class="muted">Try other words, or show everything again.</p>
+          <button class="btn" type="button" onClick={() => changeFilters({ categories: [], linked: "all", q: "" })}>
+            Clear filters
+          </button>
+        </div>
+      ) : (
+        <MailList items={visible} showVacancyLink keyboard selected={selected} onToggle={toggle} onChanged={(message) => { setToast(message); setReload((n) => n + 1); }} />
+      )}
       {confirming && confirmText && (
         <ConfirmDialog
           title={confirmText.title}
