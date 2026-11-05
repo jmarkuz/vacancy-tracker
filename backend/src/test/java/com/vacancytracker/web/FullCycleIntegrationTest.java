@@ -172,4 +172,28 @@ class FullCycleIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.reason").value("already stored"));
         mvc.perform(get("/api/mail/status")).andExpect(jsonPath("$.configured").value(true)).andExpect(jsonPath("$.pending").value(0));
     }
+
+    private String importedText(String id, String body) throws Exception {
+        String eml = "From: Recruiter <hr@longmail.example>\r\nTo: owner@test.example\r\nSubject: Offer details\r\n"
+                + "Message-ID: <" + id + "@longmail.example>\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n" + body + "\r\n";
+        String outcome = mvc.perform(post("/api/mail/import").contentType("message/rfc822").content(eml.getBytes(StandardCharsets.UTF_8)))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(JsonPath.<Boolean>read(outcome, "$.stored")).isTrue();
+        return JsonPath.read(outcome, "$.correspondence.snippet");
+    }
+
+    @Test
+    void aLongImportedMailKeepsMoreThanSixHundredCharactersAndAVeryLongOneIsCut() throws Exception {
+        String line = "We would like to tell you about the role and the team in some detail.";
+        String medium = (line + "\r\n").repeat(30).strip();
+        String huge = (line + "\r\n").repeat(200).strip();
+
+        String stored = importedText("long-1", medium);
+        String cut = importedText("long-2", huge);
+
+        assertThat(stored.length()).isGreaterThan(600).isLessThanOrEqualTo(4000);
+        assertThat(stored).doesNotEndWith("…");
+        assertThat(cut).endsWith("…");
+        assertThat(cut.length()).isBetween(3900, 4001);
+    }
 }
