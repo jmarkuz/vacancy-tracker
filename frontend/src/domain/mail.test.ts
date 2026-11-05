@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SyncResult } from "../api/mail";
-import { syncSummary } from "./mail";
+import { formatClock, intervalPhrase, intervalStepIndex, intervalTick, SYNC_INTERVAL_STEPS, syncSummary } from "./mail";
 
 const result = (patch: Partial<SyncResult>): SyncResult => ({ configured: true, seen: 0, stored: 0, linked: 0, suggested: 0, error: null, ...patch });
 
@@ -46,5 +46,29 @@ describe("mail display helpers", () => {
     expect(bodyParagraphs("a\nb\nc\nd\ne").long).toBe(true);
     expect(bodyParagraphs("x".repeat(400)).long).toBe(true);
     expect(bodyParagraphs(null)).toEqual({ paragraphs: [], long: false });
+  });
+});
+
+describe("the sync interval steps", () => {
+  it("offer 5, 10, 15, 30, 45 and 60 minutes", () => {
+    expect([...SYNC_INTERVAL_STEPS]).toEqual([5, 10, 15, 30, 45, 60]);
+  });
+
+  it("find the index of a step, and the nearest one for any other value", () => {
+    expect(SYNC_INTERVAL_STEPS.map(intervalStepIndex)).toEqual([0, 1, 2, 3, 4, 5]);
+    expect(intervalStepIndex(1)).toBe(0);
+    expect(intervalStepIndex(38)).toBe(4);
+    expect(intervalStepIndex(500)).toBe(5);
+  });
+
+  it("are worded for the text, the value and the tick labels", () => {
+    expect(intervalPhrase(15)).toBe("every 15 minutes");
+    expect(intervalPhrase(60)).toBe("every hour");
+    expect(intervalTick(5)).toBe("5 min");
+    expect(intervalTick(60)).toBe("1 h");
+  });
+
+  it("show the clock time of the next check", () => {
+    expect(formatClock(new Date(2026, 10, 5, 10, 45).toISOString())).toMatch(/10:45/);
   });
 });

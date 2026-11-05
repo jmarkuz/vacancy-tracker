@@ -5,6 +5,7 @@ import {
   deleteOldMail,
   getMailStatus,
   importEml,
+  setMailInterval,
   listMail,
   type Mail,
   type MailStatus,
@@ -14,8 +15,23 @@ import {
 import { Icon } from "../components/Icon";
 import { MailList } from "../components/MailList";
 import { Toast } from "../components/Toast";
-import { REREAD_CONFIRM, SYNC_POLL_MS, syncSummary } from "../domain/mail";
+import {
+  DEFAULT_SYNC_MINUTES,
+  formatClock,
+  intervalPhrase,
+  intervalStepIndex,
+  intervalTick,
+  REREAD_CONFIRM,
+  SYNC_INTERVAL_STEPS,
+  SYNC_POLL_MS,
+  syncSummary,
+} from "../domain/mail";
 import { formatDate } from "./columns";
+
+/** The slider saves this long after the last move, so dragging over several steps sends one request. */
+const INTERVAL_SAVE_DELAY_MS = 400;
+
+const addMinutes = (iso: string, minutes: number): string => new Date(new Date(iso).getTime() + minutes * 60_000).toISOString();
 
 /**
  * Mail (T-086, T-087): employers' answers and other job mail from your mailbox, each linked to its application, with
@@ -136,7 +152,41 @@ export function MailScreen({ dataVersion = 0 }: { dataVersion?: number }) {
     run(async () => `Deleted ${(await deleteOldMail(days)).deleted} mails older than ${days} days.`);
   };
 
+  // The slider shows its own position while the choice is saved, and goes back to the saved one when saving fails.
+  const [pickedStep, setPickedStep] = useState<number | null>(null);
+  const [intervalError, setIntervalError] = useState<string | null>(null);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+    }
+  }, []);
+
+  const pickInterval = (step: number) => {
+    setPickedStep(step);
+    setIntervalError(null);
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+    }
+    saveTimer.current = setTimeout(() => {
+      const minutes = SYNC_INTERVAL_STEPS[step];
+      setMailInterval(minutes)
+        .then((saved) => {
+          setStatus((s) => (s ? { ...s, intervalMinutes: saved.intervalMinutes, nextCheck: s.lastSync ? addMinutes(s.lastSync, saved.intervalMinutes) : null } : s));
+          setPickedStep(null);
+          setToast(`Saved: reading the mailbox ${intervalPhrase(saved.intervalMinutes)}.`);
+        })
+        .catch((e: unknown) => {
+          setPickedStep(null);
+          setIntervalError(e instanceof ApiError ? e.message : "Could not save how often the mailbox is read.");
+        });
+    }, INTERVAL_SAVE_DELAY_MS);
+  };
+
   const syncing = !!status?.syncing;
+  const savedMinutes = status?.intervalMinutes ?? DEFAULT_SYNC_MINUTES;
+  const step = pickedStep ?? intervalStepIndex(savedMinutes);
+  const shownMinutes = SYNC_INTERVAL_STEPS[step];
   return (
     <section aria-labelledby="mail-title" class="stack mail-screen">
       <div class="toolbar">
@@ -197,17 +247,39 @@ export function MailScreen({ dataVersion = 0 }: { dataVersion?: number }) {
         </div>
       )}
       {status?.configured && (
-        <div class={`sync-card${syncing ? " is-syncing" : ""}`} role="status" aria-live="polite">
+        <div class={`sync-card${syncing ? " is-syncing" : ""}`}>
           <span class="sync-icon" aria-hidden="true">
             <Icon name={syncing ? "refresh" : "mail"} spin={syncing} />
           </span>
-          <div class="sync-text">
+          <div class="sync-text" role="status" aria-live="polite">
             <strong>{syncing ? "Checking the mailbox…" : "Mailbox connected"}</strong>
             <span class="muted">
-              Reading {status.folders.join(", ")} every 15 minutes, read-only. Only job mail is kept.
+              Reading {status.folders.join(", ")} {intervalPhrase(savedMinutes)}, read-only. Only job mail is kept.
               {status.lastSync && <> Last check {formatDate(status.lastSync)}.</>}
+              {status.nextCheck && !syncing && <> Next check {formatClock(status.nextCheck)}.</>}
               {status.lastError && <> Last error: {status.lastError}</>}
             </span>
+          </div>
+          <div class="sync-interval">
+            <label class="sync-interval-label" for="sync-interval">How often to read</label>
+            <input
+              id="sync-interval"
+              class="slider"
+              type="range"
+              min={0}
+              max={SYNC_INTERVAL_STEPS.length - 1}
+              step={1}
+              value={step}
+              aria-label="How often to read the mailbox"
+              aria-valuetext={intervalPhrase(shownMinutes)}
+              onInput={(e) => pickInterval(Number(e.currentTarget.value))}
+            />
+            <div class="slider-ticks" aria-hidden="true">
+              {SYNC_INTERVAL_STEPS.map((m, i) => (
+                <span key={m} class={i === step ? "is-current" : undefined}>{intervalTick(m)}</span>
+              ))}
+            </div>
+            {intervalError && <p class="sync-interval-error" role="alert">{intervalError}</p>}
           </div>
           {syncing && <span class="sync-bar" aria-hidden="true" />}
         </div>
