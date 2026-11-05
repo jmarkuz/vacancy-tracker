@@ -4,6 +4,7 @@ import { listSources, type SourceStatus } from "../api/sources";
 import { barPercent, chartSummary, funnelMax, kpis, quietText, weekLabel, weekMax } from "../domain/dashboard";
 import { healthDetail, healthLabel } from "../domain/sources";
 import { LoadFailed } from "../components/LoadFailed";
+import { RepliesCard } from "../components/RepliesCard";
 import { formatDate } from "./columns";
 
 /** Dashboard (T-060): KPI cards that open a filtered list, top matches, funnel, applications per week, next actions. */
@@ -131,6 +132,8 @@ export function Dashboard({ dataVersion = 0 }: { dataVersion?: number }) {
               })}
             </svg>
           </div>
+
+          <RepliesCard dataVersion={dataVersion} />
 
           {data.followUps.length > 0 && (
             <div class="panel">

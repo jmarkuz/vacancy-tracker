@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ACTIVE_STATUSES, barPercent, chartSummary, funnelMax, kpis, quietText, weekLabel } from "./dashboard";
+import { ACTIVE_STATUSES, barPercent, chartSummary, funnelMax, kpis, medianText, outcomeRows, periodText, quietText, repliedPercent, weekLabel } from "./dashboard";
 import { parseCriteria } from "./criteria";
 
 const counts = { newToday: 3, inbox: 7, active: 5, interviews: 2, overdue: 1 };
@@ -76,5 +76,45 @@ describe("quietText", () => {
   it("says over a month from thirty days on", () => {
     expect(quietText(30)).toBe("Quiet for over a month");
     expect(quietText(75)).toBe("Quiet for over a month");
+  });
+});
+
+describe("reply statistics", () => {
+  it("rounds the reply rate and never divides by zero", () => {
+    expect(repliedPercent(0, 0)).toBe(0);
+    expect(repliedPercent(0, 3)).toBe(0);
+    expect(repliedPercent(10, 0)).toBe(0);
+    expect(repliedPercent(12, 5)).toBe(42);
+    expect(repliedPercent(3, 1)).toBe(33);
+    expect(repliedPercent(3, 2)).toBe(67);
+    expect(repliedPercent(10, 10)).toBe(100);
+  });
+
+  it("never shows a real reply rate as 0 percent or more than 100", () => {
+    expect(repliedPercent(1000, 1)).toBe(1);
+    expect(repliedPercent(2, 5)).toBe(100);
+  });
+
+  it("words the median wait", () => {
+    expect(medianText(null)).toBe("No replies yet");
+    expect(medianText(Number.NaN)).toBe("No replies yet");
+    expect(medianText(0)).toBe("Same day");
+    expect(medianText(0.4)).toBe("Same day");
+    expect(medianText(1)).toBe("1 day");
+    expect(medianText(1.2)).toBe("1 day");
+    expect(medianText(2.5)).toBe("2.5 days");
+    expect(medianText(3.1)).toBe("3 days");
+    expect(medianText(12.4)).toBe("12 days");
+    expect(medianText(1234.4)).toBe("1,234 days");
+  });
+
+  it("lists the outcomes in order with the Mail screen's words and colour classes", () => {
+    const rows = outcomeRows({ interview: 1, testTask: 2, offer: 3, rejection: 4, other: 5 });
+    expect(rows.map((r) => `${r.label}:${r.count}`)).toEqual(["Interview:1", "Test task:2", "Offer:3", "Rejection:4", "Other:5"]);
+    expect(rows.map((r) => r.className)).toEqual(["cat-interview", "cat-test_task", "cat-offer", "cat-rejection", ""]);
+  });
+
+  it("names the period", () => {
+    expect(periodText(30)).toBe("the last 30 days");
   });
 });
