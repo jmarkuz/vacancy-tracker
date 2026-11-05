@@ -1932,6 +1932,7 @@ tbody tr:hover {
   flex-basis: 100%;
   font-size: var(--font-size-sm);
   color: var(--color-danger, #b3261e);
+}
 
 /* ---------- Dashboard: Replies card ---------- */
 
