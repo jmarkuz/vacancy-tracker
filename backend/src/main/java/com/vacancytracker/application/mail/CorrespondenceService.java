@@ -286,6 +286,10 @@ public class CorrespondenceService {
         }
         Optional<Correspondence> known = repository.findByKey(mail.key());
         if (known.isPresent()) {
+            if (known.get().event() == null) {
+                // A mail stored before dates were read gets its interview time now, like a digest gets its postings.
+                eventOf(mail, category).ifPresent(e -> repository.updateEvent(known.get().id(), e));
+            }
             if (known.get().jobs().isEmpty()) {
                 // A digest stored before its postings were read (or imported again by hand) gets them now.
                 List<Correspondence.DigestJob> jobs = digestJobs(mail);
@@ -304,9 +308,23 @@ public class CorrespondenceService {
         Correspondence c = new Correspondence(UUID.randomUUID(), mail.key(), folder, mail.from(), mail.senderName(),
                 mail.subject(), mail.receivedAt(), MailClassifier.snippet(mail, SNIPPET), category.code(),
                 link.map(MailLinker.Link::vacancyId).orElse(null), link.map(MailLinker.Link::reason).orElse(null), s.status(), s.state(),
-                clock.instant(), digestJobs(mail));
+                clock.instant(), digestJobs(mail), eventOf(mail, category).orElse(null));
         repository.insert(c);
         return new Outcome(true, category.code(), c);
+    }
+
+    /**
+     * The date and time an interview invitation or a test task names, read from the whole mail (not only the stored
+     * text). Other mail has no event. The day the mail came is the reference for "tomorrow" and for past dates.
+     */
+    Optional<Correspondence.Event> eventOf(MailMessage mail, MailCategory category) {
+        if (category != MailCategory.INTERVIEW && category != MailCategory.TEST_TASK) {
+            return Optional.empty();
+        }
+        String text = (mail.subject() == null ? "" : mail.subject()) + "\n" + MailClassifier.body(mail);
+        Instant reference = mail.receivedAt() == null ? clock.instant() : mail.receivedAt();
+        return MailEventExtractor.extract(text, reference)
+                .map(f -> new Correspondence.Event(f.start(), f.zoneKnown(), f.text()));
     }
 
     /** Most postings kept from one digest: a longer list is cut, the mail itself is still there. */
