@@ -1860,4 +1860,50 @@ tbody tr:hover {
   flex-basis: 100%;
   font-size: var(--font-size-sm);
   color: var(--color-danger, #b3261e);
+
+/* ---------- Dashboard: Replies card ---------- */
+
+.replies-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.replies-head h2 {
+  margin: 0;
+}
+
+.replies-periods {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.replies-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-4) 0;
+}
+
+.replies-stats dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.replies-stats dd {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.replies-outcomes {
+  width: 100%;
+}
+
+.replies-outcomes th.num,
+.replies-outcomes td.num {
+  text-align: right;
 }
