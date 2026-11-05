@@ -1,0 +1,513 @@
+/*
+ * translucent glass (Apple), the Regular variant, laid over Graphite. Loaded last: it changes how things look, not how they
+ * are laid out. Read tokens.css (the --lg-* tokens) first.
+ *
+ * What the rules follow, from Apple's "Meet translucent glass" (a developer conference25) and the Human Interface Guidelines:
+ *  - Glass is for the layer that floats above the content: the header, the sidebar, toolbars, sheets, dialogs, the
+ *    palette, toasts and the controls themselves. Content (tables, cards, lists, text) stays solid, so hierarchy
+ *    between content and controls is clear.
+ *  - No glass on glass: a control that sits on a glass surface gets the thin fill and no blur of its own.
+ *  - One variant (Regular), never mixed with a clear one. Tint only for the primary action (the ink pill), not for
+ *    every control; colour lives in the content (the role markers and badges).
+ *  - Shapes are capsules and big rounded forms, and corners are concentric: an inner radius is the outer radius
+ *    minus the gap between them.
+ *  - The material answers a touch: a press lights it from within and flexes it a little.
+ *  - It gives way to the user's settings: Reduced transparency (and the in-app "Glass effects" switch), Increased
+ *    contrast, forced colours, and Reduced motion.
+ * Not done: true lensing (the bending of the background at the edge). CSS cannot do it across browsers; the rim light,
+ * the specular highlight and the blur stand in for it.
+ */
+
+/* ---------- The canvas gives the glass something to pick up ---------- */
+
+body {
+  background-color: var(--color-bg);
+  background-image: var(--lg-ambient);
+  background-attachment: fixed;
+}
+
+/* ---------- Header and sidebar: the navigation layer ---------- */
+
+.header::before {
+  background: var(--lg-fill-strong);
+  -webkit-backdrop-filter: var(--lg-filter-strong);
+  backdrop-filter: var(--lg-filter-strong);
+  box-shadow: inset 0 1px 0 var(--lg-rim-light), inset 0 -1px 0 var(--lg-rim-dark);
+}
+
+.header {
+  border-bottom-color: transparent;
+}
+
+/* The sidebar floats as one rounded glass panel (a single navigation element), inset from the edges. */
+.sidebar {
+  margin: var(--space-3) 0 var(--space-3) var(--space-3);
+  min-height: 0;
+  max-height: calc(100vh - var(--header-height) - var(--space-6));
+  border: 0;
+  border-radius: 28px;
+  background: var(--lg-specular), var(--lg-fill);
+  -webkit-backdrop-filter: var(--lg-filter);
+  backdrop-filter: var(--lg-filter);
+  box-shadow: inset 0 1px 0 var(--lg-rim-light), inset 0 -1px 0 var(--lg-rim-dark), inset 1px 0 0 var(--lg-rim-light),
+    var(--lg-shadow-md);
+}
+
+/* Inside the glass the current section is a lit capsule: the ink tint (the one tinted control of the panel). */
+.nav-item:hover {
+  background: var(--lg-fill-hover);
+}
+
+.nav-item[aria-current="page"] {
+  background: var(--lg-ink-sheen), var(--lg-ink-fill);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 2px 8px rgb(0 0 0 / 0.14);
+}
+
+.nav-item:active {
+  box-shadow: inset 0 0 14px var(--lg-glow);
+}
+
+@media (max-width: 1000px) {
+  .sidebar {
+    margin: var(--space-2) var(--space-3);
+    max-height: none;
+    border-radius: 24px;
+  }
+}
+
+/* ---------- Controls ---------- */
+
+/*
+ * A secondary control is a glass capsule: a translucent fill, a rim, a specular highlight. The blur is only worth
+ * paying for where the control sits on the canvas, not on a solid card, so it is switched on for the toolbars below.
+ */
+.btn {
+  border-color: transparent;
+  background: var(--lg-specular), var(--lg-fill);
+  box-shadow: inset 0 0 0 1px var(--lg-rim-dark), inset 0 1px 0 var(--lg-rim-light), var(--lg-shadow-sm);
+  transition: background var(--duration-fast) var(--ease-out), box-shadow var(--duration-base) var(--ease-out),
+    color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
+}
+
+.btn:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--lg-specular), var(--lg-fill-hover);
+  box-shadow: inset 0 0 0 1px var(--lg-rim-dark), inset 0 1px 0 var(--lg-rim-light), var(--lg-shadow-md);
+}
+
+/* A press lights the material from within and flexes it (the shrink is Graphite's own press). */
+.btn:active:not(:disabled) {
+  background: var(--lg-fill-hover);
+  box-shadow: inset 0 0 0 1px var(--lg-rim-dark), inset 0 0 16px var(--lg-glow), var(--lg-shadow-sm);
+}
+
+/* The primary action is tinted glass: the ink colour, a little translucent, with a sheen along the top. */
+.btn.primary {
+  border-color: transparent;
+  background: var(--lg-ink-sheen), var(--lg-ink-fill);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.28), 0 2px 8px rgb(0 0 0 / 0.14);
+}
+
+.btn.primary:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--lg-ink-sheen), var(--color-ink-hover);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.28), 0 4px 14px rgb(0 0 0 / 0.2);
+}
+
+.btn.primary:active:not(:disabled) {
+  background: var(--lg-ink-sheen), var(--color-ink-hover);
+  box-shadow: inset 0 0 14px rgb(255 255 255 / 0.28), 0 3px 8px rgb(0 0 0 / 0.2);
+}
+
+.btn.ghost,
+.btn.ghost:hover:not(:disabled) {
+  background: transparent;
+  box-shadow: none;
+}
+
+.btn.danger {
+  background: var(--lg-specular), var(--lg-fill);
+  box-shadow: inset 0 0 0 1px var(--color-danger), inset 0 1px 0 var(--lg-rim-light);
+}
+
+.btn.danger:hover:not(:disabled) {
+  background: var(--color-danger-subtle);
+}
+
+.btn:disabled,
+.btn.primary:disabled {
+  border-color: transparent;
+  background: var(--lg-fill-thin);
+  box-shadow: inset 0 0 0 1px var(--lg-rim-dark);
+}
+
+/* Toggles and tabs: capsules too; the chosen one is the tinted capsule. */
+.tab,
+.chip[aria-pressed] {
+  border-color: transparent;
+  background: var(--lg-specular), var(--lg-fill);
+  box-shadow: inset 0 0 0 1px var(--lg-rim-dark), inset 0 1px 0 var(--lg-rim-light);
+}
+
+.tab:hover:not([aria-selected="true"]),
+.chip[aria-pressed="false"]:hover {
+  background: var(--lg-specular), var(--lg-fill-hover);
+}
+
+.tab[aria-selected="true"],
+.chip[aria-pressed="true"] {
+  border-color: transparent;
+  background: var(--lg-ink-sheen), var(--lg-ink-fill);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 2px 8px rgb(0 0 0 / 0.12);
+}
+
+.tab:active,
+.chip[aria-pressed]:active {
+  box-shadow: inset 0 0 0 1px var(--lg-rim-dark), inset 0 0 14px var(--lg-glow);
+}
+
+/* Fields are recessed glass: a light fill and an inner shadow, so they read as something to type into. */
+.input,
+.textarea,
+select.input,
+.filter-form select,
+.view-bar select {
+  border-color: transparent;
+  background: var(--lg-fill-input);
+  box-shadow: inset 0 0 0 1px var(--lg-rim-dark), inset 0 1px 3px rgb(0 0 0 / 0.07);
+}
+
+.input:hover,
+.textarea:hover {
+  border-color: transparent;
+  box-shadow: inset 0 0 0 1px var(--color-border), inset 0 1px 3px rgb(0 0 0 / 0.07);
+}
+
+.input[aria-invalid="true"] {
+  border: 0;
+  box-shadow: inset 0 0 0 2px var(--color-danger);
+}
+
+/* Search at the top is a glass capsule like the controls. */
+.btn.palette-open {
+  border-color: transparent;
+  background: var(--lg-specular), var(--lg-fill-thin);
+}
+
+kbd {
+  border-color: transparent;
+  background: var(--lg-fill-hover);
+  box-shadow: inset 0 0 0 1px var(--lg-rim-dark);
+}
+
+/* ---------- No glass on glass: controls on a glass surface get a thin fill and no blur of their own ---------- */
+
+.header .btn:not(.primary),
+.drawer .btn:not(.primary),
+.confirm-dialog .btn:not(.primary),
+.palette .btn:not(.primary),
+.toast .btn:not(.primary),
+.progress-pop .btn:not(.primary),
+.sidebar .btn:not(.primary) {
+  background: var(--lg-fill-thin);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: inset 0 0 0 1px var(--lg-rim-dark), inset 0 1px 0 var(--lg-rim-light);
+}
+
+.header .btn:not(.primary):hover:not(:disabled),
+.drawer .btn:not(.primary):hover:not(:disabled),
+.confirm-dialog .btn:not(.primary):hover:not(:disabled),
+.palette .btn:not(.primary):hover:not(:disabled) {
+  background: var(--lg-fill-hover);
+}
+
+/* On the canvas (the toolbars), a control is real glass that blurs what is behind it. */
+.toolbar .btn:not(.primary),
+.toolbar .chip,
+.toolbar .tab,
+.mail-tools .btn,
+.sync-card .btn,
+.pager .btn {
+  -webkit-backdrop-filter: var(--lg-filter);
+  backdrop-filter: var(--lg-filter);
+}
+
+/* ---------- Surfaces that float above the page: sheets, dialogs, palette, toasts, popovers ---------- */
+
+.glass,
+.toast,
+.progress-pop,
+.palette,
+.confirm-dialog {
+  border: 0;
+  background: var(--lg-specular), var(--lg-fill-strong);
+  -webkit-backdrop-filter: var(--lg-filter-strong);
+  backdrop-filter: var(--lg-filter-strong);
+  box-shadow: inset 0 1px 0 var(--lg-rim-light), inset 0 -1px 0 var(--lg-rim-dark), inset 1px 0 0 var(--lg-rim-light),
+    inset -1px 0 0 var(--lg-rim-dark), var(--lg-shadow-lg);
+}
+
+.toast.error,
+.toast[data-tone="error"] {
+  background: var(--lg-specular), var(--glass-bg-error);
+}
+
+/* The vacancy sheet floats with a margin and rounded corners all round, like a sheet in iPadOS 26. */
+@media (min-width: 761px) {
+  .drawer {
+    top: var(--space-3);
+    right: var(--space-3);
+    bottom: var(--space-3);
+    width: min(var(--drawer-width), calc(100vw - var(--space-6)));
+    border: 0;
+    border-radius: 28px;
+    background: var(--lg-specular), var(--lg-fill-strong);
+    -webkit-backdrop-filter: var(--lg-filter-strong);
+    backdrop-filter: var(--lg-filter-strong);
+    box-shadow: inset 0 1px 0 var(--lg-rim-light), inset 0 -1px 0 var(--lg-rim-dark), inset 1px 0 0 var(--lg-rim-light),
+      var(--lg-shadow-lg);
+  }
+
+  .drawer-header {
+    border-bottom-color: var(--lg-rim-dark);
+    border-radius: 28px 28px 0 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .drawer {
+    border: 0;
+    border-radius: 28px 28px 0 0;
+    background: var(--lg-specular), var(--lg-fill-strong);
+    -webkit-backdrop-filter: var(--lg-filter-strong);
+    backdrop-filter: var(--lg-filter-strong);
+    box-shadow: inset 0 1px 0 var(--lg-rim-light), var(--lg-shadow-lg);
+  }
+}
+
+.confirm-dialog,
+.palette {
+  border-radius: 28px;
+}
+
+/* A sheet over the page dims it only a little, so the glass has the page to pick up. */
+.scrim,
+.palette-backdrop,
+.confirm-scrim {
+  background: rgb(0 0 0 / 0.2);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+
+:root[data-theme="dark"] .scrim,
+:root[data-theme="dark"] .palette-backdrop,
+:root[data-theme="dark"] .confirm-scrim {
+  background: rgb(0 0 0 / 0.5);
+}
+
+/* The control bars on the canvas (Mail) are glass strips; the buttons on them take the thin fill. */
+.mail-tools,
+.sync-card {
+  border: 0;
+  background: var(--lg-specular), var(--lg-fill);
+  -webkit-backdrop-filter: var(--lg-filter);
+  backdrop-filter: var(--lg-filter);
+  box-shadow: inset 0 1px 0 var(--lg-rim-light), inset 0 -1px 0 var(--lg-rim-dark), var(--lg-shadow-sm);
+}
+
+.mail-tools .btn,
+.sync-card .btn {
+  background: var(--lg-fill-thin);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* ---------- Motion: the material appears by lighting up, not by fading ---------- */
+
+@keyframes lg-materialize {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+    filter: blur(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+.confirm-dialog,
+.palette {
+  animation: lg-materialize var(--duration-base) var(--ease-out);
+}
+
+/* ---------- The user's settings win over the look ---------- */
+
+/*
+ * Reduced transparency, from the system or from Settings (Glass effects: off): glass becomes frosted solid surfaces
+ * with a rim; nothing is blurred and the page picks up no colour.
+ */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --lg-ambient: none;
+  }
+
+  .header::before,
+  .sidebar,
+  .glass,
+  .toast,
+  .progress-pop,
+  .palette,
+  .confirm-dialog,
+  .drawer,
+  .mail-tools,
+  .sync-card,
+  .btn,
+  .chip,
+  .tab {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .header::before,
+  .sidebar,
+  .glass,
+  .toast,
+  .progress-pop,
+  .palette,
+  .confirm-dialog,
+  .drawer {
+    background: var(--lg-solid);
+  }
+}
+
+:root[data-glass="off"] {
+  --lg-ambient: none;
+}
+
+:root[data-glass="off"] .header::before,
+:root[data-glass="off"] .sidebar,
+:root[data-glass="off"] .glass,
+:root[data-glass="off"] .toast,
+:root[data-glass="off"] .progress-pop,
+:root[data-glass="off"] .palette,
+:root[data-glass="off"] .confirm-dialog,
+:root[data-glass="off"] .drawer,
+:root[data-glass="off"] .mail-tools,
+:root[data-glass="off"] .sync-card,
+:root[data-glass="off"] .btn,
+:root[data-glass="off"] .chip,
+:root[data-glass="off"] .tab {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+:root[data-glass="off"] .header::before,
+:root[data-glass="off"] .sidebar,
+:root[data-glass="off"] .glass,
+:root[data-glass="off"] .toast,
+:root[data-glass="off"] .progress-pop,
+:root[data-glass="off"] .palette,
+:root[data-glass="off"] .confirm-dialog,
+:root[data-glass="off"] .drawer {
+  background: var(--lg-solid);
+}
+
+/*
+ * Increased contrast: solid fills and the strong 3:1 borders the Beacon contract asks for, no blur. The glass look
+ * leaves the rim-only controls, which would otherwise be too faint to find.
+ */
+@media (prefers-contrast: more) {
+  :root {
+    --lg-ambient: none;
+  }
+
+  .btn,
+  .tab,
+  .chip[aria-pressed],
+  .input,
+  .textarea,
+  select.input,
+  .btn.palette-open {
+    border: var(--border-width) solid var(--color-border-strong);
+    background: var(--lg-solid);
+    box-shadow: none;
+  }
+
+  .btn.primary,
+  .tab[aria-selected="true"],
+  .chip[aria-pressed="true"] {
+    border-color: var(--color-ink);
+    background: var(--color-ink);
+  }
+
+  .header::before,
+  .sidebar,
+  .glass,
+  .toast,
+  .progress-pop,
+  .palette,
+  .confirm-dialog,
+  .drawer,
+  .mail-tools,
+  .sync-card {
+    border: var(--border-width) solid var(--color-border-strong);
+    background: var(--lg-solid);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* Forced colours: the system palette, no translucency. */
+@media (forced-colors: active) {
+  body {
+    background-image: none;
+  }
+
+  .header::before,
+  .sidebar,
+  .glass,
+  .toast,
+  .progress-pop,
+  .palette,
+  .confirm-dialog,
+  .drawer,
+  .mail-tools,
+  .sync-card,
+  .btn,
+  .tab,
+  .chip,
+  .input {
+    background: Canvas;
+    border: 1px solid CanvasText;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confirm-dialog,
+  .palette {
+    animation: none;
+  }
+}
+
+/* Without backdrop-filter the glass is a plain light or dark surface, as the other floating things already are. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .header::before,
+  .sidebar,
+  .glass,
+  .toast,
+  .progress-pop,
+  .palette,
+  .confirm-dialog,
+  .drawer,
+  .mail-tools,
+  .sync-card {
+    background: var(--lg-solid);
+  }
+}
