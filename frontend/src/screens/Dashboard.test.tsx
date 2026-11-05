@@ -8,10 +8,11 @@ import type { SourceStatus } from "../api/sources";
 import { settle } from "../components/loadFailed.helpers";
 import { Dashboard } from "./Dashboard";
 
-vi.mock("../api/dashboard", async (importOriginal) => ({ ...(await importOriginal<typeof dashboardApi>()), getDashboard: vi.fn() }));
+vi.mock("../api/dashboard", async (importOriginal) => ({ ...(await importOriginal<typeof dashboardApi>()), getDashboard: vi.fn(), getReplies: vi.fn() }));
 vi.mock("../api/sources", async (importOriginal) => ({ ...(await importOriginal<typeof sourcesApi>()), listSources: vi.fn() }));
 const getDashboard = vi.mocked(dashboardApi.getDashboard);
 const listSources = vi.mocked(sourcesApi.listSources);
+const getReplies = vi.mocked(dashboardApi.getReplies);
 
 const data: Data = {
   newToday: 3,
@@ -43,6 +44,7 @@ beforeEach(() => {
   host = document.createElement("div");
   document.body.appendChild(host);
   getDashboard.mockResolvedValue(data);
+  getReplies.mockResolvedValue({ days: 30, applied: 0, replied: 0, medianDays: null, outcomes: { interview: 0, testTask: 0, offer: 0, rejection: 0, other: 0 } });
 });
 
 afterEach(() => {
