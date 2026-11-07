@@ -16,7 +16,7 @@
   "devDependencies": {
     "@preact/preset-vite": "2.10.6",
     "@vitest/coverage-v8": "^5.1.0",
-    "jsdom": "26.1.0",
+    "jsdom": "30.1.3",
     "typescript": "7.0.2",
     "vite": "6.4.5",
     "vitest": "5.1.0"
