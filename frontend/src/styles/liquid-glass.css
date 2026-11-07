@@ -18,6 +18,17 @@
  * the specular highlight and the blur stand in for it.
  */
 
+/*
+ * Motion (Apple's glass answers a touch and then settles): a press flexes the control quickly, and the release
+ * springs it back past its rest point. The spring is a cubic-bezier with a little overshoot, the same feel for every
+ * control. Under reduced motion all of it stops (see the block near the end of this file).
+ */
+:root {
+  --lg-ease-spring: cubic-bezier(0.25, 1.75, 0.45, 1);
+  --lg-dur-spring: 420ms;
+  --lg-dur-press: 110ms;
+}
+
 /* ---------- The canvas gives the glass something to pick up ---------- */
 
 body {
@@ -63,8 +74,20 @@ body {
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 2px 8px rgb(0 0 0 / 0.14);
 }
 
+.nav-item {
+  transition: background var(--duration-fast) var(--ease-out), box-shadow var(--duration-base) var(--ease-out),
+    color var(--duration-fast) var(--ease-out), transform var(--lg-dur-spring) var(--lg-ease-spring);
+}
+
+/* A section lifts a hair under the pointer, the way Apple's glass tab items do. */
+.nav-item:hover {
+  transform: translateY(-1px);
+}
+
 .nav-item:active {
   box-shadow: inset 0 0 14px var(--lg-glow);
+  transform: scale(0.97);
+  transition-duration: var(--lg-dur-press);
 }
 
 @media (max-width: 1000px) {
@@ -86,7 +109,9 @@ body {
   background: var(--lg-specular), var(--lg-fill);
   box-shadow: inset 0 0 0 1px var(--lg-rim-dark), inset 0 1px 0 var(--lg-rim-light), var(--lg-shadow-sm);
   transition: background var(--duration-fast) var(--ease-out), box-shadow var(--duration-base) var(--ease-out),
-    color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
+    color var(--duration-fast) var(--ease-out), transform var(--lg-dur-spring) var(--lg-ease-spring);
+  position: relative;
+  isolation: isolate;
 }
 
 .btn:hover:not(:disabled) {
@@ -95,8 +120,13 @@ body {
   box-shadow: inset 0 0 0 1px var(--lg-rim-dark), inset 0 1px 0 var(--lg-rim-light), var(--lg-shadow-md);
 }
 
-/* A press lights the material from within and flexes it (the shrink is Graphite's own press). */
+/*
+ * A press lights the material from within and flexes it: a quick squeeze, then the spring on release (the spring is the
+ * transition of the rest state, the quick one applies while the control is pressed).
+ */
 .btn:active:not(:disabled) {
+  transform: scale(0.92);
+  transition-duration: var(--lg-dur-press);
   background: var(--lg-fill-hover);
   box-shadow: inset 0 0 0 1px var(--lg-rim-dark), inset 0 0 16px var(--lg-glow), var(--lg-shadow-sm);
 }
@@ -159,6 +189,37 @@ body {
   border-color: transparent;
   background: var(--lg-ink-sheen), var(--lg-ink-fill);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 2px 8px rgb(0 0 0 / 0.12);
+}
+
+/*
+ * The light under the pointer: a soft radial glow at --lg-x / --lg-y (set by glassMotion.ts). It sits behind the words
+ * (z-index -1 inside the control's own stacking context) and is faint, so the 7:1 text contrast still holds.
+ */
+.btn::after,
+.chip::after,
+.tab::after,
+.nav-item::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(9rem 6rem at var(--lg-x, 50%) var(--lg-y, 50%), rgb(255 255 255 / 0.18), transparent 70%);
+  opacity: 0;
+  transition: opacity var(--duration-base) var(--ease-out);
+}
+
+.btn:hover:not(:disabled)::after,
+.chip[aria-pressed="false"]:hover::after,
+.tab:hover:not([aria-selected="true"])::after,
+.nav-item:hover::after {
+  opacity: 1;
+}
+
+.nav-item {
+  position: relative;
+  isolation: isolate;
 }
 
 .tab:active,
@@ -344,6 +405,41 @@ kbd {
   animation: lg-materialize var(--duration-base) var(--ease-out);
 }
 
+/* A sheet slides in on a spring, from its edge: from the side on a wide screen, from below on a phone. */
+@keyframes lg-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateX(28px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes lg-sheet-up {
+  from {
+    opacity: 0;
+    transform: translateY(32px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.drawer {
+  animation: lg-sheet-in var(--lg-dur-spring) var(--lg-ease-spring) both;
+}
+
+@media (max-width: 760px) {
+  .drawer {
+    animation-name: lg-sheet-up;
+  }
+}
+
 /* ---------- The user's settings win over the look ---------- */
 
 /*
@@ -491,8 +587,28 @@ kbd {
 
 @media (prefers-reduced-motion: reduce) {
   .confirm-dialog,
-  .palette {
+  .palette,
+  .drawer {
     animation: none;
+  }
+
+  .btn,
+  .chip,
+  .tab,
+  .nav-item,
+  .btn::after,
+  .chip::after,
+  .tab::after,
+  .nav-item::after {
+    transition: none !important;
+  }
+
+  .nav-item:hover,
+  .btn:active:not(:disabled),
+  .chip[aria-pressed]:active,
+  .tab:active,
+  .nav-item:active {
+    transform: none !important;
   }
 }
 
