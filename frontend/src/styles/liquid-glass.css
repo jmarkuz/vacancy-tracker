@@ -64,6 +64,31 @@ body {
     var(--lg-shadow-md);
 }
 
+/*
+ * On a wide screen the panel is fixed: it stays where it is while the page scrolls, under the header, from the top
+ * edge to the bottom edge of the window. Being out of the grid flow, it no longer takes a column, so the page content
+ * is placed in column 2 explicitly. Below 1000 px the sections are a bar above the page, as before.
+ */
+@media (min-width: 1001px) {
+  .sidebar {
+    position: fixed;
+    top: calc(var(--header-height) + var(--space-3));
+    bottom: var(--space-3);
+    left: var(--space-3);
+    width: calc(var(--sidebar-width) - var(--space-3) * 2);
+    margin: 0;
+    max-height: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    align-self: auto;
+    z-index: 6;
+  }
+
+  .main {
+    grid-column: 2;
+  }
+}
+
 /* Inside the glass the current section is a lit capsule: the ink tint (the one tinted control of the panel). */
 .nav-item:hover {
   background: var(--lg-fill-hover);
