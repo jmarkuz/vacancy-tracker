@@ -1119,3 +1119,864 @@ tbody tr:hover {
 .btn[aria-disabled="true"] {
   cursor: progress;
 }
+
+/* ---------- The vacancy drawer (side panel), tidier ----------
+   One rhythm: sections are divided by hairlines, labels are one size, long titles balance over their lines, the
+   requirement list has a head, a text and a quoted proof instead of one run-on line. */
+.drawer-header {
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6) var(--space-4);
+}
+
+.drawer-header h2 {
+  font-size: var(--font-size-lg);
+  line-height: 1.3;
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
+}
+
+.drawer-header p {
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.drawer-close {
+  flex: none;
+  gap: var(--space-1);
+  text-decoration: none;
+}
+
+.drawer-body {
+  gap: 0;
+  padding: var(--space-2) var(--space-6) var(--space-7, var(--space-6));
+  line-height: 1.5;
+}
+
+.drawer-section {
+  gap: var(--space-3);
+  padding: var(--space-5) 0;
+}
+
+.drawer-section + .drawer-section {
+  border-top: var(--border-width) solid var(--color-hairline);
+}
+
+.drawer-section h3 {
+  margin: 0 0 var(--space-1);
+  font-size: 0.75rem;
+}
+
+.drawer .stack {
+  gap: var(--space-3);
+}
+
+.drawer h4 {
+  margin: 0;
+  font-size: var(--font-size-md);
+}
+
+.drawer .facts {
+  grid-template-columns: 10.5rem 1fr;
+  gap: var(--space-2) var(--space-4);
+  align-items: baseline;
+}
+
+.drawer .facts dt {
+  font-size: 0.75rem;
+}
+
+.quick-fit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.drawer .reasons {
+  display: grid;
+  gap: var(--space-2);
+  padding-left: var(--space-5);
+}
+
+.requirements {
+  gap: 0;
+}
+
+.req {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3) 0;
+}
+
+.req + .req {
+  border-top: var(--border-width) solid var(--color-hairline);
+}
+
+.req-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.req-text {
+  font-weight: var(--font-weight-medium);
+}
+
+.req-quote {
+  margin: var(--space-1) 0 0;
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--color-hairline);
+  color: var(--color-text-muted);
+  font-style: normal;
+}
+
+.req-quote::before,
+.req-quote::after {
+  content: none;
+}
+
+.drawer .history {
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* Spacing comes from the grid gaps, not from the browser's paragraph margins. */
+.drawer-body p {
+  margin: 0;
+}
+
+/* ---------- Mail ----------
+   One family: pill buttons with an icon, fields like every other field, cards with a clear head (kind, date), a
+   subject, the sender, then the body. A digest mail lists its vacancies one by one. */
+.mail-screen {
+  gap: var(--space-4);
+}
+
+.mail-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-5);
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width) solid var(--color-hairline);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+}
+
+.mail-tools-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.mail-older {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+}
+
+.mail-older .input {
+  width: 4.5rem;
+  min-height: var(--control-height);
+  padding: var(--space-1) var(--space-3);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Filters of the list: search field, kind chips, linked state. */
+.mail-filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.mail-search {
+  position: relative;
+  max-width: 28rem;
+}
+
+.mail-search .input {
+  width: 100%;
+  min-height: var(--control-height);
+  padding: var(--space-2) 2.25rem;
+  appearance: none;
+}
+
+.mail-search .input::-webkit-search-cancel-button,
+.mail-search .input::-webkit-search-decoration {
+  appearance: none;
+  display: none;
+}
+
+.mail-search-icon,
+.mail-search-clear {
+  position: absolute;
+  top: 50%;
+  display: inline-flex;
+  align-items: center;
+  transform: translateY(-50%);
+  color: var(--color-text-muted);
+}
+
+.mail-search-icon {
+  left: var(--space-3);
+  pointer-events: none;
+}
+
+.mail-search-clear {
+  right: var(--space-2);
+  padding: var(--space-1);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  cursor: pointer;
+}
+
+.mail-search-clear:hover {
+  color: var(--color-text);
+  background: var(--color-bg-muted);
+}
+
+.mail-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.chip-count {
+  margin-left: var(--space-2);
+  font-weight: var(--font-weight-regular, 400);
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+}
+
+.mail-empty {
+  padding: var(--space-6, 2rem) var(--space-4);
+}
+
+/* The state of the mailbox: quiet when idle, alive while it is being read. */
+.sync-card {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  overflow: hidden;
+  border: var(--border-width) solid var(--color-hairline);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  transition: border-color var(--duration-base) var(--ease-out);
+}
+
+.sync-card.is-syncing {
+  border-color: var(--color-border-strong);
+}
+
+.sync-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: var(--color-bg-muted);
+  font-size: 1.1rem;
+}
+
+.sync-card.is-syncing .sync-icon {
+  background: var(--color-ink);
+  color: var(--color-on-ink);
+}
+
+.sync-text {
+  display: grid;
+  gap: 2px;
+  flex: 1 1 10rem;
+  min-width: 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.45;
+}
+
+/* How often the mailbox is read: a native range over the step index, with the minutes named under it. Compact: it
+   sits at the right of the card on a wide screen and takes its own row on a narrow one. */
+.sync-interval {
+  display: grid;
+  flex: 1 1 100%;
+  gap: var(--space-1);
+  padding-top: var(--space-3);
+  border-top: var(--border-width) solid var(--color-hairline);
+}
+
+@media (min-width: 900px) {
+  .sync-interval {
+    flex: 0 0 15rem;
+    padding: 0 0 0 var(--space-5);
+    border-top: 0;
+    border-left: var(--border-width) solid var(--color-hairline);
+  }
+}
+
+.sync-interval-label {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.slider {
+  width: 100%;
+  height: 1.25rem;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-bg-muted);
+  box-shadow: inset 0 0 0 1px var(--color-hairline);
+}
+
+.slider::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-bg-muted);
+  box-shadow: inset 0 0 0 1px var(--color-hairline);
+}
+
+.slider::-webkit-slider-thumb {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: calc((4px - 1.25rem) / 2);
+  border: 2px solid var(--color-surface);
+  border-radius: 50%;
+  background: var(--color-ink);
+  box-shadow: 0 0 0 1px var(--color-border-strong);
+  transition: transform var(--duration-fast) var(--ease-out);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.slider::-moz-range-thumb {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid var(--color-surface);
+  border-radius: 50%;
+  background: var(--color-ink);
+  box-shadow: 0 0 0 1px var(--color-border-strong);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.slider:active::-webkit-slider-thumb {
+  transform: scale(1.12);
+}
+
+.slider:active::-moz-range-thumb {
+  transform: scale(1.12);
+}
+
+.slider:focus-visible {
+  outline: var(--focus-width) solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-input);
+}
+
+.slider-ticks {
+  display: flex;
+  justify-content: space-between;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.slider-ticks .is-current {
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+}
+
+.sync-interval-error {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+}
+
+.sync-text strong {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+}
+
+.sync-bar {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--color-ink) 10%, transparent);
+}
+
+.sync-bar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 35%;
+  border-radius: 3px;
+  background: var(--color-ink);
+  animation: sync-slide 1.3s var(--ease-out) infinite;
+}
+
+@keyframes sync-slide {
+  from {
+    left: -35%;
+  }
+
+  to {
+    left: 100%;
+  }
+}
+
+.mail-list {
+  gap: var(--space-3);
+}
+
+.mail-item {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+}
+
+.mail-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.mail-head input[type="checkbox"] {
+  flex: none;
+}
+
+.mail-date {
+  margin-left: auto;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}
+
+.mail-category {
+  flex: none;
+  font-size: var(--font-size-sm);
+}
+
+.cat-digest {
+  color: var(--color-info);
+}
+
+.mail-subject {
+  display: block;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.mail-from {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.mail-body {
+  display: grid;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+}
+
+.mail-text {
+  display: grid;
+  gap: var(--space-2);
+  color: var(--color-text);
+  font-size: var(--font-size-md);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.mail-text p {
+  margin: 0;
+}
+
+/* A long text is folded to about four lines and fades out. */
+.mail-text.folded {
+  max-height: 6.4em;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent);
+  mask-image: linear-gradient(180deg, #000 55%, transparent);
+}
+
+.mail-more,
+.digest-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.mail-more {
+  justify-self: start;
+  padding: var(--space-1) 0;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.mail-more[aria-expanded="true"] .icon {
+  transform: rotate(180deg);
+}
+
+/* The vacancies of a digest. */
+.digest {
+  display: grid;
+  margin-top: var(--space-1);
+}
+
+.digest-heading {
+  margin: 0 0 var(--space-1);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-label);
+  letter-spacing: var(--letter-spacing-label);
+  text-transform: uppercase;
+}
+
+.digest-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.digest-job {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) 0;
+  border-top: var(--border-width) solid var(--color-hairline);
+}
+
+.digest-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.digest-title {
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.digest-meta {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.digest-link {
+  flex: none;
+  padding: var(--space-1) var(--space-4);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+  transition: background var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out);
+}
+
+.digest-actions {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.digest-add {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-4);
+}
+
+.digest-add .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.digest-state {
+  padding: 2px var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-success-subtle);
+  color: var(--color-success);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}
+
+.digest-link:hover {
+  border-color: var(--color-text);
+  background: var(--color-bg-muted);
+}
+
+.mail-link {
+  margin: 0;
+}
+
+.mail-actions,
+.mail-suggestion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.mail-actions select.input {
+  min-height: var(--control-height);
+  padding: var(--space-1) var(--space-3);
+}
+
+.mail-suggestion {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg, var(--radius-md));
+  background: var(--color-bg-muted);
+}
+
+.mail-suggestion-text {
+  margin-right: auto;
+  font-weight: var(--font-weight-semibold);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sync-bar::after {
+    left: 0;
+    width: 100%;
+    opacity: 0.4;
+    animation: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .mail-tools,
+  .mail-tools-group {
+    width: 100%;
+  }
+
+  .digest-job {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+
+  .digest-actions {
+    justify-content: flex-start;
+  }
+}
+
+/* The note under an unfolded text that was cut when it was stored. */
+.mail-rest {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* The in-app confirmation (replaces window.confirm): a glass card centred over a scrim. */
+.confirm-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  background: var(--overlay-backdrop);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+.confirm-dialog {
+  display: grid;
+  gap: var(--space-3);
+  width: min(420px, 100%);
+  padding: var(--space-6);
+  border-radius: var(--radius-xl);
+}
+
+.confirm-dialog h2 {
+  margin: 0;
+  font-size: var(--font-size-lg, var(--font-size-md));
+}
+
+.confirm-dialog p {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+/* Mail tab keyboard (M6): the current mail has a ring (a shape, not only a colour) and a bar on its left. */
+.mail-item:focus {
+  outline: none;
+}
+
+.mail-item.is-current {
+  outline: var(--focus-width) solid var(--color-focus);
+  outline-offset: calc(var(--focus-offset) * -1);
+  background: var(--color-bg-subtle);
+}
+
+.shortcut-help {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border: var(--border-width) solid var(--color-hairline);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-subtle);
+}
+
+.shortcut-help dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  gap: var(--space-2) var(--space-5);
+  margin: 0;
+  flex: 1;
+}
+
+.shortcut-help dl > div {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.shortcut-help dt {
+  display: flex;
+  gap: var(--space-1);
+  min-width: 6.5rem;
+}
+
+.shortcut-help dd {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+@media (max-width: 640px) {
+  .shortcut-help {
+    flex-direction: column;
+  }
+}
+
+/* An interview or deadline date read from a mail: the line and its two actions. */
+.mail-event {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.mail-event-when {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.mail-event-when .muted {
+  font-weight: 400;
+  white-space: pre;
+}
+
+.mail-event-done {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+  color: var(--color-success, var(--color-text-muted));
+}
+
+.mail-event-error {
+  flex-basis: 100%;
+  font-size: var(--font-size-sm);
+  color: var(--color-danger, #b3261e);
+}
+
+/* ---------- Dashboard: Replies card ---------- */
+
+.replies-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.replies-head h2 {
+  margin: 0;
+}
+
+.replies-periods {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.replies-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-4) 0;
+}
+
+.replies-stats dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.replies-stats dd {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.replies-outcomes {
+  width: 100%;
+}
+
+.replies-outcomes th.num,
+.replies-outcomes td.num {
+  text-align: right;
+}

@@ -29,7 +29,7 @@ public class DashboardService {
      * Status changes that still stand: the one just before an "undo" entry was taken back, so it must not count as a
      * stage reached.
      */
-    private static final String EFFECTIVE_EVENTS = """
+    static final String EFFECTIVE_EVENTS = """
             SELECT vacancy_id, to_status, at FROM (
                 SELECT vacancy_id, to_status, at, lead(note) OVER (PARTITION BY vacancy_id ORDER BY at, CASE WHEN note = '%1$s' THEN 1 ELSE 0 END, id) AS next_note
                 FROM status_event

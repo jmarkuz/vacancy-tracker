@@ -24,6 +24,7 @@ const mail = (id: string): Mail => ({
   suggestedStatus: null,
   suggestionState: "none",
   createdAt: "2026-11-03T10:00:00Z",
+  jobs: [],
 });
 
 let host: HTMLElement;

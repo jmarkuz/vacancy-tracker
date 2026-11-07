@@ -51,6 +51,35 @@ public class VacancyService {
         return vacancy;
     }
 
+    /** The canonical form of a posting link (the first dedup key, ADR-013); empty for anything but an http(s) address. */
+    public static java.util.Optional<String> canonicalUrl(String url) {
+        return CanonicalUrl.of(CanonicalUrl.webLink(url));
+    }
+
+    /** The vacancy that already has this link (compared canonically, as the collection pipeline does), if any. */
+    @Transactional(readOnly = true)
+    public java.util.Optional<UUID> findIdByUrl(String url) {
+        return canonicalUrl(url).flatMap(repository::findIdByCanonicalUrl);
+    }
+
+    /** The existing vacancy of each link, by the link as given; links without a vacancy are left out. One query. */
+    @Transactional(readOnly = true)
+    public Map<String, UUID> findIdsByUrls(java.util.Collection<String> urls) {
+        Map<String, String> canonicalOf = new java.util.HashMap<>();
+        for (String url : urls) {
+            canonicalUrl(url).ifPresent(c -> canonicalOf.put(url, c));
+        }
+        Map<String, UUID> byCanonical = repository.findIdsByCanonicalUrls(new java.util.HashSet<>(canonicalOf.values()));
+        Map<String, UUID> result = new java.util.HashMap<>();
+        canonicalOf.forEach((url, c) -> {
+            UUID id = byCanonical.get(c);
+            if (id != null) {
+                result.put(url, id);
+            }
+        });
+        return result;
+    }
+
     @Transactional(readOnly = true)
     public Vacancy get(UUID id) {
         return repository.findById(id).map(Vacancy::restore).orElseThrow(() -> new VacancyNotFoundException(id));

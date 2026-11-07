@@ -1,3 +1,4 @@
+import { Icon } from "../components/Icon";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { isFieldTarget } from "../domain/triage";
 import { ApiError } from "../api/client";
@@ -151,7 +152,8 @@ export function VacancyDrawer({ id, onClose, onChange }: Props) {
             <h2 id={titleId}>{vacancy?.title ?? (loadError ? "Vacancy" : "Loading…")}</h2>
             {vacancy && <p class="muted">{vacancy.company}</p>}
           </div>
-          <button class="btn ghost" type="button" onClick={onClose} aria-label="Close vacancy">
+          <button class="btn ghost drawer-close" type="button" onClick={onClose} aria-label="Close vacancy">
+            <Icon name="close" />
             Close
           </button>
         </header>

@@ -88,6 +88,24 @@ class MailClassifierTest {
     }
 
     @Test
+    void aTextWithinTheLimitIsKeptWholeAndALongerOneIsCutWithAnEllipsis() {
+        String whole = ("Paragraph of the offer.\n").repeat(100).strip();
+        MailMessage fits = new MailMessage("<f@x>", "a@b.c", null, "s", null, whole, null);
+        MailMessage exact = new MailMessage("<e@x>", "a@b.c", null, "s", null, "y".repeat(CorrespondenceService.SNIPPET), null);
+        MailMessage tooLong = new MailMessage("<t@x>", "a@b.c", null, "s", null, "word ".repeat(2000), null);
+
+        assertThat(MailClassifier.snippet(fits, CorrespondenceService.SNIPPET)).isEqualTo(whole).doesNotEndWith("…");
+        assertThat(MailClassifier.snippet(exact, CorrespondenceService.SNIPPET)).hasSize(CorrespondenceService.SNIPPET).doesNotEndWith("…");
+        String cut = MailClassifier.snippet(tooLong, CorrespondenceService.SNIPPET);
+        assertThat(cut).endsWith("…").hasSizeBetween(CorrespondenceService.SNIPPET - 5, CorrespondenceService.SNIPPET + 1);
+    }
+
+    @Test
+    void theStoredLimitIsFarMoreThanTheFoldedPreview() {
+        assertThat(CorrespondenceService.SNIPPET).isEqualTo(4000);
+    }
+
+    @Test
     void aJobBoardSendersDomainDoesNotLinkAMailToAnUnrelatedVacancy() {
         UUID first = UUID.randomUUID();
         UUID second = UUID.randomUUID();

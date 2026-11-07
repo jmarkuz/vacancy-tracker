@@ -115,6 +115,11 @@ public class ImapMailReader {
         return readNew(handler, true);
     }
 
+    /** Forgets what was handled under the prefix, so the next read offers those messages again. */
+    public int forgetProcessed(String keyPrefix) {
+        return processed.forgetWithPrefix(keyPrefix);
+    }
+
     public void markProcessed(List<String> keys) {
         keys.forEach(processed::markProcessed);
     }

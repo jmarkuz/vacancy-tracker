@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { applyTextSize, applyTheme, nextTheme, readTextSize, readTheme } from "./theme";
+import { applyGlass, applyTextSize, applyTheme, nextTheme, readGlass, readTextSize, readTheme } from "./theme";
 
 afterEach(() => {
   vi.restoreAllMocks();
   document.documentElement.removeAttribute("data-theme");
   document.documentElement.removeAttribute("data-text-size");
+  document.documentElement.removeAttribute("data-glass");
   window.localStorage.clear();
 });
 
@@ -63,5 +64,39 @@ describe("text size", () => {
   it("ignores unknown stored sizes", () => {
     window.localStorage.setItem("vt-text-size", "40");
     expect(readTextSize()).toBe("18");
+  });
+});
+
+describe("glass effects", () => {
+  it("are on when nothing was chosen, and the root carries no marker", () => {
+    expect(readGlass()).toBe("on");
+    applyGlass("on");
+    expect(document.documentElement.hasAttribute("data-glass")).toBe(false);
+  });
+
+  it("can be switched off, which marks the root and is remembered", () => {
+    applyGlass("off");
+
+    expect(document.documentElement.getAttribute("data-glass")).toBe("off");
+    expect(readGlass()).toBe("off");
+  });
+
+  it("come back on, and the marker goes", () => {
+    applyGlass("off");
+    applyGlass("on");
+
+    expect(document.documentElement.hasAttribute("data-glass")).toBe(false);
+    expect(readGlass()).toBe("on");
+  });
+
+  it("ignore an unknown stored value, and still apply when storage is blocked", () => {
+    window.localStorage.setItem("vt-glass", "frosted");
+    expect(readGlass()).toBe("on");
+
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    applyGlass("off");
+    expect(document.documentElement.getAttribute("data-glass")).toBe("off");
   });
 });

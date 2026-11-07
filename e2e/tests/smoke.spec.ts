@@ -109,8 +109,16 @@ test("the board moves a card with its list and records the change", async ({ pag
 
 test("the command palette finds a vacancy and opens it", async ({ page }) => {
   await page.goto("/#/dashboard");
-  await page.keyboard.press("Control+k");
   const box = page.getByRole("combobox", { name: /Search vacancies/ });
+  // The shortcut's listener is attached in an effect after the first render, which can come after the page's load
+  // event on a busy runner: a key pressed before that is lost. So press only while the palette is not open, wait for it
+  // to show each time, and try again; the check before each press keeps a late open from being toggled shut.
+  await expect(async () => {
+    if (!(await box.isVisible())) {
+      await page.keyboard.press("Control+k");
+    }
+    await expect(box).toBeVisible({ timeout: 1500 });
+  }).toPass({ timeout: 15_000 });
   await expect(box).toBeFocused();
 
   await box.fill("smoke");

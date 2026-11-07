@@ -2,6 +2,8 @@ package com.vacancytracker.web;
 
 import com.vacancytracker.application.mail.Correspondence;
 import com.vacancytracker.application.mail.CorrespondenceService;
+import com.vacancytracker.application.mail.MailFilter;
+import com.vacancytracker.application.mail.MailSettings;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.List;
@@ -32,9 +34,47 @@ public class MailController {
         return mail.status();
     }
 
+    @GetMapping("/api/mail/settings")
+    public SettingsResponse settings() {
+        return new SettingsResponse(mail.intervalMinutes());
+    }
+
+    /** Sets how often the mailbox is read; 400 for a value that is not one of 5, 10, 15, 30, 45, 60. */
+    @PutMapping("/api/mail/settings")
+    public SettingsResponse updateSettings(@RequestBody SettingsRequest request) {
+        if (request == null || request.intervalMinutes() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Give intervalMinutes.");
+        }
+        if (!MailSettings.ALLOWED_MINUTES.contains(request.intervalMinutes())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The interval must be one of " + MailSettings.ALLOWED_MINUTES + " minutes.");
+        }
+        return new SettingsResponse(mail.setIntervalMinutes(request.intervalMinutes()));
+    }
+
     @GetMapping("/api/mail")
-    public List<Correspondence> list(@RequestParam(required = false) UUID vacancyId, @RequestParam(defaultValue = "false") boolean pending) {
-        return mail.list(vacancyId, pending);
+    public List<Correspondence> list(@RequestParam(required = false) UUID vacancyId, @RequestParam(defaultValue = "false") boolean pending,
+            @RequestParam(required = false) List<String> category, @RequestParam(required = false) Boolean linked,
+            @RequestParam(required = false) String q) {
+        return mail.list(filter(vacancyId, pending, category, linked, q));
+    }
+
+    /**
+     * How many mails each category holds under the other filters (category is ignored here), for the filter chips;
+     * 400 for an unknown category or a search text over 200 characters.
+     */
+    @GetMapping("/api/mail/counts")
+    public CorrespondenceService.Counts counts(@RequestParam(required = false) UUID vacancyId, @RequestParam(defaultValue = "false") boolean pending,
+            @RequestParam(required = false) List<String> category, @RequestParam(required = false) Boolean linked,
+            @RequestParam(required = false) String q) {
+        return mail.counts(filter(vacancyId, pending, category, linked, q));
+    }
+
+    private static MailFilter filter(UUID vacancyId, boolean pending, List<String> category, Boolean linked, String q) {
+        try {
+            return MailFilter.parse(vacancyId, pending, category, linked, q);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
     }
 
     /** The applications a mail can be linked to by hand. */
@@ -47,6 +87,16 @@ public class MailController {
     @PostMapping("/api/mail/sync/start")
     public ResponseEntity<CorrespondenceService.SyncStart> startSync() {
         CorrespondenceService.SyncStart start = mail.startSync();
+        return ResponseEntity.status(start.started() ? HttpStatus.ACCEPTED : HttpStatus.CONFLICT).body(start);
+    }
+
+    /**
+     * Forgets which mails were handled and reads the mailbox again in the background (same answers as sync/start).
+     * Stored mail is kept and gets what newer versions read from it, such as the postings of a digest.
+     */
+    @PostMapping("/api/mail/reread")
+    public ResponseEntity<CorrespondenceService.SyncStart> reread() {
+        CorrespondenceService.SyncStart start = mail.startReread();
         return ResponseEntity.status(start.started() ? HttpStatus.ACCEPTED : HttpStatus.CONFLICT).body(start);
     }
 
@@ -68,6 +118,12 @@ public class MailController {
     @PostMapping("/api/mail/{id}/accept")
     public AcceptResponse accept(@PathVariable UUID id) {
         return new AcceptResponse(mail.get(id).vacancyId(), mail.accept(id).getStatus().label(), mail.get(id));
+    }
+
+    /** Adds posting number index of a digest mail to the Pipeline (or answers the vacancy it already is); 404 for an unknown mail or index. */
+    @PostMapping("/api/mail/{id}/jobs/{index}/add")
+    public CorrespondenceService.AddedJob addJob(@PathVariable UUID id, @PathVariable int index) {
+        return mail.addToPipeline(id, index);
     }
 
     @PostMapping("/api/mail/{id}/dismiss")
@@ -96,6 +152,12 @@ public class MailController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Give a number of days of at least 1.");
         }
         return new DeleteResponse(mail.deleteOlderThan(request.days()));
+    }
+
+    public record SettingsRequest(Integer intervalMinutes) {
+    }
+
+    public record SettingsResponse(int intervalMinutes) {
     }
 
     public record DeleteRequest(List<UUID> ids) {
