@@ -2,7 +2,7 @@
 # Build context is the repository root (see docker-compose.yml).
 
 # Stage 1: build the Preact UI; Vite writes the bundle into backend/src/main/resources/static.
-FROM node:20-alpine AS web
+FROM node:26-alpine AS web
 WORKDIR /src/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
