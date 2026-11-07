@@ -18,7 +18,7 @@ export default defineConfig({
     // The style files are read as text (?raw) by the contrast, Liquid Glass and syntax tests; Vitest hands any other CSS
     // over as an empty string, which would leave those tests with nothing to check. Components do not import CSS.
     css: { include: [/src\/styles\/.*\.css/] },
-    poolOptions: { forks: { execArgv } },
+    execArgv,
     // `npm run test:coverage` (and CI) fail when coverage drops. The floors sit just under today's numbers and
     // only go up: the pure rules in src/domain are tested almost completely, the screens and components are
     // covered by the Playwright tests in e2e/ and by the few component tests here. Raise a floor with the PR that
@@ -27,7 +27,8 @@ export default defineConfig({
     // lower the percentage while coverage really grows. Lines and functions count every file in src.
     coverage: {
       provider: "v8",
-      include: ["src/**/*.{ts,tsx}"],
+      // No `include` here: since Vitest 5 a set `include` also adds every untested file as zero, which would move
+      // the figures without any test change. Without it only the files the tests load are counted, as before.
       exclude: ["src/**/*.test.{ts,tsx}", "src/main.tsx", "src/**/*.d.ts"],
       reporter: ["text-summary", "json-summary"],
       thresholds: {
