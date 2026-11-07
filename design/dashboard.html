@@ -1023,21 +1023,24 @@
 
   function renderRules() {
     $("#rules").innerHTML = rules.map(function (r, i) {
+      var idx = Number(i);
+      var safeWeight = Number(r.weight);
+      if (!Number.isFinite(safeWeight)) safeWeight = 1;
       function sel(list, cur, cls) {
-        return '<select class="select" data-k="' + cls + '" data-i="' + i + '">' + list.map(function (o) {
-          return '<option' + (o === cur ? " selected" : "") + '>' + o + '</option>';
+        return '<select class="select" data-k="' + esc(cls) + '" data-i="' + idx + '">' + list.map(function (o) {
+          return '<option' + (o === cur ? " selected" : "") + '>' + esc(o) + '</option>';
         }).join("") + '</select>';
       }
-      return '<div class="rule-row' + (i === focusRule ? " is-focus" : "") + '" data-rule="' + i + '">' +
+      return '<div class="rule-row' + (idx === focusRule ? " is-focus" : "") + '" data-rule="' + idx + '">' +
         '<span class="grip" aria-hidden="true">⋮⋮</span>' +
-        '<input class="input" aria-label="Label" data-k="label" data-i="' + i + '" value="' + esc(r.label) + '">' +
+        '<input class="input" aria-label="Label" data-k="label" data-i="' + idx + '" value="' + esc(r.label) + '">' +
         sel(FIELDS, r.field, "field") +
-        '<input class="input" aria-label="Value" data-k="value" data-i="' + i + '" value="' + esc(r.value) + '">' +
+        '<input class="input" aria-label="Value" data-k="value" data-i="' + idx + '" value="' + esc(r.value) + '">' +
         sel(OPS, r.op, "op") +
         sel(MODES, r.mode, "mode") +
-        '<input class="input num" type="number" min="1" max="10" aria-label="Weight" data-k="weight" data-i="' + i + '" value="' + r.weight + '" style="width:64px">' +
-        '<div class="rule-actions"><button class="icon-btn" data-move="-1" data-i="' + i + '" aria-label="Move up">↑</button>' +
-        '<button class="icon-btn" data-move="1" data-i="' + i + '" aria-label="Move down">↓</button>' +
+        '<input class="input num" type="number" min="1" max="10" aria-label="Weight" data-k="weight" data-i="' + idx + '" value="' + safeWeight + '" style="width:64px">' +
+        '<div class="rule-actions"><button class="icon-btn" data-move="-1" data-i="' + idx + '" aria-label="Move up">↑</button>' +
+        '<button class="icon-btn" data-move="1" data-i="' + idx + '" aria-label="Move down">↓</button>' +
         sel(POLICIES, r.policy, "policy").replace('class="select"', 'class="select" aria-label="Missing value policy"') + '</div>' +
         '</div>';
     }).join("");
