@@ -22,7 +22,7 @@
         <maven.compiler.release>21</maven.compiler.release>
         <!-- Line coverage a core module (vacancy, collection, matching, application) must keep; the build fails below it (ADR-022). -->
         <jacoco.minimum.line>0.80</jacoco.minimum.line>
-        <checkstyle.version>10.21.0</checkstyle.version>
+        <checkstyle.version>14.4.0</checkstyle.version>
         <!-- 1.21.3 (the Spring Boot default) cannot talk to Docker Engine 29+, which refuses its old API version. -->
         <testcontainers.version>1.21.4</testcontainers.version>
     </properties>
