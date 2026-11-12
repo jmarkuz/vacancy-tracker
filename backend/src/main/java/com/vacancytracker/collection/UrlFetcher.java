@@ -1,5 +1,7 @@
 package com.vacancytracker.collection;
 
+import com.vacancytracker.collection.http.HttpFetcher;
+import com.vacancytracker.collection.http.UpstreamException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
@@ -9,6 +11,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -33,9 +36,16 @@ public class UrlFetcher {
             .followRedirects(HttpClient.Redirect.NEVER)
             .build();
     private final boolean allowPrivateHosts;
+    private final Duration bodyDeadline;
 
+    @Autowired
     public UrlFetcher(@Value("${app.import.allow-private-hosts:false}") boolean allowPrivateHosts) {
+        this(allowPrivateHosts, HttpFetcher.BODY_DEADLINE);
+    }
+
+    UrlFetcher(boolean allowPrivateHosts, Duration bodyDeadline) {
         this.allowPrivateHosts = allowPrivateHosts;
+        this.bodyDeadline = bodyDeadline;
     }
 
     public String fetch(String url) {
@@ -87,10 +97,16 @@ public class UrlFetcher {
         }
     }
 
-    /** Reads at most MAX_BYTES; more than that is cut, as the extractor needs only the head of a page. */
-    private static String readBounded(HttpResponse<InputStream> response) throws IOException {
-        try (InputStream in = response.body()) {
-            return new String(in.readNBytes(MAX_BYTES), com.vacancytracker.collection.http.HttpFetcher.charsetOf(response.headers()));
+    /**
+     * Reads at most MAX_BYTES; more than that is cut, as the extractor needs only the head of a page. A page that
+     * stalls half way is given up after the body deadline, so the request does not hang for ever (T-092, F7).
+     */
+    private String readBounded(HttpResponse<InputStream> response) throws IOException {
+        try {
+            byte[] bytes = HttpFetcher.readHead(response.body(), MAX_BYTES, bodyDeadline);
+            return new String(bytes, HttpFetcher.charsetOf(response.headers()));
+        } catch (UpstreamException e) {
+            throw new UrlFetchException("The page did not arrive in time");
         }
     }
 

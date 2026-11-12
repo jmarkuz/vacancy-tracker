@@ -54,4 +54,34 @@ class BodyDeadlineTest {
         InputStream ok = new ByteArrayInputStream("hello".getBytes());
         assertThat(HttpFetcher.readBounded(responseWith(ok), Duration.ofSeconds(5))).isEqualTo("hello");
     }
+
+    @Test
+    void readHeadCutsALongBodyAtTheLimitWithoutFailing() throws IOException {
+        InputStream long_ = new ByteArrayInputStream("0123456789".getBytes());
+        assertThat(HttpFetcher.readHead(long_, 4, Duration.ofSeconds(5))).isEqualTo("0123".getBytes());
+    }
+
+    @Test
+    void readHeadGivesUpOnABodyThatStalls() {
+        CountDownLatch closed = new CountDownLatch(1);
+        InputStream stalled = new InputStream() {
+            @Override
+            public int read() throws IOException {
+                try {
+                    closed.await();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                throw new IOException("closed");
+            }
+
+            @Override
+            public void close() {
+                closed.countDown();
+            }
+        };
+        assertThatThrownBy(() -> HttpFetcher.readHead(stalled, 1024, Duration.ofMillis(200)))
+                .isInstanceOf(UpstreamException.class)
+                .hasMessageContaining("not received within");
+    }
 }

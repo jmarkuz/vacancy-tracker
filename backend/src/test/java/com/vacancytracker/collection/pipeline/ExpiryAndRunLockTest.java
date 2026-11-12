@@ -274,4 +274,48 @@ class ExpiryAndRunLockTest extends AbstractIntegrationTest {
 
         assertThat(runs.findRun(started.runId()).orElseThrow().status()).isEqualTo("interrupted");
     }
+
+    @Test
+    void theWatchdogClosesARunThatStallsWhereNoInterruptReachesAndTheNextRunStartsFresh() throws InterruptedException {
+        CountDownLatch release = new CountDownLatch(1);
+        java.util.concurrent.atomic.AtomicInteger calls = new java.util.concurrent.atomic.AtomicInteger();
+        SourceAdapter stalls = adapter("stalls", () -> {
+            if (calls.incrementAndGet() == 1) {
+                // Like a blocking socket read: an interrupt does not end it, only the release does.
+                while (release.getCount() > 0) {
+                    try {
+                        release.await(50, TimeUnit.MILLISECONDS);
+                    } catch (InterruptedException ignored) {
+                        // keep waiting: this thread is stuck on purpose
+                    }
+                }
+            }
+            return FetchOutcome.of(List.of());
+        });
+        RunCoordinator coordinator = new RunCoordinator(pipeline(List.of(stalls)), runs, clock, Duration.ofSeconds(5), Duration.ofMillis(300));
+        try {
+            RunCoordinator.Started first = coordinator.start("manual");
+            assertThat(waitFor(() -> "interrupted".equals(runs.findRun(first.runId()).orElseThrow().status()))).isTrue();
+            assertThat(coordinator.activeRun()).isEmpty();
+
+            RunCoordinator.Started second = coordinator.start("manual");
+            assertThat(second.started()).isTrue();
+            assertThat(waitFor(() -> "completed".equals(runs.findRun(second.runId()).orElseThrow().status()))).isTrue();
+            assertThat(runs.findRun(first.runId()).orElseThrow().status()).isEqualTo("interrupted");
+        } finally {
+            release.countDown();
+            coordinator.shutdown();
+        }
+    }
+
+    private static boolean waitFor(java.util.function.BooleanSupplier condition) throws InterruptedException {
+        long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+        while (System.nanoTime() < until) {
+            if (condition.getAsBoolean()) {
+                return true;
+            }
+            Thread.sleep(50);
+        }
+        return false;
+    }
 }
