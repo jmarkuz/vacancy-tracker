@@ -96,6 +96,44 @@ class ExpiryAndRunLockTest extends AbstractIntegrationTest {
         return new CollectionPipeline(adapters, health, ingestService, runs, vacancies, expiry, matchService, new RunEventBus(), clock);
     }
 
+    /** The Greenhouse id with a list of followed boards, as the real ATS adapters have. */
+    private static SourceAdapter atsAdapter(java.util.Set<String> followed, Supplier<FetchOutcome> fetch) {
+        SourceAdapter base = adapter("ats-greenhouse", fetch);
+        return new SourceAdapter() {
+            @Override
+            public String id() {
+                return base.id();
+            }
+
+            @Override
+            public Set<String> serverSideFields() {
+                return base.serverSideFields();
+            }
+
+            @Override
+            public FetchOutcome fetch() {
+                return base.fetch();
+            }
+
+            @Override
+            public java.util.Optional<Set<String>> followedCompanies() {
+                return java.util.Optional.of(followed);
+            }
+        };
+    }
+
+    private CollectionPipeline pipelineWithExpiry(List<SourceAdapter> adapters) {
+        SourceHealth health = new SourceHealth(jdbc, clock);
+        IngestService ingestService = new IngestService(deduplicator, vacancies);
+        ExpiryService expiry = new ExpiryService(jdbc, vacancies, clock, transactions, adapters, 3);
+        return new CollectionPipeline(adapters, health, ingestService, runs, vacancies, expiry, matchService, new RunEventBus(), clock);
+    }
+
+    private static RawPosting boardPosting(String company, String ext) {
+        return new RawPosting("ats-greenhouse", ext, "https://boards.example/" + ext, "Platform Engineer " + ext, company, "Berlin",
+                null, "Plain.", null, null, null, null, null);
+    }
+
     private String statusOf(String title) {
         return template.queryForObject("SELECT status FROM vacancy WHERE title = ?", String.class, title);
     }
@@ -317,5 +355,52 @@ class ExpiryAndRunLockTest extends AbstractIntegrationTest {
             Thread.sleep(50);
         }
         return false;
+    }
+
+    @Test
+    void aVacancyOfABoardThatWasRemovedFromTheListIsNotExpired() {
+        // First the board "acme" is followed and its vacancy is seen.
+        SourceAdapter before = atsAdapter(Set.of("acme"), () -> FetchOutcome.of(List.of(boardPosting("acme", "1"))));
+        pipelineWithExpiry(List.of(before)).run("manual");
+
+        // Then the owner removes "acme" and follows another board: the adapter still succeeds, "acme" is never seen again.
+        SourceAdapter after = atsAdapter(Set.of("other"), () -> FetchOutcome.of(List.of(boardPosting("other", "2"))));
+        CollectionPipeline pipeline = pipelineWithExpiry(List.of(after));
+        for (int i = 0; i < 5; i++) {
+            clock.advance(Duration.ofHours(1));
+            pipeline.run("manual");
+        }
+
+        assertThat(statusOf("Platform Engineer 1")).isEqualTo("New");
+        assertThat(statusOf("Platform Engineer 2")).isEqualTo("New");
+    }
+
+    @Test
+    void aVacancyIsNotExpiredWhenTheBoardListIsEmptied() {
+        pipelineWithExpiry(List.of(atsAdapter(Set.of("acme"), () -> FetchOutcome.of(List.of(boardPosting("acme", "3")))))).run("manual");
+
+        CollectionPipeline pipeline = pipelineWithExpiry(List.of(atsAdapter(Set.of(), () -> FetchOutcome.of(List.of()))));
+        for (int i = 0; i < 5; i++) {
+            clock.advance(Duration.ofHours(1));
+            pipeline.run("manual");
+        }
+
+        assertThat(statusOf("Platform Engineer 3")).isEqualTo("New");
+    }
+
+    @Test
+    void aVacancyOfABoardThatIsStillFollowedExpiresWhenItIsGone() {
+        AtomicBoolean seen = new AtomicBoolean(true);
+        SourceAdapter source = atsAdapter(Set.of("acme"), () -> FetchOutcome.of(seen.get() ? List.of(boardPosting("Acme", "4")) : List.of()));
+        CollectionPipeline pipeline = pipelineWithExpiry(List.of(source));
+        pipeline.run("manual");
+        seen.set(false);
+
+        for (int i = 0; i < 3; i++) {
+            clock.advance(Duration.ofHours(1));
+            pipeline.run("manual");
+        }
+
+        assertThat(statusOf("Platform Engineer 4")).isEqualTo("Expired");
     }
 }

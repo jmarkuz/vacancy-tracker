@@ -5,6 +5,7 @@ All notable changes are recorded here. Format: date, task ID, short description.
 ## [Unreleased]
 
 ### 2026-11-12 — T-092 review backlog
+- F8: removing an ATS board (Greenhouse, Lever, Ashby), or emptying the list, no longer expires that board's New and Saved vacancies after three runs. The adapters name the companies they still follow and the expiry skips a vacancy whose company is no longer on the list; a board that is still listed expires as before. Tests: ExpiryAndRunLockTest.
 - F7: a source that stalls can no longer hold the run lock. The body of a manual import page is read within 30 s like the collection fetcher's (a page that stalls half way ends with "The page did not arrive in time"), and a run watchdog closes a run that takes longer than `APP_COLLECTION_MAX_RUN_MINUTES` (default 30): the run is marked interrupted, the Refresh stream is told it is over, the stuck thread is interrupted and given up, and the next Refresh starts on a fresh thread. Tests: BodyDeadlineTest, UrlFetcherTest, ExpiryAndRunLockTest.
 
 ### 2026-11-05 — Owner requests
