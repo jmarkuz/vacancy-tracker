@@ -19,6 +19,7 @@ import {
   rowErrors,
   sameInput,
 } from "../domain/profileEditor";
+import { parseRoute } from "../router";
 import { PreviewPanel } from "./PreviewPanel";
 import { RuleRow } from "./RuleRow";
 
@@ -34,9 +35,14 @@ interface Props {
 
 type Validity = "checking" | "valid" | "invalid" | "unknown";
 
+const DISCARD = "Discard the unsaved changes to this profile?";
+
 /**
  * Profile editor with the rule builder (T-055). Every change is checked by the server's dry run, so errors
  * appear next to the exact field. Saving creates a new version; the previous one stays readable.
+ *
+ * Unsaved changes are never dropped silently (U9): Close, a move to another screen or profile (also with the browser's
+ * Back button) and closing the tab ask first, and declining keeps the editor as it was.
  */
 export function ProfileEditor({ initial, profile, meta, sourceIds, onSaved, onClose }: Props) {
   const [draft, setDraft] = useState<ProfileInput>(initial);
@@ -45,9 +51,51 @@ export function ProfileEditor({ initial, profile, meta, sourceIds, onSaved, onCl
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const pendingFocus = useRef<{ id: string; role: string } | null>(null);
+  // Set when this editor itself is the reason the address changes (it closed, or it saved): nothing is lost then.
+  const leaving = useRef(false);
 
   const dirty = !sameInput(draft, initial);
   const header = profileErrors(errors);
+
+  // Leaving with unsaved changes asks first. A hash change that stays on this screen and this profile is not leaving.
+  useEffect(() => {
+    if (!dirty) {
+      return;
+    }
+    leaving.current = false; // edited again after a save: the guard is back on
+    const onUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    const onHash = (e: HashChangeEvent) => {
+      if (leaving.current) {
+        return;
+      }
+      const from = parseRoute(new URL(e.oldURL).hash);
+      const to = parseRoute(new URL(e.newURL).hash);
+      if (from.screen === to.screen && from.params.get("edit") === to.params.get("edit")) {
+        return;
+      }
+      if (!window.confirm(DISCARD)) {
+        // The page has not re-rendered yet (confirm blocks), so putting the old address back keeps this editor.
+        window.location.hash = new URL(e.oldURL).hash;
+      }
+    };
+    window.addEventListener("beforeunload", onUnload);
+    window.addEventListener("hashchange", onHash);
+    return () => {
+      window.removeEventListener("beforeunload", onUnload);
+      window.removeEventListener("hashchange", onHash);
+    };
+  }, [dirty]);
+
+  const close = () => {
+    if (dirty && !window.confirm(DISCARD)) {
+      return;
+    }
+    leaving.current = true;
+    onClose();
+  };
 
   // Live validation: the server's dry run, a moment after the last edit.
   useEffect(() => {
@@ -113,6 +161,7 @@ export function ProfileEditor({ initial, profile, meta, sourceIds, onSaved, onCl
     setSaveError(null);
     try {
       const saved = profile ? await updateProfile(profile.id, draft) : await createProfile(draft);
+      leaving.current = true;
       onSaved(saved, !profile);
     } catch (e: unknown) {
       if (e instanceof ProfileRejected) {
@@ -142,7 +191,7 @@ export function ProfileEditor({ initial, profile, meta, sourceIds, onSaved, onCl
         <span class="grow" />
         {profile && <span class="muted num small">Version {profile.version}</span>}
         {dirty && <span class="muted small" role="status">Unsaved changes</span>}
-        <button type="button" class="btn" onClick={onClose}>Close</button>
+        <button type="button" class="btn" onClick={close}>Close</button>
         <button type="submit" class="btn primary" data-role="amber" disabled={!canSave}>
           {saving ? "Saving…" : profile ? "Save as new version" : "Create profile"}
         </button>

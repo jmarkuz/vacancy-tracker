@@ -1,5 +1,6 @@
 package com.vacancytracker.collection.adapter;
 
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -16,4 +17,13 @@ public interface SourceAdapter {
     Set<String> serverSideFields();
 
     FetchOutcome fetch();
+
+    /**
+     * For sources that follow companies the owner lists (ATS boards): the companies still followed, in lower case.
+     * A vacancy of a company that is no longer listed is not expired for having gone missing, because the source
+     * stopped looking for it (T-092, F8). Empty means the source does not work from such a list.
+     */
+    default Optional<Set<String>> followedCompanies() {
+        return Optional.empty();
+    }
 }
