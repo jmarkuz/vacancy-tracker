@@ -26,7 +26,7 @@ public class HttpFetcher {
     static final int MAX_BODY_BYTES = 5 * 1024 * 1024;
     static final int MAX_REDIRECTS = 3;
     /** Deadline for reading a whole answer body: the request timeout only covers the headers (T-092, F7). */
-    static final Duration BODY_DEADLINE = Duration.ofSeconds(30);
+    public static final Duration BODY_DEADLINE = Duration.ofSeconds(30);
 
     private static final java.util.concurrent.ScheduledExecutorService WATCHDOG =
             java.util.concurrent.Executors.newSingleThreadScheduledExecutor(r -> {
@@ -236,6 +236,29 @@ public class HttpFetcher {
                 throw new UpstreamException("The answer was not received within " + deadline.toSeconds() + " seconds");
             }
             throw new UpstreamException("Network error while reading the answer");
+        } finally {
+            timer.cancel(false);
+        }
+    }
+
+    /**
+     * Reads at most {@code limit} bytes (a longer answer is cut, not refused) and gives up when the whole read takes
+     * longer than the deadline: the stream is closed, which ends a blocked read. For callers that wanted the head of
+     * a page only (manual import); {@link #get} refuses a body that is too large instead.
+     */
+    public static byte[] readHead(java.io.InputStream body, int limit, Duration deadline) throws IOException {
+        java.util.concurrent.atomic.AtomicBoolean expired = new java.util.concurrent.atomic.AtomicBoolean();
+        java.util.concurrent.ScheduledFuture<?> timer = WATCHDOG.schedule(() -> {
+            expired.set(true);
+            closeQuietly(body);
+        }, deadline.toMillis(), java.util.concurrent.TimeUnit.MILLISECONDS);
+        try (java.io.InputStream in = body) {
+            return in.readNBytes(limit);
+        } catch (IOException e) {
+            if (expired.get()) {
+                throw new UpstreamException("The answer was not received within " + deadline.toSeconds() + " seconds");
+            }
+            throw e;
         } finally {
             timer.cancel(false);
         }

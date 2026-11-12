@@ -70,6 +70,16 @@ public class CollectionPipeline {
         stopRequested = true;
     }
 
+    /**
+     * Closes a run that is given up on (the run watchdog, T-092, F7): the row becomes interrupted and the Refresh
+     * stream is told that it is over. Only a running run changes, so a run that finished meanwhile is left alone.
+     */
+    public void abandon(UUID runId) {
+        if (runs.finish(runId, "interrupted", clock.instant()) > 0) {
+            publishDone(runId, "interrupted", List.of());
+        }
+    }
+
     /** Executes an already created run. Stops between adapters when asked; then the run is interrupted. */
     public RunSummary execute(UUID runId) {
         return execute(runId, null);
