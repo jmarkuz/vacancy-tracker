@@ -52,7 +52,7 @@ The weak spots are (1) the build did not run on current tools, (2) the local API
 | U6 | medium | The e2e check that the drawer opened always passed (it also matched the sidebar). | `e2e/tests/smoke.spec.ts:119` | Fixed: the dialog is found by its name |
 | U7 | low | The drawer said "Save failed" when the save succeeded and only the history reload failed. | `VacancyDrawer.tsx:97-111` | Fixed |
 | U8 | low | The command palette could open a hit of the previous query and dropped the Pipeline's URL state. | `CommandPalette.tsx` | Open (T-092) |
-| U9 | low | The profile editor discards unsaved rules without asking. | `ProfileEditor.tsx:144` | Open (T-092) |
+| U9 | low | The profile editor discards unsaved rules without asking. | `ProfileEditor.tsx:144` | Fixed: Close, a move to another screen or profile (also the browser's Back button) and closing the tab ask first while there are unsaved changes, and declining keeps the editor; `ProfileEditor.test.tsx` |
 | U10 | low | The selected Inbox row and palette option are invisible in Windows High Contrast mode. | `app.css:804-807,1299-1301` | Fixed in the redesign (T-090): outline and a `forced-colors` rule |
 | U11 | low | A CI retry of the serial e2e suite always failed (the database was no longer empty). | `e2e/playwright.config.ts:12` | Fixed: no retries |
 | U12 | low | `run-local.sh` could wait forever for PostgreSQL and could test an outdated jar. | `e2e/run-local.sh:17-23` | Fixed: bounded wait, checked `docker run`, jar older than the UI sources refused |

@@ -278,4 +278,104 @@ describe("ProfileEditor", () => {
     });
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  describe("unsaved changes", () => {
+    const dirtyEditor = async () => {
+      await mount(input(), stored());
+      await typeInto(host.querySelector<HTMLInputElement>('input[type="text"]')!, "Changed name");
+    };
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+      window.location.hash = "";
+    });
+
+    it("closes without asking when nothing was changed", async () => {
+      const confirm = vi.spyOn(window, "confirm");
+      await mount(input(), stored());
+
+      await act(async () => {
+        button("Close").click();
+      });
+
+      expect(confirm).not.toHaveBeenCalled();
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it("asks before Close drops changes, and keeps the editor when declined", async () => {
+      const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+      await dirtyEditor();
+
+      await act(async () => {
+        button("Close").click();
+      });
+      expect(confirm).toHaveBeenCalledWith("Discard the unsaved changes to this profile?");
+      expect(onClose).not.toHaveBeenCalled();
+
+      confirm.mockReturnValue(true);
+      await act(async () => {
+        button("Close").click();
+      });
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(confirm).toHaveBeenCalledTimes(2);
+    });
+
+    it("puts the old address back when a move to another screen is declined", async () => {
+      const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+      await dirtyEditor();
+
+      await act(async () => {
+        window.dispatchEvent(new HashChangeEvent("hashchange", { oldURL: "http://localhost/#/profiles?edit=s1", newURL: "http://localhost/#/dashboard" }));
+      });
+
+      expect(confirm).toHaveBeenCalledTimes(1);
+      expect(window.location.hash).toBe("#/profiles?edit=s1");
+    });
+
+    it("lets a confirmed move go, and ignores a change that stays on this profile", async () => {
+      const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+      await dirtyEditor();
+      window.location.hash = "#/profiles?edit=s1";
+
+      await act(async () => {
+        window.dispatchEvent(new HashChangeEvent("hashchange", { oldURL: "http://localhost/#/profiles?edit=s1", newURL: "http://localhost/#/profiles?edit=s1&x=1" }));
+      });
+      expect(confirm).not.toHaveBeenCalled();
+
+      await act(async () => {
+        window.dispatchEvent(new HashChangeEvent("hashchange", { oldURL: "http://localhost/#/profiles?edit=s1", newURL: "http://localhost/#/profiles?edit=s2" }));
+      });
+      expect(confirm).toHaveBeenCalledTimes(1);
+      expect(window.location.hash).toBe("#/profiles?edit=s1");
+    });
+
+    it("asks the browser before the tab closes, only while there are changes", async () => {
+      await mount(input(), stored());
+      const clean = new Event("beforeunload", { cancelable: true });
+      window.dispatchEvent(clean);
+      expect(clean.defaultPrevented).toBe(false);
+
+      await typeInto(host.querySelector<HTMLInputElement>('input[type="text"]')!, "Changed name");
+      const dirty = new Event("beforeunload", { cancelable: true });
+      window.dispatchEvent(dirty);
+      expect(dirty.defaultPrevented).toBe(true);
+    });
+
+    it("does not ask again after the editor saved or closed itself", async () => {
+      const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+      updateProfile.mockResolvedValue(stored({ name: "Changed name" }));
+      await dirtyEditor();
+      await waitForCheck();
+
+      await act(async () => {
+        button("Save as new version").click();
+      });
+      await settle(3);
+      await act(async () => {
+        window.dispatchEvent(new HashChangeEvent("hashchange", { oldURL: "http://localhost/#/profiles?edit=new", newURL: "http://localhost/#/profiles?edit=s1" }));
+      });
+
+      expect(confirm).not.toHaveBeenCalled();
+    });
+  });
 });
