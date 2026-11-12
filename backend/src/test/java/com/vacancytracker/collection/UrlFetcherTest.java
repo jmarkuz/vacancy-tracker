@@ -30,4 +30,33 @@ class UrlFetcherTest {
         assertThatThrownBy(() -> new UrlFetcher(false).fetch("http://exa mple.com/?k=secret"))
                 .isInstanceOf(IllegalArgumentException.class).hasMessage("The address is not valid");
     }
+
+    @Test
+    void aPageThatStallsHalfWayIsGivenUpAfterTheDeadline() throws Exception {
+        java.util.concurrent.CountDownLatch release = new java.util.concurrent.CountDownLatch(1);
+        com.sun.net.httpserver.HttpServer server = com.sun.net.httpserver.HttpServer.create(new java.net.InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
+        server.createContext("/", exchange -> {
+            exchange.getResponseHeaders().add("Content-Type", "text/html");
+            exchange.sendResponseHeaders(200, 100_000);
+            exchange.getResponseBody().write("<html>".getBytes());
+            exchange.getResponseBody().flush();
+            try {
+                release.await(10, java.util.concurrent.TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            exchange.close();
+        });
+        server.start();
+        try {
+            UrlFetcher fetcher = new UrlFetcher(true, java.time.Duration.ofMillis(300));
+            long start = System.nanoTime();
+            assertThatThrownBy(() -> fetcher.fetch("http://127.0.0.1:" + server.getAddress().getPort() + "/"))
+                    .isInstanceOf(UrlFetchException.class).hasMessage("The page did not arrive in time");
+            assertThat((System.nanoTime() - start) / 1_000_000).isLessThan(5_000);
+        } finally {
+            release.countDown();
+            server.stop(0);
+        }
+    }
 }
