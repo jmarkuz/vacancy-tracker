@@ -5,6 +5,7 @@ All notable changes are recorded here. Format: date, task ID, short description.
 ## [Unreleased]
 
 ### 2026-11-13 — UI speed review
+- Smaller first page: the Profiles, Sources, Import/Export, Resume, Presets, Settings and Mail screens and the search palette load when first opened (the Dashboard, Inbox and Pipeline stay in the main file). The main script falls from 199 KB to 134 KB (62 KB to 44 KB gzip). While a screen's code arrives, a status line shows; if it cannot be fetched (offline, or a new release replaced the files) "Try again" is offered. Unit tests in `lazyComponent.test.tsx`.
 - Faster loading: the server compresses the UI bundle and JSON answers with gzip (JavaScript 199 KB to 62 KB, CSS 82 KB to 14 KB on the wire), and the hashed files in `/assets/` are cached by the browser for a year (`immutable`), so a repeat visit downloads nothing. `index.html` and the icons are revalidated on every visit, so a new release is picked up at once. A missing file answers 404 with no cache header.
 
 ### 2026-11-12 — T-092 review backlog

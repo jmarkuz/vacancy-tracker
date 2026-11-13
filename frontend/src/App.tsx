@@ -1,20 +1,12 @@
 import { Fragment } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import { Placeholder } from "./screens/Placeholder";
-import { CommandPalette } from "./components/CommandPalette";
 import { isPaletteShortcut } from "./domain/palette";
 import { DATA_CHANGED_EVENT, RefreshControl } from "./components/RefreshControl";
 import { type Screen, useRoute } from "./router";
 import { Dashboard } from "./screens/Dashboard";
 import { Pipeline } from "./screens/Pipeline";
 import { Inbox } from "./screens/Inbox";
-import { Profiles } from "./screens/Profiles";
-import { Sources } from "./screens/Sources";
-import { Transfer } from "./screens/Transfer";
-import { ResumeScreen } from "./screens/ResumeScreen";
-import { PresetsScreen } from "./screens/PresetsScreen";
-import { Settings } from "./screens/Settings";
-import { MailScreen } from "./screens/MailScreen";
 import { getAuthStatus, isLocalHost, logout, UNAUTHORIZED_EVENT } from "./api/auth";
 import { LoginScreen } from "./components/LoginScreen";
 import { logFailure } from "./api/logFailure";
@@ -22,6 +14,7 @@ import { useScreenAnnouncement } from "./screenFocus";
 import { listProfiles } from "./api/profiles";
 import { wizardSkipped } from "./domain/firstRun";
 import { applyGlass, applyTextSize, applyTheme, nextTheme, readGlass, readTextSize, readTheme, type Theme } from "./theme";
+import { lazyComponent } from "./lazyComponent";
 import { LogoMark } from "./components/LogoMark";
 import { ThemeIcon } from "./components/ThemeIcon";
 
@@ -56,6 +49,16 @@ const SCREEN_INFO: Record<Screen, { title: string; task: string; description: st
   export: { title: "Export & import", task: "T-079", description: "CSV, XLSX and JSON backup downloads and imports." },
   settings: { title: "Settings", task: "T-082", description: "AI opt-in and mail tracking." },
 };
+
+// The Dashboard, Inbox and Pipeline are what the app opens on; the rest load when first visited.
+const Profiles = lazyComponent(() => import("./screens/Profiles").then((m) => m.Profiles), "the profiles");
+const Sources = lazyComponent(() => import("./screens/Sources").then((m) => m.Sources), "the sources");
+const Transfer = lazyComponent(() => import("./screens/Transfer").then((m) => m.Transfer), "import and export");
+const ResumeScreen = lazyComponent(() => import("./screens/ResumeScreen").then((m) => m.ResumeScreen), "the resume");
+const PresetsScreen = lazyComponent(() => import("./screens/PresetsScreen").then((m) => m.PresetsScreen), "the presets");
+const Settings = lazyComponent(() => import("./screens/Settings").then((m) => m.Settings), "the settings");
+const MailScreen = lazyComponent(() => import("./screens/MailScreen").then((m) => m.MailScreen), "the mail");
+const CommandPalette = lazyComponent(() => import("./components/CommandPalette").then((m) => m.CommandPalette), "the search");
 
 export function App() {
   const { screen, params } = useRoute();
