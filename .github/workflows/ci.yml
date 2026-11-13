@@ -33,7 +33,12 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
-      - run: mvn -B verify
+      - name: Verify Docker is available for Testcontainers
+        run: |
+          docker version
+          docker info
+      - name: Run backend verification
+        run: mvn -B verify
         working-directory: backend
       - name: Keep the test and coverage reports
         if: always()
