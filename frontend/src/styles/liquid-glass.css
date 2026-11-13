@@ -1,8 +1,8 @@
 /*
- * Liquid Glass (Apple), the Regular variant, laid over Graphite. Loaded last: it changes how things look, not how they
+ * Glass, the regular variant, laid over Graphite. Loaded last: it changes how things look, not how they
  * are laid out. Read tokens.css (the --lg-* tokens) first.
  *
- * What the rules follow, from Apple's "Meet Liquid Glass" (WWDC25) and the Human Interface Guidelines:
+ * What the rules follow, from public guidance on translucent materials and on accessible interfaces:
  *  - Glass is for the layer that floats above the content: the header, the sidebar, toolbars, sheets, dialogs, the
  *    palette, toasts and the controls themselves. Content (tables, cards, lists, text) stays solid, so hierarchy
  *    between content and controls is clear.
@@ -19,7 +19,7 @@
  */
 
 /*
- * Motion (Apple's glass answers a touch and then settles): a press flexes the control quickly, and the release
+ * Motion (the glass answers a touch and then settles): a press flexes the control quickly, and the release
  * springs it back past its rest point. The spring is a cubic-bezier with a little overshoot, the same feel for every
  * control. Under reduced motion all of it stops (see the block near the end of this file).
  */
@@ -104,7 +104,7 @@ body {
     color var(--duration-fast) var(--ease-out), transform var(--lg-dur-spring) var(--lg-ease-spring);
 }
 
-/* A section lifts a hair under the pointer, the way Apple's glass tab items do. */
+/* A section lifts a hair under the pointer, like a tab item that answers the pointer. */
 .nav-item:hover {
   transform: translateY(-1px);
 }

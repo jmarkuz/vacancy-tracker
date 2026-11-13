@@ -103,7 +103,7 @@ export function Settings({ theme, onTheme }: { theme: Theme; onTheme: (theme: Th
                   applyGlass(g);
                 }}
               />{" "}
-              {g === "on" ? "On (translucent, Liquid Glass)" : "Off (solid surfaces)"}
+              {g === "on" ? "On (translucent glass)" : "Off (solid surfaces)"}
             </label>
           ))}
         </fieldset>

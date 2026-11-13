@@ -2,8 +2,8 @@
  * Graphite 2.0 (ADR-053): the component layer over Beacon's layout (app.css). Loaded last, so it only restyles;
  * the structure, the keyboard paths and the 44 px targets of Beacon stay. Colors and sizes come from tokens.css.
  *
- * The idea in one line: a precision instrument for a job search. Apple's calm canvas and tight type carry the reading,
- * Uber's ink pills carry every action, and Bugatti's black and machined labels carry the numbers that matter.
+ * The idea in one line: a precision instrument for a job search. a calm canvas and tight type carry the reading,
+ * ink pills carry every action, and black and machined labels carry the numbers that matter.
  */
 
 /* ---------- Type ---------- */
@@ -55,7 +55,7 @@ a {
   text-decoration-thickness: 1px;
 }
 
-/* Machined labels (Bugatti): uppercase, monospace, wide tracking. Used for groups, heads and metric names. */
+/* Machined labels: uppercase, monospace, wide tracking. Used for groups, heads and metric names. */
 .nav-group,
 th,
 .drawer-section h3,
@@ -85,7 +85,7 @@ th,
 /* ---------- Shell ---------- */
 
 /*
- * The header floats like Apple's sub-nav: translucent canvas with blur, a hairline under it. The blur sits on a
+ * The header floats: translucent canvas with blur, a hairline under it. The blur sits on a
  * pseudo-element, not on the header itself: a backdrop-filter on the header would make it the containing block of
  * every position: fixed descendant, and the refresh toast (inside the header) would stick to the header.
  */
@@ -116,7 +116,7 @@ th,
   }
 }
 
-/* The wordmark (Bugatti): the name in capitals with the widest tracking in the system, beside an ink mark. */
+/* The wordmark: the name in capitals with the widest tracking in the system, beside an ink mark. */
 .logo {
   gap: var(--space-3);
   font-family: var(--font-display);
@@ -138,7 +138,7 @@ th,
   color: var(--color-on-ink);
 }
 
-/* Search reads as Apple's search field: a quiet pill that says what it does, with its shortcut at the end. */
+/* Search reads as a quiet pill that says what it does, with its shortcut at the end. */
 .btn.palette-open {
   justify-content: flex-start;
   min-width: 15rem;
@@ -193,7 +193,7 @@ kbd {
   color: var(--color-text-muted);
 }
 
-/* Sections are pills with their role as a small marker; the current one is the ink pill (Uber's app shell). */
+/* Sections are pills with their role as a small marker; the current one is the ink pill. */
 .nav-item {
   gap: var(--space-3);
   padding: var(--space-2) var(--space-4);
@@ -255,8 +255,8 @@ kbd {
 
 /*
  * Every action is a pill. The primary one is ink (black in light, white in dark) whatever the section, so there is
- * one obvious next step on a screen; a secondary one is an outlined pill (Bugatti), a ghost one is a plain link.
- * A press shrinks the control to 97% (Apple). The role colors stay on markers, badges and metrics.
+ * one obvious next step on a screen; a secondary one is an outlined pill, a ghost one is a plain link.
+ * A press shrinks the control to 97%. The role colors stay on markers, badges and metrics.
  */
 .btn {
   padding: var(--space-2) var(--space-5);
@@ -369,7 +369,7 @@ select.input,
 
 /* ---------- Surfaces ---------- */
 
-/* Cards are Apple's utility cards: white (near-black in dark) on the canvas, a hairline, 18 px, no shadow. */
+/* Cards: white (near-black in dark) on the canvas, a hairline, 18 px, no shadow. */
 .panel,
 .vcard,
 .mail-item,
@@ -443,7 +443,7 @@ tbody tr:hover {
   box-shadow: inset 3px 0 0 var(--color-ink);
 }
 
-/* Overlays float (Uber): the one place with a real shadow. */
+/* Overlays float: the one place with a real shadow. */
 .drawer {
   border-left: var(--border-width) solid var(--color-hairline);
   border-radius: var(--radius-xl) 0 0 var(--radius-xl);
@@ -481,7 +481,7 @@ tbody tr:hover {
 }
 
 /*
- * Liquid glass (Apple): popups that float over the page are translucent glass: a tinted, heavily blurred and
+ * Glass: popups that float over the page are translucent glass: a tinted, heavily blurred and
  * saturated backdrop, a bright 1 px edge that fades toward the bottom, a specular highlight along the top, and a soft
  * deep shadow. The tint is opaque enough (about 65%) that the text keeps its contrast over any content behind it.
  * Without backdrop-filter, and in forced-colors, the popup is a plain solid surface.

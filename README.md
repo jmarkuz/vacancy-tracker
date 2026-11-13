@@ -85,6 +85,10 @@ Open <http://127.0.0.1:8080>. For a server with HTTPS and an access token see [d
 
 Only official APIs and feeds, plus job alert emails you receive, are used. Direct scraping of LinkedIn and other sites that prohibit it, CAPTCHA bypass, logging in with your account and proxy rotation are forbidden by design. See [docs/sources.md](docs/sources.md).
 
+### Independence and third-party names
+
+Vacancy Tracker is an independent personal project. It is not affiliated with or endorsed by any product or site it mentions, and it copies none of their text, code, design or data. Names and trademarks belong to their owners. See [docs/gap-analysis.md](docs/gap-analysis.md) for the one comparison with another kind of product and how it was made without breaching that site's terms. Licences of the components used are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
 ## Repository structure
 
 ```
@@ -102,7 +106,7 @@ docs/
   deployment.md                run locally, run on a VPS with HTTPS
   operations.md                backups and restore
   code-review.md               review of 2026-11-02: findings and their state
-  gap-analysis.md              comparison with JobMetasearch and the gaps closed
+  gap-analysis.md              comparison with a kind of tool and the gaps closed
   examples/
     search-profile.example.yml neutral example, never loaded automatically
 e2e/
