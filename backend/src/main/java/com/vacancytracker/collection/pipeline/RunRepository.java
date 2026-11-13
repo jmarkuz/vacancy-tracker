@@ -112,10 +112,15 @@ public class RunRepository {
                 .update();
     }
 
-    /** Marks every run still "running" as interrupted: used at start-up, when no run can be alive. */
-    public int interruptStale(Instant at) {
-        return jdbc.sql("UPDATE run SET status = 'interrupted', finished_at = :at WHERE status = 'running'")
+    /**
+     * Marks the runs still "running" that began before this process did as interrupted: at start-up nothing of the
+     * earlier process can be alive. A run that began after {@code bootedAt} belongs to this process (a scheduled run
+     * can start before the sweep does) and is left alone (T-092, F13).
+     */
+    public int interruptStale(Instant at, Instant bootedAt) {
+        return jdbc.sql("UPDATE run SET status = 'interrupted', finished_at = :at WHERE status = 'running' AND started_at < :booted")
                 .param("at", utc(at))
+                .param("booted", utc(bootedAt))
                 .update();
     }
 

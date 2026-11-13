@@ -15,6 +15,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -240,8 +241,21 @@ class ExpiryAndRunLockTest extends AbstractIntegrationTest {
         assertThat(template.queryForObject("SELECT status FROM run", String.class)).isEqualTo("interrupted");
 
         runs.start("manual", clock.instant());
-        assertThat(runs.interruptStale(clock.instant())).isEqualTo(1);
+        assertThat(runs.interruptStale(clock.instant().plusSeconds(1), clock.instant().plusSeconds(1))).isEqualTo(1);
         assertThat(template.queryForObject("SELECT count(*) FROM run WHERE status = 'running'", Integer.class)).isZero();
+    }
+
+    @Test
+    void theStartUpSweepLeavesARunAloneThatBeganAfterTheProcessBooted() {
+        Instant booted = clock.instant();
+        UUID earlier = runs.start("schedule", booted.minusSeconds(600));
+        clock.advance(Duration.ofSeconds(20));
+        UUID alive = runs.start("schedule", clock.instant());
+
+        assertThat(runs.interruptStale(clock.instant(), booted)).isEqualTo(1);
+
+        assertThat(runs.findRun(earlier).orElseThrow().status()).isEqualTo("interrupted");
+        assertThat(runs.findRun(alive).orElseThrow().status()).isEqualTo("running");
     }
 
     @Test

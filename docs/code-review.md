@@ -36,7 +36,7 @@ The weak spots are (1) the build did not run on current tools, (2) the local API
 | F10 | low | `Retry-After` is capped at 60 s and a date value is ignored. | `RetryPolicy.java:32`, `HttpFetcher.java:139,241-247` | Open (T-092) |
 | F11 | low | An access token with a space, comma, semicolon, quote or backslash starts the app, but browser sign-in always fails (the cookie refuses those characters). | `AccessToken.java:15`, `AuthController.java:77,89` | Open (T-092); documented: use letters and digits |
 | F12 | low | A running collection does not pick up company-list changes. | `MatchService.java:79-82`, `CompanyListService.java` | Open (T-092) |
-| F13 | low | The start-up sweep can mark a run started in the first minute as interrupted. | `StaleRunSweeper.java:32-34` | Open (T-092) |
+| F13 | low | The start-up sweep can mark a run started in the first minute as interrupted. | `StaleRunSweeper.java:32-34` | Fixed: the sweep only interrupts runs that began before this process booted; a run started after that (a scheduled one) is left alone; `ExpiryAndRunLockTest` |
 | F14 | medium | A PATCH with only the next-action note clears its date (and the other way round), so the vacancy leaves the dashboard's next actions. | `VacancyService.java:108-110` | Fixed: each part is set on its own; `ReviewFixesTest` |
 | F15 | low | No tests for the risky interactions above. | tests | Partly fixed: tests added for F1, F3, F4, F5, F6, F14 |
 
