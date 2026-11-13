@@ -1,4 +1,3 @@
-import { logFailure } from "../api/logFailure";
 import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { ApiError, getJson } from "../api/client";
 import type { PageResponse, Vacancy } from "../api/types";
@@ -6,8 +5,8 @@ import { changeStatus } from "../api/vacancies";
 import { postedText } from "../domain/age";
 import { GhostBadge } from "../components/GhostBadge";
 import { safeLink } from "../domain/links";
-import { getFits, type ResumeFit } from "../api/resume";
-import { fitsById } from "../domain/fit";
+import type { ResumeFit } from "../api/resume";
+import { useFits } from "../useFits";
 import { FitBadge } from "../components/FitBadge";
 import { actionForKey, activatesOnKey, isTypingTarget, moveSelection, selectionAfterRemoval } from "../domain/triage";
 import { Toast } from "../components/Toast";
@@ -92,7 +91,6 @@ export function Inbox({ params, dataVersion = 0 }: Props) {
   const openRef = useRef(openId);
   openRef.current = openId;
   const selected = items.findIndex((v) => v.id === selectedId);
-  const [fits, setFits] = useState<Record<string, ResumeFit>>({});
   // What is typed; it reaches the address (and so the list) a moment after typing stops.
   const applied = filterFromParams(params);
   const [draft, setDraft] = useState<InboxFilter>(applied);
@@ -109,15 +107,7 @@ export function Inbox({ params, dataVersion = 0 }: Props) {
     return () => window.clearTimeout(timer);
   }, [draft.words, draft.mode, draft.exclude]);
 
-  // Fit to the resume for the rows on show (T-081); none when no resume is uploaded.
-  const idsKey = useMemo(() => items.map((v) => v.id).join(","), [items]);
-  useEffect(() => {
-    const controller = new AbortController();
-    getFits(items.map((v) => v.id), controller.signal)
-      .then((list) => setFits(fitsById(list)))
-      .catch(logFailure("the fit scores", controller.signal));
-    return () => controller.abort();
-  }, [idsKey]);
+  const fits = useFits(useMemo(() => items.map((v) => v.id), [items]));
 
   const select = useCallback((id: string | null) => {
     selectedRef.current = id;

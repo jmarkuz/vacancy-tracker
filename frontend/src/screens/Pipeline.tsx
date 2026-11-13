@@ -1,4 +1,3 @@
-import { logFailure } from "../api/logFailure";
 import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { getJson, ApiError } from "../api/client";
 import { changeStatus } from "../api/vacancies";
@@ -17,8 +16,8 @@ import { COLUMNS, DEFAULT_COLUMNS, type Column } from "./columns";
 import { VacancyDrawer } from "./VacancyDrawer";
 import { Icon } from "../components/Icon";
 import { AddVacancy } from "../components/AddVacancy";
-import { getFits, type ResumeFit } from "../api/resume";
-import { fitsById } from "../domain/fit";
+import type { ResumeFit } from "../api/resume";
+import { useFits } from "../useFits";
 import { FitBadge } from "../components/FitBadge";
 import { ColumnResizer } from "../components/ColumnResizer";
 import { pure } from "../components/pure";
@@ -60,7 +59,6 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
   const [target, setTarget] = useState("");
   const [toast, setToast] = useState<{ message: string; tone: "info" | "error"; undo?: () => void } | null>(null);
   const [adding, setAdding] = useState(false);
-  const [fits, setFits] = useState<Record<string, ResumeFit>>({});
   const [widths, setWidths] = useState<Widths>(() => loadWidths());
   const resizeColumn = (id: string, px: number) =>
     setWidths((current) => {
@@ -121,14 +119,7 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
     }
   }, [data]);
 
-  // Fit to the resume for the rows on show (T-081); none when no resume is uploaded.
-  useEffect(() => {
-    const controller = new AbortController();
-    getFits((data?.items ?? []).map((v) => v.id), controller.signal)
-      .then((list) => setFits(fitsById(list)))
-      .catch(logFailure("the fit scores", controller.signal));
-    return () => controller.abort();
-  }, [data]);
+  const fits = useFits(useMemo(() => (data?.items ?? []).map((v) => v.id), [data]));
 
   const selectedRows = (data?.items ?? []).filter((v) => selected.includes(v.id));
   const options = targetOptions(selectedRows);
