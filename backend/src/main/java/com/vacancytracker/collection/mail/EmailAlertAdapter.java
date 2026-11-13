@@ -6,6 +6,7 @@ import com.vacancytracker.collection.adapter.SourceAdapter;
 import com.vacancytracker.collection.http.UpstreamException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,12 +47,35 @@ public abstract class EmailAlertAdapter implements SourceAdapter {
             return FetchOutcome.of(List.of());
         }
         List<RawPosting> postings = new ArrayList<>();
-        ImapMailReader.ReadResult result = reader.readNewDeferred(mail -> handle(mail, postings));
+        MailHandler handler = new MailHandler() {
+            @Override
+            public Outcome handle(MailMessage mail) {
+                return EmailAlertAdapter.this.handle(mail, postings);
+            }
+
+            @Override
+            public Optional<Outcome> preview(MailMessage envelope) {
+                return EmailAlertAdapter.this.preview(envelope);
+            }
+        };
+        ImapMailReader.ReadResult result = reader.readNewDeferred(handler);
         if (result.error() != null) {
             throw new UpstreamException(result.error());
         }
         // The mails are marked processed only after the pipeline has stored their vacancies.
         return FetchOutcome.of(postings).afterStored(() -> reader.markProcessed(result.handledKeys()));
+    }
+
+    /** Mail of this sender needs its body; every other sender is settled from the envelope without downloading it. */
+    private Optional<MailHandler.Outcome> preview(MailMessage envelope) {
+        if (parser.accepts(envelope)) {
+            return Optional.empty();
+        }
+        if (parsers.forMessage(envelope).isPresent()) {
+            return Optional.of(MailHandler.Outcome.RETRY);
+        }
+        LOG.debug("{}: skipped an email from {} with no parser for that sender", id(), envelope.from());
+        return Optional.of(MailHandler.Outcome.PROCESSED);
     }
 
     private MailHandler.Outcome handle(MailMessage mail, List<RawPosting> postings) {

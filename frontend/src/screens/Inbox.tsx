@@ -1,7 +1,10 @@
+import { logFailure } from "../api/logFailure";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { ApiError, getJson } from "../api/client";
 import type { PageResponse, Vacancy } from "../api/types";
 import { changeStatus } from "../api/vacancies";
+import { postedText } from "../domain/age";
+import { GhostBadge } from "../components/GhostBadge";
 import { safeLink } from "../domain/links";
 import { getFits, type ResumeFit } from "../api/resume";
 import { fitsById } from "../domain/fit";
@@ -75,7 +78,7 @@ export function Inbox({ params, dataVersion = 0 }: Props) {
     const controller = new AbortController();
     getFits(items.map((v) => v.id), controller.signal)
       .then((list) => setFits(fitsById(list)))
-      .catch(() => undefined);
+      .catch(logFailure("the fit scores", controller.signal));
     return () => controller.abort();
   }, [items.map((v) => v.id).join(",")]);
 
@@ -303,11 +306,15 @@ export function Inbox({ params, dataVersion = 0 }: Props) {
               <span class="inbox-main">
                 <span class="inbox-title">{v.title}</span>
                 <span class="muted small">
-                  {[v.company, v.location ?? "Location not specified", v.workMode].filter(Boolean).join(" · ")} · seen{" "}
+                  {[v.company, v.location ?? "Location not specified", v.workMode].filter(Boolean).join(" · ")}
+                  {v.postedAt ? ` · posted ${postedText(v.postedAt, new Date()).toLowerCase()}` : ""} · seen{" "}
                   <span class="num">{formatDate(v.lastSeenAt)}</span>
                 </span>
               </span>
-              <FitBadge fit={fits[v.id]} />
+              <span class="inbox-actions">
+                <GhostBadge ghost={v.ghost} />
+                <FitBadge fit={fits[v.id]} />
+              </span>
             </li>
           ))}
         </ul>

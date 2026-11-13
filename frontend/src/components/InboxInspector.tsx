@@ -3,6 +3,8 @@ import { KIND_LABEL, latestByKind, listDocuments, type TailoredDocument } from "
 import type { ResumeFit } from "../api/resume";
 import type { Vacancy } from "../api/types";
 import { skillCount } from "../domain/fit";
+import { postedText } from "../domain/age";
+import { ghostReasons } from "./GhostBadge";
 import { safeLink } from "../domain/links";
 import { nextTab } from "../domain/tabs";
 import { formatDate, formatSalary } from "../screens/columns";
@@ -102,6 +104,14 @@ export function InboxInspector({ vacancy, fit, busy, refreshKey, onSave, onSkip,
             <dd class="num">{formatSalary(vacancy)}</dd>
             <dt>Visa sponsorship</dt>
             <dd>{vacancy.visaSponsorship === true ? "Offered" : vacancy.visaSponsorship === false ? "Not offered" : "Not stated"}</dd>
+            <dt>Posted</dt>
+            <dd>{postedText(vacancy.postedAt, new Date())}</dd>
+            {ghostReasons(vacancy.ghost) && (
+              <>
+                <dt>Likely ghost</dt>
+                <dd>{ghostReasons(vacancy.ghost)}</dd>
+              </>
+            )}
             <dt>Last seen</dt>
             <dd class="num">{formatDate(vacancy.lastSeenAt)}</dd>
             <dt>Source</dt>

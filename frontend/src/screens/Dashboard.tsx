@@ -1,8 +1,10 @@
 import { useEffect, useState } from "preact/hooks";
 import { getDashboard, type Dashboard as Data } from "../api/dashboard";
 import { listSources, type SourceStatus } from "../api/sources";
-import { barPercent, chartSummary, funnelMax, kpis, weekLabel, weekMax } from "../domain/dashboard";
+import { barPercent, chartSummary, funnelMax, kpis, quietText, weekLabel, weekMax } from "../domain/dashboard";
 import { healthDetail, healthLabel } from "../domain/sources";
+import { LoadFailed } from "../components/LoadFailed";
+import { RepliesCard } from "../components/RepliesCard";
 import { formatDate } from "./columns";
 
 /** Dashboard (T-060): KPI cards that open a filtered list, top matches, funnel, applications per week, next actions. */
@@ -19,20 +21,41 @@ export function Dashboard({ dataVersion = 0 }: { dataVersion?: number }) {
   const [data, setData] = useState<Data | null>(null);
   const [sources, setSources] = useState<SourceStatus[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [sourcesFailed, setSourcesFailed] = useState(false);
+  const [sourcesReload, setSourcesReload] = useState(0);
+
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
-    getDashboard(controller.signal).then(setData).catch(() => {
-      if (!controller.signal.aborted) {
-        setError("Could not load the dashboard.");
-      }
-    });
-    listSources(controller.signal).then(setSources).catch(() => undefined);
+    getDashboard(controller.signal)
+      .then((d) => {
+        setData(d);
+        setError(null);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setError("Could not load the dashboard.");
+        }
+      });
     return () => controller.abort();
-  }, [dataVersion]);
+  }, [dataVersion, reload]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setSourcesFailed(false);
+    listSources(controller.signal)
+      .then(setSources)
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setSourcesFailed(true);
+        }
+      });
+    return () => controller.abort();
+  }, [dataVersion, sourcesReload]);
 
   if (error) {
-    return <div class="notice error" role="alert">{error}</div>;
+    return <LoadFailed what="the dashboard" onRetry={() => { setError(null); setReload((n) => n + 1); }} />;
   }
   if (!data) {
     return <p class="muted" role="status">Loading the dashboard…</p>;
@@ -110,6 +133,26 @@ export function Dashboard({ dataVersion = 0 }: { dataVersion?: number }) {
             </svg>
           </div>
 
+          <RepliesCard dataVersion={dataVersion} />
+
+          {data.followUps.length > 0 && (
+            <div class="panel">
+              <h2>Time to follow up</h2>
+              <p class="muted small">Waiting for an answer, with no status change and no mail for a while.</p>
+              <ul class="plain-list" aria-label="Time to follow up">
+                {data.followUps.map((f) => (
+                  <li key={f.id} class="list-item">
+                    <a class="meta" href={`#/pipeline?open=${f.id}`}>
+                      <div>{f.title}</div>
+                      <div class="small subtle num">{quietText(f.quietDays)} · {f.company}</div>
+                    </a>
+                    <span class="badge">{f.status}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div class="panel">
             <h2>Next actions</h2>
             {data.nextActions.length === 0 ? (
@@ -135,7 +178,9 @@ export function Dashboard({ dataVersion = 0 }: { dataVersion?: number }) {
 
       <div class="panel">
         <h2>Source health</h2>
-        {sources.length === 0 ? (
+        {sourcesFailed ? (
+          <LoadFailed what="the source health" onRetry={() => setSourcesReload((n) => n + 1)} />
+        ) : sources.length === 0 ? (
           <p class="muted">No source information yet.</p>
         ) : (
           <div class="table-wrap">

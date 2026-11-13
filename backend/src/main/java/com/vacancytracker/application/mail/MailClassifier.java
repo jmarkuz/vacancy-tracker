@@ -94,15 +94,20 @@ public final class MailClassifier {
             text = mail.text();
         } else {
             String html = mail.html() == null ? "" : mail.html();
-            text = Normalizer.plainText(html.length() > MAX_TEXT * 4 ? html.substring(0, MAX_TEXT * 4) : html);
+            String plain = Normalizer.plainText(html.length() > MAX_TEXT * 4 ? html.substring(0, MAX_TEXT * 4) : html);
+            // An empty or markup-only message has no text at all: plainText answers null for it.
+            text = plain == null ? "" : plain;
         }
         return text.length() > MAX_TEXT ? text.substring(0, MAX_TEXT) : text;
     }
 
-    /** The first characters of the body, one line per paragraph, for the list. */
+    /** A link as plain text mail carries it: bare, or in angle brackets. Tracking links are long and say nothing to a reader. */
+    private static final Pattern LINK = Pattern.compile("<?\\b(?:https?://|www\\.)[^\\s<>]+>?", Pattern.CASE_INSENSITIVE);
+
+    /** The first characters of the body without its links, one line per paragraph, for the list. */
     static String snippet(MailMessage mail, int max) {
-        String raw = body(mail);
-        String text = (raw.length() > max * 4 ? raw.substring(0, max * 4) : raw).replaceAll("[ \\t\\u00A0]+", " ").replaceAll("\\s*\\R\\s*", "\n").strip();
+        String text = LINK.matcher(body(mail)).replaceAll(" ").replaceAll("[ \\t\\u00A0]+", " ").replaceAll("\\s*\\R\\s*", "\n").strip();
+        text = text.replaceAll("(?m)^[\\s\\p{Punct}]+$", "").replaceAll("\\n{2,}", "\n").replaceAll("\\s+([.,;:!?])", "$1").strip();
         return text.length() > max ? text.substring(0, max).strip() + "…" : text;
     }
 

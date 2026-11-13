@@ -1,3 +1,4 @@
+import { logFailure } from "../api/logFailure";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import { getJson, ApiError } from "../api/client";
 import { changeStatus } from "../api/vacancies";
@@ -14,12 +15,18 @@ import { parseCriteria, serializeCriteria, type Criterion } from "../domain/crit
 import type { SavedView } from "../api/views";
 import { COLUMNS, DEFAULT_COLUMNS, type Column } from "./columns";
 import { VacancyDrawer } from "./VacancyDrawer";
+import { Icon } from "../components/Icon";
 import { AddVacancy } from "../components/AddVacancy";
 import { getFits, type ResumeFit } from "../api/resume";
 import { fitsById } from "../domain/fit";
 import { FitBadge } from "../components/FitBadge";
+import { ColumnResizer } from "../components/ColumnResizer";
+import { loadWidths, saveWidths, widthOf, withoutWidth, withWidth, type Widths } from "../domain/columnWidths";
 
 const PAGE_SIZE = 100;
+/** Room kept for the title column, which has no width of its own, and for the checkbox column. */
+const TITLE_ROOM = 280;
+const CHECK_WIDTH = 36;
 const DEFAULT_SORT = "lastSeenAt:desc";
 
 interface Props {
@@ -51,6 +58,19 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
   const [toast, setToast] = useState<{ message: string; tone: "info" | "error"; undo?: () => void } | null>(null);
   const [adding, setAdding] = useState(false);
   const [fits, setFits] = useState<Record<string, ResumeFit>>({});
+  const [widths, setWidths] = useState<Widths>(() => loadWidths());
+  const resizeColumn = (id: string, px: number) =>
+    setWidths((current) => {
+      const next = withWidth(current, id, px);
+      saveWidths(next);
+      return next;
+    });
+  const resetColumn = (id: string) =>
+    setWidths((current) => {
+      const next = withoutWidth(current, id);
+      saveWidths(next);
+      return next;
+    });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -103,7 +123,7 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
     const controller = new AbortController();
     getFits((data?.items ?? []).map((v) => v.id), controller.signal)
       .then((list) => setFits(fitsById(list)))
-      .catch(() => undefined);
+      .catch(logFailure("the fit scores", controller.signal));
     return () => controller.abort();
   }, [data]);
 
@@ -149,11 +169,18 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
         <h1 id="pipeline-title">Pipeline</h1>
         <span class="grow" />
         <div class="filters" role="group" aria-label="Layout">
-          <button type="button" class="chip" aria-pressed={!board} onClick={() => setQuery({ layout: null })}>Table</button>
-          <button type="button" class="chip" aria-pressed={board} onClick={() => setQuery({ layout: "board" })}>Board</button>
+          <button type="button" class="chip" aria-pressed={!board} onClick={() => setQuery({ layout: null })}>
+            <Icon name="table" />
+            Table
+          </button>
+          <button type="button" class="chip" aria-pressed={board} onClick={() => setQuery({ layout: "board" })}>
+            <Icon name="board" />
+            Board
+          </button>
         </div>
         {!board && <ColumnPicker selected={visible} />}
         <button type="button" class="btn primary" data-role="green" aria-expanded={adding} onClick={() => setAdding((a) => !a)}>
+          <Icon name="plus" />
           Add vacancy
         </button>
       </div>
@@ -182,6 +209,7 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
         <div class="notice error" role="alert">
           <span>{error}</span>
           <button class="btn" type="button" onClick={() => setAttempt((n) => n + 1)}>
+            <Icon name="refresh" />
             Retry
           </button>
         </div>
@@ -216,12 +244,25 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
                 <option value="">Change status to…</option>
                 {options.map((o) => <option key={o.status} value={o.status}>{optionLabel(o)}</option>)}
               </select>
-              <button type="button" class="btn primary" data-role="green" disabled={!target} onClick={applyBulk}>Apply</button>
-              <button type="button" class="btn" onClick={() => setSelected([])}>Clear selection</button>
+              <button type="button" class="btn primary" data-role="green" disabled={!target} onClick={applyBulk}>
+                <Icon name="check" />
+                Apply
+              </button>
+              <button type="button" class="btn" onClick={() => setSelected([])}>
+                <Icon name="close" />
+                Clear selection
+              </button>
             </div>
           )}
           <div class="table-wrap" aria-busy={loading}>
-            <table>
+            <table class="pipeline-table" style={{ minWidth: `${tableMinWidth(visible, widths)}px` }}>
+              <colgroup>
+                <col style={{ width: `${CHECK_WIDTH}px` }} />
+                {visible.map((col) => {
+                  const px = widthOf(col.id, widths);
+                  return <col key={col.id} style={px ? { width: `${px}px` } : undefined} />;
+                })}
+              </colgroup>
               <thead>
                 <tr>
                   <th scope="col" class="check-col">
@@ -230,7 +271,8 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
                       onChange={() => setSelected(togglePage(selected, data.items.map((v) => v.id)))} />
                   </th>
                   {visible.map((col) => (
-                    <SortableHeader key={col.id} column={col} sort={sort} onSort={(next) => setQuery({ sort: next, page: null })} />
+                    <SortableHeader key={col.id} column={col} sort={sort} onSort={(next) => setQuery({ sort: next, page: null })}
+                      width={widthOf(col.id, widths)} onResize={(px) => resizeColumn(col.id, px)} onReset={() => resetColumn(col.id)} />
                   ))}
                 </tr>
               </thead>
@@ -242,14 +284,14 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
                         onChange={() => setSelected(toggle(selected, v.id))} />
                     </td>
                     {visible.map((col) => (
-                      <td key={col.id} class={col.numeric ? "numeric" : undefined}>
+                      <td key={col.id} class={`col-${col.id}${col.numeric ? " numeric" : ""}`}>
                         {col.id === "title" ? (
-                          <>
-                            <button type="button" class="row-open" onClick={() => setQuery({ open: v.id })}>
+                          <div class="title-cell">
+                            <button type="button" class="row-open" title={v.title} onClick={() => setQuery({ open: v.id })}>
                               {col.render(v)}
-                            </button>{" "}
+                            </button>
                             <FitBadge fit={fits[v.id]} />
-                          </>
+                          </div>
                         ) : (
                           col.render(v)
                         )}
@@ -279,6 +321,7 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
 
           <nav class="pager" aria-label="Pages">
             <button class="btn" type="button" disabled={page === 0} onClick={() => setQuery({ page: String(page - 1) })}>
+              <Icon name="chevron-left" />
               Previous
             </button>
             <span class="num" aria-live="polite">
@@ -291,6 +334,7 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
               onClick={() => setQuery({ page: String(page + 1) })}
             >
               Next
+              <Icon name="chevron-right" />
             </button>
           </nav>
         </>
@@ -341,20 +385,45 @@ function resolveColumns(raw: string | null): Column[] {
   return picked.length > 0 ? picked : COLUMNS.filter((c) => DEFAULT_COLUMNS.includes(c.id));
 }
 
-function SortableHeader({ column, sort, onSort }: { column: Column; sort: string; onSort: (next: string) => void }) {
+/** The table is at least as wide as its columns, so a narrow window scrolls sideways instead of squeezing them. */
+export function tableMinWidth(columns: Column[], widths: Widths): number {
+  return CHECK_WIDTH + columns.reduce((sum, c) => sum + (widthOf(c.id, widths) ?? TITLE_ROOM), 0);
+}
+
+interface HeaderProps {
+  column: Column;
+  sort: string;
+  onSort: (next: string) => void;
+  width: number | undefined;
+  onResize: (px: number) => void;
+  onReset: () => void;
+}
+
+function SortableHeader({ column, sort, onSort, width, onResize, onReset }: HeaderProps) {
+  const cell = useRef<HTMLTableCellElement>(null);
+  const resizer = (
+    <ColumnResizer
+      label={column.label}
+      width={() => cell.current?.offsetWidth || width || TITLE_ROOM}
+      onResize={onResize}
+      onReset={onReset}
+    />
+  );
+  const classes = `col-${column.id}${column.numeric ? " numeric" : ""}`;
   if (!column.sortKey) {
-    return <th scope="col">{column.label}</th>;
+    return <th scope="col" class={classes} ref={cell}>{column.label}{resizer}</th>;
   }
   const [currentKey, direction] = sort.split(":");
   const active = currentKey === column.sortKey;
   const nextDirection = active && direction === "asc" ? "desc" : "asc";
   const ariaSort = active ? (direction === "asc" ? "ascending" : "descending") : "none";
   return (
-    <th scope="col" aria-sort={ariaSort} class={column.numeric ? "numeric" : undefined}>
+    <th scope="col" aria-sort={ariaSort} class={classes} ref={cell}>
       <button type="button" class="sort-button" onClick={() => onSort(`${column.sortKey}:${nextDirection}`)}>
         {column.label}
         <span aria-hidden="true">{active ? (direction === "asc" ? " ▲" : " ▼") : ""}</span>
       </button>
+      {resizer}
     </th>
   );
 }
@@ -372,7 +441,10 @@ function ColumnPicker({ selected }: { selected: Column[] }) {
   };
   return (
     <details class="column-picker">
-      <summary class="btn">Columns</summary>
+      <summary class="btn">
+        <Icon name="columns" />
+        Columns
+      </summary>
       <fieldset>
         <legend class="sr-only">Visible columns</legend>
         {COLUMNS.map((c) => (

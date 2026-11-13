@@ -43,6 +43,7 @@ public class Vacancy {
     private Instant lastSeenAt;
     private boolean isNew;
     private Boolean visaSponsorship;
+    private Instant postedAt;
 
     private Vacancy(UUID id, String title, String company, String url, String canonicalUrl, String description,
                     VacancyStatus status, Instant firstSeenAt, Instant lastSeenAt) {
@@ -101,13 +102,14 @@ public class Vacancy {
         v.userEditedFields.addAll(state.userEditedFields());
         v.isNew = state.isNew();
         v.visaSponsorship = state.visaSponsorship();
+        v.postedAt = state.postedAt();
         return v;
     }
 
     public VacancyState toState() {
         return new VacancyState(id, title, company, url, canonicalUrl, location, country, workMode, description, salaryMin, salaryMax, currency,
                 salaryPeriod, status, priority, notes, contact, nextActionNote, nextActionAt, List.copyOf(tags),
-                Set.copyOf(userEditedFields), firstSeenAt, lastSeenAt, isNew, visaSponsorship);
+                Set.copyOf(userEditedFields), firstSeenAt, lastSeenAt, isNew, visaSponsorship, postedAt);
     }
 
     /**
@@ -307,5 +309,19 @@ public class Vacancy {
 
     public Boolean getVisaSponsorship() {
         return visaSponsorship;
+    }
+
+    public Instant getPostedAt() {
+        return postedAt;
+    }
+
+    /**
+     * Automation records the day a source says the posting was published. The earliest date seen wins: a source that
+     * republishes a posting with a fresh date must not make an old vacancy look new. A null date changes nothing.
+     */
+    public void recordPostedAt(Instant seen) {
+        if (seen != null && (postedAt == null || seen.isBefore(postedAt))) {
+            postedAt = seen;
+        }
     }
 }

@@ -120,6 +120,61 @@ class ImapMailReaderTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void onlyMailInsideTheAgeWindowIsListedAndRead() throws Exception {
+        deliver(message("a@x.test", "Recent", "Body", null, "<recent@x>"));
+        var inbox = MAIL.getManagers().getImapHostManager().getFolder(MAIL.getManagers().getUserManager().getUser(USER), "INBOX");
+        long day = 24L * 60 * 60 * 1000;
+        inbox.appendMessage(message("a@x.test", "Old", "Body", null, "<old@x>"), new Flags(), new java.util.Date(System.currentTimeMillis() - 30 * day));
+        inbox.appendMessage(message("a@x.test", "Older", "Body", null, "<older@x>"), new Flags(), new java.util.Date(System.currentTimeMillis() - 90 * day));
+        Collector collector = new Collector();
+
+        ReadResult windowed = new ImapMailReader(true, "127.0.0.1", MAIL.getImap().getPort(), false, USER, PASSWORD, "INBOX", false, 50, 14, processed)
+                .readNew(collector);
+
+        assertThat(windowed.seen()).isEqualTo(1);
+        assertThat(collector.seen).extracting(MailMessage::subject).containsExactly("Recent");
+
+        Collector everything = new Collector();
+        ReadResult unlimited = new ImapMailReader(true, "127.0.0.1", MAIL.getImap().getPort(), false, USER, PASSWORD, "INBOX", false, 50, 0, processed)
+                .readNew(everything);
+        assertThat(unlimited.seen()).isEqualTo(3);
+    }
+
+    @Test
+    void aMessageSettledFromItsEnvelopeIsNeverDownloadedAndDoesNotUseUpTheAllowance() throws Exception {
+        deliver(message("a@other.test", "Not mine", "Body A", null, "<o1@x>"));
+        deliver(message("b@nobody.test", "Nobody's", "Body B", null, "<o2@x>"));
+        deliver(message("jobs@mine.test", "Mine", "Body C", null, "<m1@x>"));
+        List<String> previewed = new ArrayList<>();
+        List<MailMessage> bodies = new ArrayList<>();
+        MailHandler handler = new MailHandler() {
+            @Override
+            public Outcome handle(MailMessage mail) {
+                bodies.add(mail);
+                return Outcome.PROCESSED;
+            }
+
+            @Override
+            public java.util.Optional<Outcome> preview(MailMessage envelope) {
+                previewed.add(envelope.from());
+                assertThat(envelope.text()).isNull();
+                assertThat(envelope.html()).isNull();
+                if (envelope.from().endsWith("mine.test")) {
+                    return java.util.Optional.empty();
+                }
+                return java.util.Optional.of(envelope.from().endsWith("other.test") ? Outcome.RETRY : Outcome.PROCESSED);
+            }
+        };
+
+        ReadResult result = reader(PASSWORD, false, 1, true).readNew(handler);
+
+        assertThat(previewed).hasSize(3);
+        assertThat(bodies).extracting(MailMessage::key).containsExactly("<m1@x>");
+        assertThat(result.retried()).isEqualTo(1);
+        assertThat(processed.known(List.of("<o1@x>", "<o2@x>", "<m1@x>"))).containsExactlyInAnyOrder("<o2@x>", "<m1@x>");
+    }
+
+    @Test
     void aMessageTheHandlerAsksToRetryIsOfferedAgain() throws Exception {
         deliver(message("a@x.test", "Later", "Body", null, "<r@x>"));
         Collector collector = new Collector();

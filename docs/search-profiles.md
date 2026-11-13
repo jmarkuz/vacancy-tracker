@@ -58,7 +58,8 @@ Criterion {
 | `workLanguage` | text (language code) | |
 | `visaSponsorship` | boolean | Read from the posting text (ADR-044): true when it offers sponsorship or visa support, false when it refuses or asks for an existing right to work, missing when it says nothing. Also a view filter. |
 | `relocationSupport` | boolean | |
-| `postedAge` | integer days | Computed from `postedAt` |
+| `postedAge` | integer days | Computed from `postedAt`; missing when the source gives no date |
+| `ghostSignals` | integer 0..3 | How many signs of a "ghost" posting the vacancy shows: posted 30 or more days ago, still listed 30 or more days after it was first seen, no salary stated. `ghostSignals gte 2` as an `exclude` rule hides likely ghosts. The Inbox and the drawer show the same advice with its reasons |
 | `source` | adapter ID | |
 | `tags` | list of text | |
 
@@ -174,7 +175,7 @@ Plain-language rendering uses the criterion `label` when set, otherwise a genera
 |---|---|
 | `inboxMinScore` | Below it, the vacancy is `Hidden` (still visible via the "hidden by score" filter). Default 40 |
 | `notifyMinScore` | Minimum score for a vacancy to appear in the Telegram digest. Default 70 |
-| `maxAgeDays` | Vacancies older than this are ignored at ingestion for this profile. Default 60 |
+| `maxAgeDays` | A vacancy whose source dates the posting as older than this is filtered out for this profile (reason "posted N days ago"; shown in the preview too). A vacancy without a posting date is never filtered by age: the date is not guessed. Default 60 |
 
 Thresholds are per profile.
 

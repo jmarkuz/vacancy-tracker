@@ -15,6 +15,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -94,6 +95,44 @@ class ExpiryAndRunLockTest extends AbstractIntegrationTest {
         IngestService ingestService = new IngestService(deduplicator, vacancies);
         ExpiryService expiry = new ExpiryService(jdbc, vacancies, clock, transactions, 3);
         return new CollectionPipeline(adapters, health, ingestService, runs, vacancies, expiry, matchService, new RunEventBus(), clock);
+    }
+
+    /** The Greenhouse id with a list of followed boards, as the real ATS adapters have. */
+    private static SourceAdapter atsAdapter(java.util.Set<String> followed, Supplier<FetchOutcome> fetch) {
+        SourceAdapter base = adapter("ats-greenhouse", fetch);
+        return new SourceAdapter() {
+            @Override
+            public String id() {
+                return base.id();
+            }
+
+            @Override
+            public Set<String> serverSideFields() {
+                return base.serverSideFields();
+            }
+
+            @Override
+            public FetchOutcome fetch() {
+                return base.fetch();
+            }
+
+            @Override
+            public java.util.Optional<Set<String>> followedCompanies() {
+                return java.util.Optional.of(followed);
+            }
+        };
+    }
+
+    private CollectionPipeline pipelineWithExpiry(List<SourceAdapter> adapters) {
+        SourceHealth health = new SourceHealth(jdbc, clock);
+        IngestService ingestService = new IngestService(deduplicator, vacancies);
+        ExpiryService expiry = new ExpiryService(jdbc, vacancies, clock, transactions, adapters, 3);
+        return new CollectionPipeline(adapters, health, ingestService, runs, vacancies, expiry, matchService, new RunEventBus(), clock);
+    }
+
+    private static RawPosting boardPosting(String company, String ext) {
+        return new RawPosting("ats-greenhouse", ext, "https://boards.example/" + ext, "Platform Engineer " + ext, company, "Berlin",
+                null, "Plain.", null, null, null, null, null);
     }
 
     private String statusOf(String title) {
@@ -202,8 +241,21 @@ class ExpiryAndRunLockTest extends AbstractIntegrationTest {
         assertThat(template.queryForObject("SELECT status FROM run", String.class)).isEqualTo("interrupted");
 
         runs.start("manual", clock.instant());
-        assertThat(runs.interruptStale(clock.instant())).isEqualTo(1);
+        assertThat(runs.interruptStale(clock.instant().plusSeconds(1), clock.instant().plusSeconds(1))).isEqualTo(1);
         assertThat(template.queryForObject("SELECT count(*) FROM run WHERE status = 'running'", Integer.class)).isZero();
+    }
+
+    @Test
+    void theStartUpSweepLeavesARunAloneThatBeganAfterTheProcessBooted() {
+        Instant booted = clock.instant();
+        UUID earlier = runs.start("schedule", booted.minusSeconds(600));
+        clock.advance(Duration.ofSeconds(20));
+        UUID alive = runs.start("schedule", clock.instant());
+
+        assertThat(runs.interruptStale(clock.instant(), booted)).isEqualTo(1);
+
+        assertThat(runs.findRun(earlier).orElseThrow().status()).isEqualTo("interrupted");
+        assertThat(runs.findRun(alive).orElseThrow().status()).isEqualTo("running");
     }
 
     @Test
@@ -273,5 +325,96 @@ class ExpiryAndRunLockTest extends AbstractIntegrationTest {
         coordinator.shutdown();
 
         assertThat(runs.findRun(started.runId()).orElseThrow().status()).isEqualTo("interrupted");
+    }
+
+    @Test
+    void theWatchdogClosesARunThatStallsWhereNoInterruptReachesAndTheNextRunStartsFresh() throws InterruptedException {
+        CountDownLatch release = new CountDownLatch(1);
+        java.util.concurrent.atomic.AtomicInteger calls = new java.util.concurrent.atomic.AtomicInteger();
+        SourceAdapter stalls = adapter("stalls", () -> {
+            if (calls.incrementAndGet() == 1) {
+                // Like a blocking socket read: an interrupt does not end it, only the release does.
+                while (release.getCount() > 0) {
+                    try {
+                        release.await(50, TimeUnit.MILLISECONDS);
+                    } catch (InterruptedException ignored) {
+                        // keep waiting: this thread is stuck on purpose
+                    }
+                }
+            }
+            return FetchOutcome.of(List.of());
+        });
+        RunCoordinator coordinator = new RunCoordinator(pipeline(List.of(stalls)), runs, clock, Duration.ofSeconds(5), Duration.ofMillis(300));
+        try {
+            RunCoordinator.Started first = coordinator.start("manual");
+            assertThat(waitFor(() -> "interrupted".equals(runs.findRun(first.runId()).orElseThrow().status()))).isTrue();
+            assertThat(coordinator.activeRun()).isEmpty();
+
+            RunCoordinator.Started second = coordinator.start("manual");
+            assertThat(second.started()).isTrue();
+            assertThat(waitFor(() -> "completed".equals(runs.findRun(second.runId()).orElseThrow().status()))).isTrue();
+            assertThat(runs.findRun(first.runId()).orElseThrow().status()).isEqualTo("interrupted");
+        } finally {
+            release.countDown();
+            coordinator.shutdown();
+        }
+    }
+
+    private static boolean waitFor(java.util.function.BooleanSupplier condition) throws InterruptedException {
+        long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+        while (System.nanoTime() < until) {
+            if (condition.getAsBoolean()) {
+                return true;
+            }
+            Thread.sleep(50);
+        }
+        return false;
+    }
+
+    @Test
+    void aVacancyOfABoardThatWasRemovedFromTheListIsNotExpired() {
+        // First the board "acme" is followed and its vacancy is seen.
+        SourceAdapter before = atsAdapter(Set.of("acme"), () -> FetchOutcome.of(List.of(boardPosting("acme", "1"))));
+        pipelineWithExpiry(List.of(before)).run("manual");
+
+        // Then the owner removes "acme" and follows another board: the adapter still succeeds, "acme" is never seen again.
+        SourceAdapter after = atsAdapter(Set.of("other"), () -> FetchOutcome.of(List.of(boardPosting("other", "2"))));
+        CollectionPipeline pipeline = pipelineWithExpiry(List.of(after));
+        for (int i = 0; i < 5; i++) {
+            clock.advance(Duration.ofHours(1));
+            pipeline.run("manual");
+        }
+
+        assertThat(statusOf("Platform Engineer 1")).isEqualTo("New");
+        assertThat(statusOf("Platform Engineer 2")).isEqualTo("New");
+    }
+
+    @Test
+    void aVacancyIsNotExpiredWhenTheBoardListIsEmptied() {
+        pipelineWithExpiry(List.of(atsAdapter(Set.of("acme"), () -> FetchOutcome.of(List.of(boardPosting("acme", "3")))))).run("manual");
+
+        CollectionPipeline pipeline = pipelineWithExpiry(List.of(atsAdapter(Set.of(), () -> FetchOutcome.of(List.of()))));
+        for (int i = 0; i < 5; i++) {
+            clock.advance(Duration.ofHours(1));
+            pipeline.run("manual");
+        }
+
+        assertThat(statusOf("Platform Engineer 3")).isEqualTo("New");
+    }
+
+    @Test
+    void aVacancyOfABoardThatIsStillFollowedExpiresWhenItIsGone() {
+        AtomicBoolean seen = new AtomicBoolean(true);
+        SourceAdapter source = atsAdapter(Set.of("acme"), () -> FetchOutcome.of(seen.get() ? List.of(boardPosting("Acme", "4")) : List.of()));
+        CollectionPipeline pipeline = pipelineWithExpiry(List.of(source));
+        pipeline.run("manual");
+        seen.set(false);
+
+        for (int i = 0; i < 3; i++) {
+            clock.advance(Duration.ofHours(1));
+            pipeline.run("manual");
+        }
+
+        assertThat(statusOf("Platform Engineer 4")).isEqualTo("Expired");
     }
 }

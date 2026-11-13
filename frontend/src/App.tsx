@@ -15,12 +15,15 @@ import { ResumeScreen } from "./screens/ResumeScreen";
 import { PresetsScreen } from "./screens/PresetsScreen";
 import { Settings } from "./screens/Settings";
 import { MailScreen } from "./screens/MailScreen";
-import { getAuthStatus, logout, UNAUTHORIZED_EVENT } from "./api/auth";
+import { getAuthStatus, isLocalHost, logout, UNAUTHORIZED_EVENT } from "./api/auth";
 import { LoginScreen } from "./components/LoginScreen";
+import { logFailure } from "./api/logFailure";
+import { useScreenAnnouncement } from "./screenFocus";
 import { listProfiles } from "./api/profiles";
 import { wizardSkipped } from "./domain/firstRun";
-import { applyTextSize, applyTheme, nextTheme, readTextSize, readTheme, type Theme } from "./theme";
+import { applyGlass, applyTextSize, applyTheme, nextTheme, readGlass, readTextSize, readTheme, type Theme } from "./theme";
 import { LogoMark } from "./components/LogoMark";
+import { ThemeIcon } from "./components/ThemeIcon";
 
 /** Color roles of Beacon (ADR-052): blue looks for work, green moves it forward, purple is you and AI, amber sets up. */
 export type Role = "blue" | "green" | "purple" | "amber";
@@ -66,16 +69,21 @@ export function App() {
     return () => window.removeEventListener(DATA_CHANGED_EVENT, onChanged);
   }, []);
   // "checking" until the server says whether a token is needed; "login" shows the sign-in page.
-  const [session, setSession] = useState<"checking" | "login" | "open">("checking");
+  const [session, setSession] = useState<"checking" | "login" | "open" | "unreachable">("checking");
+  const [statusAttempt, setStatusAttempt] = useState(0);
   const [tokenRequired, setTokenRequired] = useState(false);
 
   useEffect(() => {
+    // Only the local profile (no token) may be taken as open when the check fails; elsewhere a broken UI would follow.
     getAuthStatus()
       .then((s) => {
         setTokenRequired(s.required);
         setSession(s.authenticated ? "open" : "login");
       })
-      .catch(() => setSession("open"));
+      .catch(() => setSession(isLocalHost(window.location.hostname) ? "open" : "unreachable"));
+  }, [statusAttempt]);
+
+  useEffect(() => {
     const lost = () => setSession("login");
     window.addEventListener(UNAUTHORIZED_EVENT, lost);
     return () => window.removeEventListener(UNAUTHORIZED_EVENT, lost);
@@ -84,6 +92,8 @@ export function App() {
   useEffect(() => applyTheme(theme), [theme]);
   // The base text size chosen in Settings (18, 20 or 22 px); Settings applies changes itself.
   useEffect(() => applyTextSize(readTextSize()), []);
+  // Glass effects on or off, as the owner chose in Settings.
+  useEffect(() => applyGlass(readGlass()), []);
 
   // Ctrl/Cmd+K works from anywhere, including inside a text box, and replaces the browser's own binding.
   useEffect(() => {
@@ -111,12 +121,23 @@ export function App() {
           window.location.hash = "#/profiles?wizard=1";
         }
       })
-      .catch(() => undefined);
+      .catch(logFailure("the profiles"));
   }, [session]);
 
   const info = SCREEN_INFO[screen];
+  useScreenAnnouncement(screen, info.title, session === "open");
   if (session === "checking") {
     return <p class="muted" role="status">Loading…</p>;
+  }
+  if (session === "unreachable") {
+    return (
+      <div class="notice error" role="alert">
+        <span>Could not reach the server, so it is not known whether a sign-in is needed.</span>
+        <button class="btn" type="button" onClick={() => { setSession("checking"); setStatusAttempt((n) => n + 1); }}>
+          Retry
+        </button>
+      </div>
+    );
   }
   if (session === "login") {
     return <LoginScreen onLoggedIn={() => { setTokenRequired(true); setSession("open"); }} />;
@@ -138,6 +159,7 @@ export function App() {
         <RefreshControl />
         <button class="btn theme-toggle" type="button" data-role="amber" onClick={() => setTheme(nextTheme(theme))}
           aria-label={`${THEME_LABEL[theme]}; switch to ${THEME_LABEL[nextTheme(theme)].toLowerCase()}`}>
+          <ThemeIcon theme={theme} />
           {THEME_LABEL[theme]}
         </button>
         {tokenRequired && (

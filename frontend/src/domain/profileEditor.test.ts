@@ -14,6 +14,7 @@ import {
   nextRuleId,
   parseList,
   profileErrors,
+  profileWarnings,
   removeRule,
   rowErrors,
   sameInput,
@@ -268,5 +269,18 @@ describe("importProblems", () => {
 
   it("gives a generic line when the server sent no details", () => {
     expect(importProblems({})).toEqual(["The file is not a valid profile."]);
+  });
+});
+
+describe("profileWarnings", () => {
+  it("is quiet for no rules and for a profile with a rule about the role", () => {
+    expect(profileWarnings([])).toEqual([]);
+    expect(profileWarnings([rule("a", { field: "keywords", mode: "require" })])).toEqual([]);
+    expect(profileWarnings([rule("a", { field: "description" })])).toEqual([]);
+  });
+
+  it("warns when no require or prefer rule looks at title, keywords or description", () => {
+    expect(profileWarnings([rule("a", { field: "country" })])).toHaveLength(1);
+    expect(profileWarnings([rule("a", { field: "title", mode: "avoid" }), rule("b", { field: "country" })])).toHaveLength(1);
   });
 });

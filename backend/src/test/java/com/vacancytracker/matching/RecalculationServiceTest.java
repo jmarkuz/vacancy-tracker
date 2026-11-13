@@ -124,4 +124,37 @@ class RecalculationServiceTest {
         verify(matching, timeout(5000).times(2)).session();
         service.shutdown();
     }
+
+    @Test
+    void anUnexpectedExceptionForOneVacancyIsCountedAndTheRestStillRun() throws InterruptedException {
+        List<UUID> ids = ids(3);
+        when(vacancies.findAllIds()).thenReturn(ids);
+        MatchSession session = id -> {
+            if (id.equals(ids.get(1))) {
+                throw new NullPointerException("bug");
+            }
+            return List.of();
+        };
+        when(matching.session()).thenReturn(session);
+        RecalculationService service = new RecalculationService(matching, vacancies, clock);
+        service.start();
+        Progress p = waitForCompleted(service);
+        assertThat(p.state()).isEqualTo(State.COMPLETED);
+        assertThat(p.processed()).isEqualTo(3);
+        assertThat(p.failed()).isEqualTo(1);
+        service.shutdown();
+    }
+
+    @Test
+    void aPassThatDiesEndsFailedNotCompleted() throws InterruptedException {
+        when(matching.session()).thenThrow(new IllegalStateException("no session"));
+        RecalculationService service = new RecalculationService(matching, vacancies, clock);
+        service.start();
+        long deadline = System.currentTimeMillis() + 5000;
+        while (service.progress().state() == State.RUNNING && System.currentTimeMillis() < deadline) {
+            Thread.sleep(20);
+        }
+        assertThat(service.progress().state()).isEqualTo(State.FAILED);
+        service.shutdown();
+    }
 }

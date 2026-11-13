@@ -10,7 +10,8 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.springframework.dao.DataAccessException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
@@ -22,7 +23,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class RecalculationService {
 
-    public enum State { RUNNING, COMPLETED }
+    public enum State { RUNNING, COMPLETED, FAILED }
 
     public record Progress(UUID jobId, State state, int processed, int total, int failed, Instant startedAt,
                            Instant finishedAt) {
@@ -39,16 +40,19 @@ public class RecalculationService {
         final AtomicInteger failed = new AtomicInteger();
         volatile int total;
         volatile Instant finishedAt;
+        volatile boolean aborted;
 
         Job(Instant startedAt) {
             this.startedAt = startedAt;
         }
 
         Progress snapshot() {
-            return new Progress(id, finishedAt == null ? State.RUNNING : State.COMPLETED, processed.get(), total,
+            return new Progress(id, finishedAt == null ? State.RUNNING : aborted ? State.FAILED : State.COMPLETED, processed.get(), total,
                     failed.get(), startedAt, finishedAt);
         }
     }
+
+    private static final Logger log = LoggerFactory.getLogger(RecalculationService.class);
 
     private final MatchService matching;
     private final VacancyRepository vacancies;
@@ -86,7 +90,9 @@ public class RecalculationService {
         return current.snapshot();
     }
 
+    @SuppressWarnings("checkstyle:IllegalCatch") // one bad vacancy must not stop the pass
     private void run(Job job) {
+        boolean ok = false;
         try {
             MatchService.MatchSession session = matching.session();
             List<UUID> ids = vacancies.findAllIds();
@@ -94,12 +100,16 @@ public class RecalculationService {
             for (UUID id : ids) {
                 try {
                     session.match(id);
-                } catch (DataAccessException | IllegalArgumentException | IllegalStateException | NotFoundException e) {
+                } catch (RuntimeException e) {
+                    log.warn("Recalculation: vacancy {} failed", id, e);
                     job.failed.incrementAndGet();
                 }
                 job.processed.incrementAndGet();
             }
+            ok = true;
         } finally {
+            // The pass itself died (session or id list): the job must not look like a clean COMPLETED.
+            job.aborted = !ok;
             // An unexpected error must still end the job, or every later request would only queue a rerun.
             finish(job);
         }

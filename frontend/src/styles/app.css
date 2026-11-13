@@ -861,7 +861,7 @@ tbody tr:hover {
     display: none;
   }
 
-  .progress-list {
+  .progress-pop {
     left: 0;
     right: 0;
     width: auto;
@@ -1491,7 +1491,7 @@ tr[aria-selected="true"] {
   width: min(380px, 100%);
 }
 
-/* ---------- surfaces (T-090, design file) ---------- */
+/* ---------- Surfaces of the earlier design language (T-090, design file) ---------- */
 
 h1,
 h2,

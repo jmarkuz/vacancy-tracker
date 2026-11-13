@@ -34,7 +34,9 @@ until docker exec "$db" psql -U vacancy -d vacancy_tracker -c "select 1" > /dev/
 done
 
 # APP_AI_PROVIDER=fake: the full-cycle test drafts documents with the fake AI provider; nothing is sent to Claude.
-SERVER_PORT="$port" APP_RATES_REFRESH_ON_STARTUP=false APP_AI_PROVIDER=fake \
+# APP_COLLECTION_CRON: no scheduled collection during the tests (it would pull the real sources in); a valid cron,
+# because the header reads it to show the next run.
+SERVER_PORT="$port" APP_RATES_REFRESH_ON_STARTUP=false APP_COLLECTION_CRON="0 0 3 29 2 *" APP_AI_PROVIDER=fake \
 SPRING_DATASOURCE_URL=jdbc:postgresql://127.0.0.1:15433/vacancy_tracker SPRING_DATASOURCE_USERNAME=vacancy SPRING_DATASOURCE_PASSWORD=pw \
     java -jar "$root/backend/target/vacancy-tracker-0.1.0-SNAPSHOT.jar" > "$here/app.log" 2>&1 &
 echo $! > "$pidfile"

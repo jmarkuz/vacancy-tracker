@@ -68,10 +68,12 @@ class ProfileCatalogTest {
     }
 
     @Test
-    void theCatalogListsEveryFieldOfTheBriefInOrder() {
+    void theCatalogListsEveryFieldOfTheBriefInOrderAndTheGhostSignsAfterPostedAge() {
+        // ghostSignals is the tracker's own addition to the brief's fields: how many of the "likely ghost" signs a vacancy shows.
         assertThat(catalog.fields()).extracting(FieldInfo::name).containsExactly("title", "description", "keywords",
                 "company", "companyType", "industry", "location", "country", "city", "workMode", "employmentType",
-                "seniority", "salary", "workLanguage", "visaSponsorship", "relocationSupport", "postedAge", "source", "tags");
+                "seniority", "salary", "workLanguage", "visaSponsorship", "relocationSupport", "postedAge", "ghostSignals",
+                "source", "tags");
         assertThat(catalog.fields()).extracting(FieldInfo::name).containsExactlyElementsOf(ProfileValidator.fieldNames());
         assertThat(catalog.modes()).containsExactly("require", "prefer", "avoid", "exclude");
         assertThat(catalog.missingValuePolicies()).containsExactly("ignore", "penalize", "hide");

@@ -1,0 +1,1982 @@
+/*
+ * Graphite 2.0 (ADR-053): the component layer over Beacon's layout (app.css). Loaded last, so it only restyles;
+ * the structure, the keyboard paths and the 44 px targets of Beacon stay. Colors and sizes come from tokens.css.
+ *
+ * The idea in one line: a precision instrument for a job search. a calm canvas and tight type carry the reading,
+ * ink pills carry every action, and black and machined labels carry the numbers that matter.
+ */
+
+/* ---------- Type ---------- */
+
+body {
+  font-feature-settings: "kern" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+.toolbar h1,
+.drawer-header h2,
+.inspector-title {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+}
+
+h1 {
+  margin: 0 0 var(--space-6);
+  font-size: var(--font-size-2xl);
+  line-height: var(--line-height-tight);
+  letter-spacing: var(--letter-spacing-display);
+}
+
+h2 {
+  letter-spacing: var(--letter-spacing-heading);
+}
+
+h3 {
+  letter-spacing: var(--letter-spacing-heading);
+}
+
+.toolbar h1 {
+  font-size: var(--font-size-2xl);
+  letter-spacing: var(--letter-spacing-display);
+}
+
+::selection {
+  background: var(--color-ink);
+  color: var(--color-on-ink);
+}
+
+a {
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 1px;
+}
+
+/* Machined labels: uppercase, monospace, wide tracking. Used for groups, heads and metric names. */
+.nav-group,
+th,
+.drawer-section h3,
+.eyebrow,
+.kpi .label,
+.editor-section legend,
+.facts dt {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-regular);
+  letter-spacing: var(--letter-spacing-label);
+  text-transform: uppercase;
+}
+
+.facts {
+  grid-template-columns: minmax(8.5rem, max-content) 1fr;
+}
+
+.facts dt {
+  padding-top: 0.2em;
+}
+
+.table-wrap {
+  margin-bottom: var(--space-5);
+}
+
+/* ---------- Shell ---------- */
+
+/*
+ * The header floats: translucent canvas with blur, a hairline under it. The blur sits on a
+ * pseudo-element, not on the header itself: a backdrop-filter on the header would make it the containing block of
+ * every position: fixed descendant, and the refresh toast (inside the header) would stick to the header.
+ */
+.header {
+  border-bottom: var(--border-width) solid var(--color-hairline);
+  background: transparent;
+}
+
+.header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--color-glass);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .header::before {
+    background: var(--color-bg);
+  }
+}
+
+@media (max-width: 1000px) {
+  .header {
+    position: relative;
+  }
+}
+
+/* The wordmark: the name in capitals with the widest tracking in the system, beside an ink mark. */
+.logo {
+  gap: var(--space-3);
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+}
+
+.logo span {
+  font-size: var(--font-size-label);
+  letter-spacing: var(--letter-spacing-wordmark);
+  text-transform: uppercase;
+}
+
+.logo-mark {
+  width: 32px;
+  height: 32px;
+  padding: 4px;
+  border-radius: 50%;
+  background: var(--color-ink);
+  color: var(--color-on-ink);
+}
+
+/* Search reads as a quiet pill that says what it does, with its shortcut at the end. */
+.btn.palette-open {
+  justify-content: flex-start;
+  min-width: 15rem;
+  border-color: var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-regular);
+}
+
+.btn.palette-open::before {
+  content: "";
+  width: 0.8em;
+  height: 0.8em;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  box-shadow: 0.32em 0.32em 0 -0.22em currentColor;
+  order: -1;
+}
+
+.btn.palette-open {
+  gap: var(--space-3);
+}
+
+.btn.palette-open kbd {
+  margin-left: auto;
+}
+
+kbd {
+  padding: 1px 6px;
+  border: var(--border-width) solid var(--color-hairline);
+  border-radius: 6px;
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-label);
+  letter-spacing: 0.04em;
+}
+
+.sidebar {
+  min-height: calc(100vh - var(--header-height));
+  gap: 2px;
+  padding: var(--space-6) var(--space-3);
+  border-right: var(--border-width) solid var(--color-hairline);
+  background: var(--color-bg);
+}
+
+.nav {
+  gap: 2px;
+}
+
+.nav-group {
+  margin: var(--space-6) var(--space-3) var(--space-2);
+  color: var(--color-text-muted);
+}
+
+/* Sections are pills with their role as a small marker; the current one is the ink pill. */
+.nav-item {
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  border-left: 0;
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-sm);
+  transition: background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.nav-item::before {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--role);
+}
+
+.nav-item:hover {
+  background: var(--color-bg-muted);
+}
+
+.nav-item:active {
+  transform: scale(var(--press-scale));
+}
+
+.nav-item[aria-current="page"] {
+  background: var(--color-ink);
+  color: var(--color-on-ink);
+  font-weight: var(--font-weight-semibold);
+}
+
+.nav-item[aria-current="page"]::before {
+  box-shadow: 0 0 0 2px var(--color-ink), 0 0 0 3px var(--color-on-ink);
+}
+
+.content {
+  padding: var(--space-8) var(--space-10) var(--space-12);
+}
+
+@media (max-width: 1000px) {
+  .sidebar {
+    min-height: 0;
+    border-right: 0;
+    border-bottom: var(--border-width) solid var(--color-hairline);
+  }
+
+  .content {
+    padding: var(--space-6) var(--gutter-mobile) var(--space-10);
+  }
+
+  .btn.palette-open {
+    min-width: 0;
+  }
+}
+
+/* ---------- Actions ---------- */
+
+/*
+ * Every action is a pill. The primary one is ink (black in light, white in dark) whatever the section, so there is
+ * one obvious next step on a screen; a secondary one is an outlined pill, a ghost one is a plain link.
+ * A press shrinks the control to 97%. The role colors stay on markers, badges and metrics.
+ */
+.btn {
+  padding: var(--space-2) var(--space-5);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.005em;
+  transition: background var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--color-text);
+  background: var(--color-bg-muted);
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(var(--press-scale));
+}
+
+.btn.primary {
+  border-color: var(--color-ink);
+  background: var(--color-ink);
+  color: var(--color-on-ink);
+}
+
+.btn.primary:hover:not(:disabled) {
+  border-color: var(--color-ink-hover);
+  background: var(--color-ink-hover);
+}
+
+.btn.ghost,
+.btn.ghost:hover:not(:disabled) {
+  border-color: transparent;
+  background: transparent;
+  color: var(--color-text);
+}
+
+.btn.ghost:hover:not(:disabled) {
+  text-decoration-thickness: 2px;
+}
+
+.btn.danger {
+  border-color: var(--color-danger);
+  background: transparent;
+  color: var(--color-danger);
+}
+
+.btn.danger:hover:not(:disabled) {
+  border-color: var(--color-danger);
+  background: var(--color-danger-subtle);
+}
+
+.btn:disabled,
+.btn.primary:disabled {
+  border-color: var(--color-hairline);
+  background: var(--color-bg-muted);
+  color: var(--color-text-muted);
+}
+
+.link-button {
+  text-underline-offset: 0.18em;
+}
+
+/* ---------- Fields ---------- */
+
+.input,
+.textarea,
+select.input,
+.filter-form select,
+.view-bar select {
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-input);
+  background: var(--color-surface);
+  color: var(--color-text);
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+
+.input:hover,
+.textarea:hover {
+  border-color: var(--color-border-strong);
+}
+
+.input[aria-invalid="true"] {
+  border: 2px solid var(--color-danger);
+}
+
+.choice {
+  border-color: var(--color-border);
+  border-radius: var(--radius-pill);
+  padding: 0 var(--space-4);
+}
+
+.choice input {
+  accent-color: var(--color-ink);
+}
+
+.choice:has(input:checked) {
+  border-color: var(--color-ink);
+  background: var(--color-ink);
+  color: var(--color-on-ink);
+}
+
+.choice:has(input:checked) input {
+  accent-color: var(--color-on-ink);
+}
+
+/* ---------- Surfaces ---------- */
+
+/* Cards: white (near-black in dark) on the canvas, a hairline, 18 px, no shadow. */
+.panel,
+.vcard,
+.mail-item,
+.inbox-list,
+.table-wrap,
+.profile-editor,
+.editor-section,
+.board-column,
+.doc-card,
+.company-list,
+.palette {
+  border-color: var(--color-hairline);
+  border-radius: var(--radius-md);
+}
+
+.panel {
+  padding: var(--space-6) var(--space-6);
+}
+
+.panel > h2:first-child,
+.panel > h3:first-child {
+  margin-top: 0;
+}
+
+.panels,
+.stack {
+  gap: var(--space-5);
+}
+
+.board-card {
+  border-radius: var(--radius-sm);
+}
+
+.notice {
+  border-radius: var(--radius-sm);
+}
+
+/* Tables: no frame lines inside, hairlines between rows, labels in the machined style. */
+th,
+td {
+  border-bottom-color: var(--color-hairline);
+}
+
+th {
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  padding-top: var(--space-3);
+  padding-bottom: var(--space-3);
+}
+
+tbody tr {
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+tbody tr:hover {
+  background: var(--color-bg-subtle);
+}
+
+.inbox-row {
+  border-bottom-color: var(--color-hairline);
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.inbox-row.selected {
+  background: var(--color-bg-muted);
+  box-shadow: inset var(--selection-bar) 0 0 var(--color-ink);
+}
+
+.mail-item.pending {
+  border-color: var(--color-ink);
+  box-shadow: inset 3px 0 0 var(--color-ink);
+}
+
+/* Overlays float: the one place with a real shadow. */
+.drawer {
+  border-left: var(--border-width) solid var(--color-hairline);
+  border-radius: var(--radius-xl) 0 0 var(--radius-xl);
+  box-shadow: var(--shadow-2);
+}
+
+.drawer-header {
+  padding: var(--space-6) var(--space-6) var(--space-4);
+  border-bottom-color: var(--color-hairline);
+}
+
+.drawer-header h2 {
+  font-size: var(--font-size-xl);
+  letter-spacing: var(--letter-spacing-display);
+}
+
+.drawer-body {
+  padding: var(--space-6);
+  gap: var(--space-6);
+}
+
+.drawer-section h3 {
+  color: var(--color-text-muted);
+}
+
+.palette {
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-2);
+}
+
+.palette-backdrop,
+.scrim {
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+/*
+ * Glass: popups that float over the page are translucent glass: a tinted, heavily blurred and
+ * saturated backdrop, a bright 1 px edge that fades toward the bottom, a specular highlight along the top, and a soft
+ * deep shadow. The tint is opaque enough (about 65%) that the text keeps its contrast over any content behind it.
+ * Without backdrop-filter, and in forced-colors, the popup is a plain solid surface.
+ */
+.glass,
+.toast,
+.progress-pop {
+  position: relative;
+  border: var(--border-width) solid var(--glass-edge-dim);
+  background:
+    linear-gradient(180deg, var(--glass-shine) 0, transparent 38%) top / 100% 100% no-repeat,
+    var(--glass-bg);
+  box-shadow:
+    var(--glass-shadow),
+    inset 0 1px 0 var(--glass-edge),
+    inset 0 -1px 0 var(--glass-edge-dim),
+    inset 1px 0 0 var(--glass-edge-dim),
+    inset -1px 0 0 var(--glass-edge-dim);
+  -webkit-backdrop-filter: saturate(190%) blur(28px);
+  backdrop-filter: saturate(190%) blur(28px);
+  color: var(--color-text);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass,
+  .toast,
+  .progress-pop {
+    background: var(--glass-solid);
+  }
+}
+
+/* The refresh popup: a heading, then one row per source with the name left and its state right. */
+.progress-pop {
+  position: absolute;
+  top: calc(100% + var(--space-3));
+  right: 0;
+  z-index: 30;
+  width: min(380px, 90vw);
+  padding: var(--space-4) var(--space-2) var(--space-3);
+  border-radius: var(--radius-xl);
+  font-size: var(--font-size-sm);
+}
+
+.progress-head {
+  margin: 0 var(--space-4) var(--space-2);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-label);
+  letter-spacing: var(--letter-spacing-label);
+  text-transform: uppercase;
+}
+
+.progress-pop .progress-list {
+  position: static;
+  width: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  list-style: none;
+}
+
+.progress-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: 2.6rem;
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+}
+
+.progress-list li + li {
+  box-shadow: 0 -1px 0 var(--glass-edge-dim);
+}
+
+.progress-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: var(--font-weight-semibold);
+}
+
+.progress-state {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: 60%;
+}
+
+.progress-error {
+  overflow-wrap: anywhere;
+}
+
+.progress-pop .badge {
+  background: color-mix(in srgb, currentColor 14%, transparent);
+}
+
+/* The toast is a glass capsule that slides up from the bottom. */
+.toast {
+  position: fixed;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-6);
+  border-radius: var(--radius-xl);
+  line-height: 1.35;
+}
+
+.toast-error {
+  background:
+    linear-gradient(180deg, var(--glass-shine) 0, transparent 38%) top / 100% 100% no-repeat,
+    var(--glass-bg-error);
+  color: var(--color-danger);
+}
+
+.toast a,
+.toast .btn.ghost {
+  color: inherit;
+}
+
+.toast a {
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}
+
+.toast .btn.ghost {
+  min-width: var(--control-height);
+  padding: var(--space-2) var(--space-3);
+  text-decoration: none;
+  font-size: var(--font-size-lg);
+}
+
+@keyframes glass-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+@keyframes glass-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.toast {
+  animation: glass-in var(--duration-base) var(--ease-out);
+}
+
+.progress-pop {
+  transform-origin: top right;
+  animation: glass-pop var(--duration-base) var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast,
+  .progress-pop {
+    animation: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .toast,
+  .progress-pop {
+    border: 1px solid CanvasText;
+    background: Canvas;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+}
+
+/* ---------- Badges and chips ---------- */
+
+/* Badges are tinted capsules: the status color for the dot and the words, a faint wash of it behind. */
+.badge {
+  padding: 2px var(--space-3) 2px var(--space-2);
+  border: 0;
+  background: color-mix(in srgb, currentColor 9%, transparent);
+  font-weight: var(--font-weight-semibold);
+}
+
+.badge.score {
+  min-width: 3.2em;
+  justify-content: center;
+  padding: 2px var(--space-3);
+  background: var(--color-ink);
+  color: var(--color-on-ink);
+  font-family: var(--font-mono);
+}
+
+.badge.score::before {
+  display: none;
+}
+
+.ghost-badge {
+  color: var(--color-warning);
+}
+
+.fit-badge {
+  padding: 1px var(--space-3);
+  border: 0;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.chip {
+  padding: 2px var(--space-2) 2px var(--space-4);
+  border-color: var(--color-hairline);
+  background: var(--color-bg-muted);
+  color: var(--color-text);
+}
+
+.chip-remove {
+  color: var(--color-text);
+}
+
+.mail-category,
+.state-badge {
+  padding: 1px var(--space-3);
+  border-radius: var(--radius-pill);
+}
+
+/* ---------- Tabs and toggles: pills; the selected one is the ink pill ---------- */
+
+.tabs {
+  gap: var(--space-2);
+}
+
+.tab,
+.chip[aria-pressed] {
+  min-height: var(--control-height);
+  padding: var(--space-2) var(--space-4);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.tab:hover:not([aria-selected="true"]),
+.chip[aria-pressed="false"]:hover {
+  background: var(--color-bg-muted);
+}
+
+.tab:active,
+.chip[aria-pressed]:active {
+  transform: scale(var(--press-scale));
+}
+
+.tab[aria-selected="true"],
+.chip[aria-pressed="true"] {
+  border-color: var(--color-ink);
+  background: var(--color-ink);
+  color: var(--color-on-ink);
+}
+
+/* ---------- Metrics ---------- */
+
+.metric-callout {
+  border-radius: var(--radius-md);
+}
+
+.metric-value {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-light);
+  letter-spacing: var(--letter-spacing-display);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * The instrument cluster (Dashboard): the five numbers as one black band, divided by hairlines like the spec cells
+ * of a car page. Light, large numerals; the label in the machined style with the metric's role as a lit dot.
+ * The band is black in both themes, so the dots use the signal (light) versions of the roles.
+ */
+.grid-kpi {
+  gap: 0;
+  padding: var(--space-2);
+  border: var(--border-width) solid var(--color-band-line);
+  border-radius: var(--radius-xl);
+  background: var(--color-band);
+  margin-bottom: var(--space-6);
+}
+
+.kpi {
+  --dot: var(--signal-blue);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-5) var(--space-5) var(--space-4);
+  border: 0;
+  border-radius: calc(var(--radius-xl) - var(--space-2));
+  background: transparent;
+  color: var(--color-on-band);
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.kpi + .kpi::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: var(--space-5);
+  bottom: var(--space-5);
+  width: 1px;
+  background: var(--color-band-line);
+}
+
+.kpi[data-role="green"] {
+  --dot: var(--signal-green);
+}
+
+.kpi[data-role="purple"] {
+  --dot: var(--signal-purple);
+}
+
+.kpi[data-role="amber"] {
+  --dot: var(--signal-amber);
+}
+
+.kpi:hover {
+  background: rgb(255 255 255 / 0.07);
+}
+
+.kpi:focus-visible {
+  outline-color: var(--signal-blue);
+  outline-offset: -3px;
+}
+
+.kpi .value {
+  color: var(--color-on-band);
+  font-family: var(--font-display);
+  font-size: var(--font-size-metric);
+  font-weight: var(--font-weight-light);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.kpi .label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-band-muted);
+}
+
+.kpi .label::before {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--dot);
+  box-shadow: 0 0 10px var(--dot);
+}
+
+@media (max-width: 1000px) {
+  .grid-kpi {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .kpi + .kpi::after {
+    display: none;
+  }
+}
+
+/* Charts take the ink; the funnel track is the canvas. */
+.week-bar,
+.funnel-bar {
+  fill: var(--color-ink);
+}
+
+.funnel-track {
+  fill: var(--color-bg-muted);
+}
+
+.match-track {
+  border-radius: var(--radius-pill);
+}
+
+.match-fill {
+  border-radius: var(--radius-pill);
+}
+
+/* ---------- Lists ---------- */
+
+.list-item {
+  border-bottom-color: var(--color-hairline);
+}
+
+.list-item a.meta {
+  text-decoration: none;
+}
+
+.list-item a.meta > div:first-child {
+  font-weight: var(--font-weight-semibold);
+}
+
+.list-item a.meta:hover > div:first-child {
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+/* ---------- Login ---------- */
+
+.login form {
+  padding: var(--space-8);
+  border: var(--border-width) solid var(--color-hairline);
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-2);
+}
+
+@media (forced-colors: active) {
+  .nav-item[aria-current="page"],
+  .tab[aria-selected="true"] {
+    outline: 2px solid Highlight;
+  }
+
+  .grid-kpi {
+    border: 1px solid CanvasText;
+  }
+}
+
+/* Button icons (components/Icon.tsx): they sit beside the words and take the button's color. */
+.icon {
+  flex: none;
+}
+
+/* The refresh arrows turn while a refresh runs; with reduced motion they stay still. */
+.icon-spin {
+  animation: icon-turn 1.2s linear infinite;
+}
+
+@keyframes icon-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icon-spin {
+    animation: none;
+  }
+}
+
+/* The theme button's icon sits before the words and takes the button's color. */
+.theme-toggle .theme-icon {
+  flex: none;
+}
+
+/* Pipeline table, denser the title no longer takes the whole width, so every column is visible together.
+   Long text ends in an ellipsis (the full text is in the tooltip); rows are shorter and the type is a step smaller. */
+.pipeline-table {
+  font-size: var(--font-size-sm);
+  table-layout: fixed; /* widths come from the <col> elements, which the header edges change */
+}
+
+.pipeline-table th,
+.pipeline-table td {
+  padding: var(--space-1) var(--space-2);
+}
+
+.pipeline-table th {
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-2);
+}
+
+.pipeline-table th,
+.pipeline-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pipeline-table .check-col {
+  padding-right: 0;
+}
+
+.title-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.title-cell .row-open {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.title-cell .title-text {
+  display: inline;
+}
+
+.title-cell .fit-badge {
+  flex: none;
+}
+
+.cell-clip {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The edge of a header you can drag (components/ColumnResizer.tsx). */
+.pipeline-table th {
+  position: sticky; /* also the anchor of the resizer */
+}
+
+.col-resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 9px;
+  cursor: col-resize;
+  touch-action: none;
+  user-select: none;
+}
+
+.col-resizer::after {
+  content: "";
+  position: absolute;
+  top: 25%;
+  bottom: 25%;
+  right: 3px;
+  width: 1px;
+  background: var(--color-hairline);
+  transition: background var(--duration-fast) var(--ease-out), top var(--duration-fast) var(--ease-out),
+    bottom var(--duration-fast) var(--ease-out);
+}
+
+.col-resizer:hover::after,
+.col-resizer:focus-visible::after {
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--color-accent, currentColor);
+}
+
+.col-resizer:focus-visible {
+  outline: none;
+}
+
+/* The refresh popup shows only on hover or keyboard focus, so it never covers other controls. The button shows
+   the progress itself: turning arrows and a light band moving across it. */
+.refresh-trigger {
+  display: inline-flex;
+}
+
+.refresh-trigger .progress-pop {
+  animation: none;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-4px) scale(0.98);
+  transition: opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out),
+    visibility 0s linear var(--duration-base);
+}
+
+/* An invisible bridge over the gap, so moving the pointer from the button into the popup does not close it. */
+.refresh-trigger .progress-pop::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: var(--space-3);
+}
+
+.refresh-trigger:hover .progress-pop,
+.refresh-trigger:has(:focus-visible) .progress-pop {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: none;
+  transition-delay: 0s;
+}
+
+.btn.is-refreshing {
+  position: relative;
+  overflow: hidden;
+  opacity: 1;
+}
+
+.btn.is-refreshing::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 20%, rgb(128 128 128 / 0.35) 50%, transparent 80%);
+  transform: translateX(-100%);
+  animation: refresh-sweep 1.4s var(--ease-out) infinite;
+  pointer-events: none;
+}
+
+@keyframes refresh-sweep {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn.is-refreshing::after {
+    animation: none;
+    transform: none;
+    opacity: 0.5;
+  }
+
+  .refresh-trigger .progress-pop {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .btn.is-refreshing::after {
+    display: none;
+  }
+}
+
+.btn[aria-disabled="true"] {
+  cursor: progress;
+}
+
+/* ---------- The vacancy drawer (side panel), tidier ----------
+   One rhythm: sections are divided by hairlines, labels are one size, long titles balance over their lines, the
+   requirement list has a head, a text and a quoted proof instead of one run-on line. */
+.drawer-header {
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6) var(--space-4);
+}
+
+.drawer-header h2 {
+  font-size: var(--font-size-lg);
+  line-height: 1.3;
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
+}
+
+.drawer-header p {
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.drawer-close {
+  flex: none;
+  gap: var(--space-1);
+  text-decoration: none;
+}
+
+.drawer-body {
+  gap: 0;
+  padding: var(--space-2) var(--space-6) var(--space-7, var(--space-6));
+  line-height: 1.5;
+}
+
+.drawer-section {
+  gap: var(--space-3);
+  padding: var(--space-5) 0;
+}
+
+.drawer-section + .drawer-section {
+  border-top: var(--border-width) solid var(--color-hairline);
+}
+
+.drawer-section h3 {
+  margin: 0 0 var(--space-1);
+  font-size: 0.75rem;
+}
+
+.drawer .stack {
+  gap: var(--space-3);
+}
+
+.drawer h4 {
+  margin: 0;
+  font-size: var(--font-size-md);
+}
+
+.drawer .facts {
+  grid-template-columns: 10.5rem 1fr;
+  gap: var(--space-2) var(--space-4);
+  align-items: baseline;
+}
+
+.drawer .facts dt {
+  font-size: 0.75rem;
+}
+
+.quick-fit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.drawer .reasons {
+  display: grid;
+  gap: var(--space-2);
+  padding-left: var(--space-5);
+}
+
+.requirements {
+  gap: 0;
+}
+
+.req {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3) 0;
+}
+
+.req + .req {
+  border-top: var(--border-width) solid var(--color-hairline);
+}
+
+.req-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.req-text {
+  font-weight: var(--font-weight-medium);
+}
+
+.req-quote {
+  margin: var(--space-1) 0 0;
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--color-hairline);
+  color: var(--color-text-muted);
+  font-style: normal;
+}
+
+.req-quote::before,
+.req-quote::after {
+  content: none;
+}
+
+.drawer .history {
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* Spacing comes from the grid gaps, not from the browser's paragraph margins. */
+.drawer-body p {
+  margin: 0;
+}
+
+/* ---------- Mail ----------
+   One family: pill buttons with an icon, fields like every other field, cards with a clear head (kind, date), a
+   subject, the sender, then the body. A digest mail lists its vacancies one by one. */
+.mail-screen {
+  gap: var(--space-4);
+}
+
+.mail-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-5);
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width) solid var(--color-hairline);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+}
+
+.mail-tools-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.mail-older {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+}
+
+.mail-older .input {
+  width: 4.5rem;
+  min-height: var(--control-height);
+  padding: var(--space-1) var(--space-3);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Filters of the list: search field, kind chips, linked state. */
+.mail-filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.mail-search {
+  position: relative;
+  max-width: 28rem;
+}
+
+.mail-search .input {
+  width: 100%;
+  min-height: var(--control-height);
+  padding: var(--space-2) 2.25rem;
+  appearance: none;
+}
+
+.mail-search .input::-webkit-search-cancel-button,
+.mail-search .input::-webkit-search-decoration {
+  appearance: none;
+  display: none;
+}
+
+.mail-search-icon,
+.mail-search-clear {
+  position: absolute;
+  top: 50%;
+  display: inline-flex;
+  align-items: center;
+  transform: translateY(-50%);
+  color: var(--color-text-muted);
+}
+
+.mail-search-icon {
+  left: var(--space-3);
+  pointer-events: none;
+}
+
+.mail-search-clear {
+  right: var(--space-2);
+  padding: var(--space-1);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  cursor: pointer;
+}
+
+.mail-search-clear:hover {
+  color: var(--color-text);
+  background: var(--color-bg-muted);
+}
+
+.mail-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.chip-count {
+  margin-left: var(--space-2);
+  font-weight: var(--font-weight-regular, 400);
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+}
+
+.mail-empty {
+  padding: var(--space-6, 2rem) var(--space-4);
+}
+
+/* The state of the mailbox: quiet when idle, alive while it is being read. */
+.sync-card {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  overflow: hidden;
+  border: var(--border-width) solid var(--color-hairline);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  transition: border-color var(--duration-base) var(--ease-out);
+}
+
+.sync-card.is-syncing {
+  border-color: var(--color-border-strong);
+}
+
+.sync-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: var(--color-bg-muted);
+  font-size: 1.1rem;
+}
+
+.sync-card.is-syncing .sync-icon {
+  background: var(--color-ink);
+  color: var(--color-on-ink);
+}
+
+.sync-text {
+  display: grid;
+  gap: 2px;
+  flex: 1 1 10rem;
+  min-width: 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.45;
+}
+
+/* How often the mailbox is read: a native range over the step index, with the minutes named under it. Compact: it
+   sits at the right of the card on a wide screen and takes its own row on a narrow one. */
+.sync-interval {
+  display: grid;
+  flex: 1 1 100%;
+  gap: var(--space-1);
+  padding-top: var(--space-3);
+  border-top: var(--border-width) solid var(--color-hairline);
+}
+
+@media (min-width: 900px) {
+  .sync-interval {
+    flex: 0 0 15rem;
+    padding: 0 0 0 var(--space-5);
+    border-top: 0;
+    border-left: var(--border-width) solid var(--color-hairline);
+  }
+}
+
+.sync-interval-label {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.slider {
+  width: 100%;
+  height: 1.25rem;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-bg-muted);
+  box-shadow: inset 0 0 0 1px var(--color-hairline);
+}
+
+.slider::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-bg-muted);
+  box-shadow: inset 0 0 0 1px var(--color-hairline);
+}
+
+.slider::-webkit-slider-thumb {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: calc((4px - 1.25rem) / 2);
+  border: 2px solid var(--color-surface);
+  border-radius: 50%;
+  background: var(--color-ink);
+  box-shadow: 0 0 0 1px var(--color-border-strong);
+  transition: transform var(--duration-fast) var(--ease-out);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.slider::-moz-range-thumb {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid var(--color-surface);
+  border-radius: 50%;
+  background: var(--color-ink);
+  box-shadow: 0 0 0 1px var(--color-border-strong);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.slider:active::-webkit-slider-thumb {
+  transform: scale(1.12);
+}
+
+.slider:active::-moz-range-thumb {
+  transform: scale(1.12);
+}
+
+.slider:focus-visible {
+  outline: var(--focus-width) solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-input);
+}
+
+.slider-ticks {
+  display: flex;
+  justify-content: space-between;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.slider-ticks .is-current {
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+}
+
+.sync-interval-error {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+}
+
+.sync-text strong {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+}
+
+.sync-bar {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--color-ink) 10%, transparent);
+}
+
+.sync-bar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 35%;
+  border-radius: 3px;
+  background: var(--color-ink);
+  animation: sync-slide 1.3s var(--ease-out) infinite;
+}
+
+@keyframes sync-slide {
+  from {
+    left: -35%;
+  }
+
+  to {
+    left: 100%;
+  }
+}
+
+.mail-list {
+  gap: var(--space-3);
+}
+
+.mail-item {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+}
+
+.mail-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.mail-head input[type="checkbox"] {
+  flex: none;
+}
+
+.mail-date {
+  margin-left: auto;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}
+
+.mail-category {
+  flex: none;
+  font-size: var(--font-size-sm);
+}
+
+.cat-digest {
+  color: var(--color-info);
+}
+
+.mail-subject {
+  display: block;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.mail-from {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.mail-body {
+  display: grid;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+}
+
+.mail-text {
+  display: grid;
+  gap: var(--space-2);
+  color: var(--color-text);
+  font-size: var(--font-size-md);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.mail-text p {
+  margin: 0;
+}
+
+/* A long text is folded to about four lines and fades out. */
+.mail-text.folded {
+  max-height: 6.4em;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent);
+  mask-image: linear-gradient(180deg, #000 55%, transparent);
+}
+
+.mail-more,
+.digest-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.mail-more {
+  justify-self: start;
+  padding: var(--space-1) 0;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.mail-more[aria-expanded="true"] .icon {
+  transform: rotate(180deg);
+}
+
+/* The vacancies of a digest. */
+.digest {
+  display: grid;
+  margin-top: var(--space-1);
+}
+
+.digest-heading {
+  margin: 0 0 var(--space-1);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-label);
+  letter-spacing: var(--letter-spacing-label);
+  text-transform: uppercase;
+}
+
+.digest-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.digest-job {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) 0;
+  border-top: var(--border-width) solid var(--color-hairline);
+}
+
+.digest-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.digest-title {
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.digest-meta {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.digest-link {
+  flex: none;
+  padding: var(--space-1) var(--space-4);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+  transition: background var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out);
+}
+
+.digest-actions {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.digest-add {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-4);
+}
+
+.digest-add .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.digest-state {
+  padding: 2px var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-success-subtle);
+  color: var(--color-success);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}
+
+.digest-link:hover {
+  border-color: var(--color-text);
+  background: var(--color-bg-muted);
+}
+
+.mail-link {
+  margin: 0;
+}
+
+.mail-actions,
+.mail-suggestion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.mail-actions select.input {
+  min-height: var(--control-height);
+  padding: var(--space-1) var(--space-3);
+}
+
+.mail-suggestion {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg, var(--radius-md));
+  background: var(--color-bg-muted);
+}
+
+.mail-suggestion-text {
+  margin-right: auto;
+  font-weight: var(--font-weight-semibold);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sync-bar::after {
+    left: 0;
+    width: 100%;
+    opacity: 0.4;
+    animation: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .mail-tools,
+  .mail-tools-group {
+    width: 100%;
+  }
+
+  .digest-job {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+
+  .digest-actions {
+    justify-content: flex-start;
+  }
+}
+
+/* The note under an unfolded text that was cut when it was stored. */
+.mail-rest {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* The in-app confirmation (replaces window.confirm): a glass card centred over a scrim. */
+.confirm-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  background: var(--overlay-backdrop);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+.confirm-dialog {
+  display: grid;
+  gap: var(--space-3);
+  width: min(420px, 100%);
+  padding: var(--space-6);
+  border-radius: var(--radius-xl);
+}
+
+.confirm-dialog h2 {
+  margin: 0;
+  font-size: var(--font-size-lg, var(--font-size-md));
+}
+
+.confirm-dialog p {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+/* Mail tab keyboard (M6): the current mail has a ring (a shape, not only a colour) and a bar on its left. */
+.mail-item:focus {
+  outline: none;
+}
+
+.mail-item.is-current {
+  outline: var(--focus-width) solid var(--color-focus);
+  outline-offset: calc(var(--focus-offset) * -1);
+  background: var(--color-bg-subtle);
+}
+
+.shortcut-help {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border: var(--border-width) solid var(--color-hairline);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-subtle);
+}
+
+.shortcut-help dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  gap: var(--space-2) var(--space-5);
+  margin: 0;
+  flex: 1;
+}
+
+.shortcut-help dl > div {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.shortcut-help dt {
+  display: flex;
+  gap: var(--space-1);
+  min-width: 6.5rem;
+}
+
+.shortcut-help dd {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+@media (max-width: 640px) {
+  .shortcut-help {
+    flex-direction: column;
+  }
+}
+
+/* An interview or deadline date read from a mail: the line and its two actions. */
+.mail-event {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.mail-event-when {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.mail-event-when .muted {
+  font-weight: 400;
+  white-space: pre;
+}
+
+.mail-event-done {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+  color: var(--color-success, var(--color-text-muted));
+}
+
+.mail-event-error {
+  flex-basis: 100%;
+  font-size: var(--font-size-sm);
+  color: var(--color-danger, #b3261e);
+}
+
+/* ---------- Dashboard: Replies card ---------- */
+
+.replies-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.replies-head h2 {
+  margin: 0;
+}
+
+.replies-periods {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.replies-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-4) 0;
+}
+
+.replies-stats dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.replies-stats dd {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.replies-outcomes {
+  width: 100%;
+}
+
+.replies-outcomes th.num,
+.replies-outcomes td.num {
+  text-align: right;
+}

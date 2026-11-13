@@ -198,4 +198,69 @@ class MatchServiceTest extends AbstractIntegrationTest {
 
         assertThat(session.match(second).get(0).score()).isZero();
     }
+
+    private SearchProfile profileWithMaxAge(int maxAgeDays, Criterion... criteria) {
+        return profiles.create(new ProfileInput("Aged", true, List.of("all"), null, new Thresholds(40, 70, maxAgeDays), List.of(criteria)));
+    }
+
+    private UUID vacancyPostedDaysAgo(String title, Integer daysAgo) {
+        Vacancy v = Vacancy.discovered(UUID.randomUUID(), title, "Acme", "https://ex.com/" + UUID.randomUUID(), null, "Plain", NOW);
+        if (daysAgo != null) {
+            v.recordPostedAt(Instant.now().minus(daysAgo, java.time.temporal.ChronoUnit.DAYS));
+        }
+        vacancies.save(v.toState());
+        vacancies.upsertSource(v.getId(), "djinni", UUID.randomUUID().toString(), "https://ex.com/x", NOW);
+        return v.getId();
+    }
+
+    @Test
+    void aPostingOlderThanTheProfilesMaxAgeIsFilteredOutForThatProfile() {
+        profileWithMaxAge(30, c("kw", "title", "contains_any", "[\"java\"]", "prefer", 5));
+        UUID old = vacancyPostedDaysAgo("Java Developer", 45);
+
+        List<VacancyMatch> matches = matchService.match(old);
+
+        assertThat(matches).singleElement().satisfies(m -> {
+            assertThat(m.hidden()).isTrue();
+            assertThat(m.score()).isNull();
+            assertThat(m.reasons().get(0).text()).startsWith("Filtered out: posted 45 days ago");
+        });
+        assertThat(storedMatchScore(old)).isNull();
+    }
+
+    @Test
+    void aYoungOrUndatedPostingIsNotFilteredByAge() {
+        profileWithMaxAge(30, c("kw", "title", "contains_any", "[\"java\"]", "prefer", 5));
+        UUID young = vacancyPostedDaysAgo("Java Developer", 5);
+        UUID undated = vacancyPostedDaysAgo("Java Engineer", null);
+
+        assertThat(matchService.match(young)).singleElement().satisfies(m -> assertThat(m.hidden()).isFalse());
+        assertThat(matchService.match(undated)).singleElement().satisfies(m -> {
+            assertThat(m.hidden()).isFalse();
+            assertThat(m.score()).isEqualTo(100);
+        });
+    }
+
+    @Test
+    void aPostedAgeRuleUsesTheStoredDate() {
+        profileWithMaxAge(365, c("fresh", "postedAge", "lte", "7", "prefer", 4), c("kw", "title", "contains_any", "[\"java\"]", "prefer", 4));
+        UUID fresh = vacancyPostedDaysAgo("Java Developer", 3);
+        UUID stale = vacancyPostedDaysAgo("Java Engineer", 40);
+
+        assertThat(matchService.match(fresh).get(0).score()).isEqualTo(100);
+        assertThat(matchService.match(stale).get(0).score()).isEqualTo(50);
+    }
+
+    @Test
+    void aProfileCanHideLikelyGhostsWithTheGhostSignalsRule() {
+        profileWithMaxAge(365, c("ghost", "ghostSignals", "gte", "2", "exclude", 1), c("kw", "title", "contains_any", "[\"java\"]", "prefer", 5));
+        UUID ghost = vacancyPostedDaysAgo("Java Developer", 50);          // old and no salary: two signs
+        UUID fresh = vacancyPostedDaysAgo("Java Engineer", 3);            // only no salary: one sign
+
+        assertThat(matchService.match(ghost)).singleElement().satisfies(m -> assertThat(m.hidden()).isTrue());
+        assertThat(matchService.match(fresh)).singleElement().satisfies(m -> {
+            assertThat(m.hidden()).isFalse();
+            assertThat(m.score()).isEqualTo(100);
+        });
+    }
 }

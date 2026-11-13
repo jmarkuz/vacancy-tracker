@@ -1,5 +1,7 @@
 package com.vacancytracker.collection.mail;
 
+import java.util.Optional;
+
 /** Consumes one alert email. It should not throw; a message it cannot handle yet is answered with RETRY. */
 @FunctionalInterface
 public interface MailHandler {
@@ -12,4 +14,12 @@ public interface MailHandler {
     }
 
     Outcome handle(MailMessage mail);
+
+    /**
+     * Decides from the envelope alone (sender, subject, date; no body) what to do with a message, so a message the
+     * handler does not need is never downloaded. Empty means the full message is needed and handle is called.
+     */
+    default Optional<Outcome> preview(MailMessage envelope) {
+        return Optional.empty();
+    }
 }

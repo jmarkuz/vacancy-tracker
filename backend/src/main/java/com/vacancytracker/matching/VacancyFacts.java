@@ -1,7 +1,10 @@
 package com.vacancytracker.matching;
 
 import com.vacancytracker.matching.RuleEngine.SalaryFact;
+import com.vacancytracker.vacancy.GhostJob;
 import com.vacancytracker.vacancy.Vacancy;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,7 +21,8 @@ final class VacancyFacts {
     private VacancyFacts() {
     }
 
-    static Map<String, Object> of(Vacancy v, List<String> adapters) {
+    /** now is the moment the vacancy is judged at; postedAge (whole days) is only a fact when the source gave a date. */
+    static Map<String, Object> of(Vacancy v, List<String> adapters, Instant now) {
         Map<String, Object> facts = new HashMap<>();
         put(facts, "title", v.getTitle());
         put(facts, "description", v.getDescription());
@@ -27,6 +31,10 @@ final class VacancyFacts {
         put(facts, "country", v.getCountry());
         put(facts, "workMode", v.getWorkMode());
         facts.put("tags", List.copyOf(v.getTags()));
+        if (v.getPostedAt() != null) {
+            facts.put("postedAge", Math.max(0L, ChronoUnit.DAYS.between(v.getPostedAt(), now)));
+        }
+        facts.put("ghostSignals", GhostJob.assess(v, now).signs());
         if (v.getVisaSponsorship() != null) {
             facts.put("visaSponsorship", v.getVisaSponsorship());
         }

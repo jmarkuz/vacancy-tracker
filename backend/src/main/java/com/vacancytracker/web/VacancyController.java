@@ -39,6 +39,11 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 @RequestMapping("/api/vacancies")
 public class VacancyController {
 
+    /**
+     * Convention for list parameters: a bad page or size is rejected with 422, never silently changed. The only
+     * exception is the typeahead search ({@code SearchController}), where {@code limit} is a hint and is clamped.
+     * An unknown {@code status} is also 422 (the criterion compiler rejects it).
+     */
     private static final int MAX_PAGE_SIZE = 200;
 
     private final VacancyService service;
@@ -152,14 +157,23 @@ public class VacancyController {
             java.math.BigDecimal salaryMin, java.math.BigDecimal salaryMax, String currency, String salaryPeriod,
             String status, Integer priority, String notes, String contact, String nextActionNote, Instant nextActionAt,
             List<String> tags, Set<String> userEditedFields, Instant firstSeenAt, Instant lastSeenAt, boolean isNew,
-            Boolean visaSponsorship) {
+            Boolean visaSponsorship, Instant postedAt, GhostResponse ghost) {
 
         static VacancyResponse from(Vacancy v) {
             return new VacancyResponse(v.getId(), v.getTitle(), v.getCompany(), v.getUrl(), v.getCanonicalUrl(),
                     v.getLocation(), v.getCountry(), v.getWorkMode(), v.getDescription(), v.getSalaryMin(), v.getSalaryMax(), v.getCurrency(), v.getSalaryPeriod(),
                     v.getStatus().label(), v.getPriority(), v.getNotes(), v.getContact(), v.getNextActionNote(),
                     v.getNextActionAt(), v.getTags(), v.getUserEditedFields(), v.getFirstSeenAt(), v.getLastSeenAt(),
-                    v.isNew(), v.getVisaSponsorship());
+                    v.isNew(), v.getVisaSponsorship(), v.getPostedAt(), GhostResponse.of(v));
+        }
+    }
+
+    /** The "likely ghost" advice with its reasons (see GhostJob). */
+    public record GhostResponse(boolean likely, int signs, List<String> reasons) {
+
+        static GhostResponse of(Vacancy v) {
+            com.vacancytracker.vacancy.GhostJob.Assessment a = com.vacancytracker.vacancy.GhostJob.assess(v, Instant.now());
+            return new GhostResponse(a.likely(), a.signs(), a.reasons());
         }
     }
 

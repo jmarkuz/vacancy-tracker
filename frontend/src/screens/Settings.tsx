@@ -2,7 +2,7 @@ import { useEffect, useState } from "preact/hooks";
 import { type AiStatus, disableAi, enableAi, getAiStatus } from "../api/ai";
 import { ApiError } from "../api/client";
 import { formatDate } from "./columns";
-import { applyTextSize, readTextSize, TEXT_SIZES, type TextSize, type Theme } from "../theme";
+import { applyGlass, applyTextSize, type Glass, readGlass, readTextSize, TEXT_SIZES, type TextSize, type Theme } from "../theme";
 
 const PROVIDER_LABEL: Record<string, string> = {
   off: "Not configured",
@@ -18,6 +18,7 @@ const PROVIDER_LABEL: Record<string, string> = {
  */
 export function Settings({ theme, onTheme }: { theme: Theme; onTheme: (theme: Theme) => void }) {
   const [textSize, setTextSize] = useState<TextSize>(readTextSize);
+  const [glass, setGlass] = useState<Glass>(readGlass);
   const [status, setStatus] = useState<AiStatus | null>(null);
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -88,7 +89,28 @@ export function Settings({ theme, onTheme }: { theme: Theme; onTheme: (theme: Th
             </label>
           ))}
         </fieldset>
-        <p class="muted small">Every screen follows these at once. Your browser's own zoom works too, up to 200%.</p>
+        <fieldset class="choice-group">
+          <legend>Glass effects</legend>
+          {(["on", "off"] as Glass[]).map((g) => (
+            <label key={g} class="choice">
+              <input
+                type="radio"
+                name="glass"
+                value={g}
+                checked={glass === g}
+                onChange={() => {
+                  setGlass(g);
+                  applyGlass(g);
+                }}
+              />{" "}
+              {g === "on" ? "On (translucent glass)" : "Off (solid surfaces)"}
+            </label>
+          ))}
+        </fieldset>
+        <p class="muted small">
+          Every screen follows these at once. Your browser's own zoom works too, up to 200%. Glass also turns solid by itself when your
+          system asks for reduced transparency or more contrast.
+        </p>
       </div>
 
       <div class="panel stack">

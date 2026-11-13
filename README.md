@@ -4,7 +4,16 @@ A personal, self-hosted job search tool for a single user. It collects vacancies
 
 The code contains no roles, technologies, countries or salary thresholds. Everything is defined by you as data in search profiles.
 
-Status: every planned task is done except a Jooble adapter (T-036), which is blocked until Jooble provides a key and its API documentation, and the backlog of the 2026-11-02 review (T-092). Milestone M6 (2026-11-02) added the full application cycle: resume and fit, AI-adapted documents behind an explicit opt-in, application packages, mail tracking, new sources and a design refresh. Milestone M7 (2026-11-02) added AI presets: base documents that AI adapts instead of writing new ones, an Employer match and a Goal match before and after, a resume PDF of at most two pages, and a fact check before saving. It runs on your own computer or on a VPS. See [PLAN.md](PLAN.md) for the full list and [CHANGELOG.md](CHANGELOG.md) for what changed when.
+Status: every planned task is done except a Jooble adapter (T-036), which is blocked until Jooble provides a key and its API documentation, and the backlog of the 2026-11-02 review (T-092). Two owner requests followed M7 (2026-11-03): an Inbox filter by words in the title or description (T-100) and the Beacon design with light, dark and system themes, selectable text size and a selected-vacancy panel in the Inbox (T-101). Milestone M6 (2026-11-02) added the full application cycle: resume and fit, AI-adapted documents behind an explicit opt-in, application packages, mail tracking, new sources and a design refresh. Milestone M7 (2026-11-02) added AI presets: base documents that AI adapts instead of writing new ones, an Employer match and a Goal match before and after, a resume PDF of at most two pages, and a fact check before saving. It runs on your own computer or on a VPS. See [PLAN.md](PLAN.md) for the full list and [CHANGELOG.md](CHANGELOG.md) for what changed when.
+
+## Screenshots
+
+The Beacon design in its graphite (monochrome) variant, light and dark. Source images are in [`design/vacancy-tracker-beacon-monochrome-v2`](design/vacancy-tracker-beacon-monochrome-v2).
+
+| Light | Dark |
+|---|---|
+| ![Dashboard, light theme](design/vacancy-tracker-beacon-monochrome-v2/graphite-light-dashboard.png)<br>**Dashboard**: counts, top matches, applications per week and next actions | ![Dashboard, dark theme](design/vacancy-tracker-beacon-monochrome-v2/graphite-dark-dashboard.png)<br>**Dashboard** in the dark theme |
+| ![Inbox, light theme](design/vacancy-tracker-beacon-monochrome-v2/graphite-light-inbox.png)<br>**Inbox**: keyboard triage with the selected vacancy beside the list | ![Pipeline, dark theme](design/vacancy-tracker-beacon-monochrome-v2/graphite-dark-pipeline.png)<br>**Pipeline**: the table with filters, statuses and bulk selection |
 
 ## How it works
 
@@ -25,15 +34,15 @@ Status: every planned task is done except a Jooble adapter (T-036), which is blo
 - Application package: the chosen versions as a ZIP with the resume PDF and a checklist, the application page opened for you (you submit the form yourself), and "I submitted" moves the vacancy to Applied with the versions in its history
 - Mail tracking: answers of employers and LinkedIn notices from your mailbox (read-only), linked to the application with the reason, with a suggested status change you accept or dismiss
 - Automatic and on-demand collection ("Refresh" button with live per-source progress)
-- Inbox with keyboard triage (J/K, S, X, O), a filter by words in the title or description (all or any, with exclusions; "/" to jump to it) and score badges with reasons
+- Inbox with keyboard triage (J/K, S, X, O), a filter by words in the title or description (all or any, with exclusions; "/" to jump to it) and score badges with reasons; the age of a posting ("posted 9 days ago") when the source gives a date, usable in profile rules (`postedAge`) and in the profile's `maxAgeDays`; a "Likely ghost" flag with its reasons (posted 30+ days ago, listed 30+ days since first seen, no salary: two of the three), computed from your own data, which a profile can use to hide them (`ghostSignals gte 2`)
 - Pipeline as a table or a Kanban board, with status history, follow-up dates and bulk actions with Undo
-- Dashboard: inbox and active counts, top matches, next actions, a funnel and applications per week
+- Dashboard: inbox and active counts, top matches, next actions, a funnel, applications per week, and "Time to follow up": applications in Applied, Screening or Interview with no status change and no mail for 10 days (`APP_FOLLOWUP_QUIET_DAYS`), unless you planned a later next action
 - Search profiles built from rules (require, prefer, avoid, exclude), live preview, versions and a step-by-step wizard for the first one
 - Company allow and block lists, which a profile can use
 - Filters and saved views using the same rule model as search profiles
 - Full-text search and Ctrl/Cmd+K command palette
 - Export to CSV (UTF-8 with BOM), XLSX and full JSON backup; import with per-row error reports (a CSV import merges into existing vacancies and keeps the fields you edited by hand)
-- Optional Telegram digest after a run (disabled by default)
+- Optional Telegram digest after a run, and an optional message when new mail suggests a status change (both disabled by default)
 - Beacon design (design/README.md): calm, high-contrast, light first with a dark theme, 18 px text that can be raised to 22 px, four color roles with one meaning each, keyboard-first screens
 
 ## Sources
@@ -58,7 +67,7 @@ Each source's terms, limits and status are recorded in [docs/sources.md](docs/so
 - Secrets (database password, access token, source keys, the Anthropic API key, IMAP and Telegram credentials) come only from `.env`. They are masked in logs.
 - Importing a profile or vacancies from a URL refuses private and local addresses unless you allow them.
 - **AI is off by default.** With `APP_AI_PROVIDER` unset nothing can reach Claude. When it is set to `cli` (the official Claude Code CLI under your own subscription) or `api` (`ANTHROPIC_API_KEY`), still nothing is sent until you switch AI on in Settings after reading what is sent; you can switch it off at any time. Even then text leaves only when you press Generate with AI: the vacancy you chose, the preset you picked (its main goal, the weights of its parameters and the document prompt), your base resume and base cover letter, and any instructions you add. A fixed guardrail goes first in every request: facts come only from your base documents, and the vacancy text is treated as untrusted data. Use as is sends nothing. To score the match, opening a vacancy with AI on sends the vacancy, the main goal with its weights and the documents being scored, once per text (the results are cached); the score itself is computed by the app, not by Claude. Mail and the rest of your data are never sent to Claude. The app never reads, copies or passes the CLI's OAuth token: the CLI signs in by itself, runs without tools, MCP servers or your own settings, and does not receive your API key.
-- Mail: the IMAP reader only reads, never deletes, moves or sends. Of the folders it reads, only job-related mail is stored (sender, subject, date and the first part of the text); everything else is skipped and not kept.
+- Mail: the IMAP reader only reads, never deletes, moves or sends, and looks only at mail of the last 14 days by default (`APP_MAIL_IMAP_MAX_AGE_DAYS`). "Delete" on the Mail screen removes only the app's stored copy. Of the folders it reads, only job-related mail is stored (sender, subject, date and the first part of the text); everything else is skipped and not kept.
 - Nothing is sent to third parties except to the sources themselves. Telegram (digest and forwarded posts) and AI are opt-in.
 
 See [docs/deployment.md](docs/deployment.md) for the details.
@@ -75,6 +84,10 @@ Open <http://127.0.0.1:8080>. For a server with HTTPS and an access token see [d
 ## Compliance
 
 Only official APIs and feeds, plus job alert emails you receive, are used. Direct scraping of LinkedIn and other sites that prohibit it, CAPTCHA bypass, logging in with your account and proxy rotation are forbidden by design. See [docs/sources.md](docs/sources.md).
+
+### Independence and third-party names
+
+Vacancy Tracker is an independent personal project. It is not affiliated with or endorsed by any product or site it mentions, and it copies none of their text, code, design or data. Names and trademarks belong to their owners. See [docs/gap-analysis.md](docs/gap-analysis.md) for the one comparison with another kind of product and how it was made without breaching that site's terms. Licences of the components used are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Repository structure
 
@@ -93,7 +106,7 @@ docs/
   deployment.md                run locally, run on a VPS with HTTPS
   operations.md                backups and restore
   code-review.md               review of 2026-11-02: findings and their state
-  gap-analysis.md              comparison with the compared platform and the gaps closed
+  gap-analysis.md              comparison with a kind of tool and the gaps closed
   examples/
     search-profile.example.yml neutral example, never loaded automatically
 e2e/

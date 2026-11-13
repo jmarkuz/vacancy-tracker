@@ -52,6 +52,11 @@ public class LeverAdapter implements SourceAdapter {
     }
 
     @Override
+    public java.util.Optional<Set<String>> followedCompanies() {
+        return java.util.Optional.of(sites.stream().map(b -> b.toLowerCase(java.util.Locale.ROOT)).collect(java.util.stream.Collectors.toSet()));
+    }
+
+    @Override
     public FetchOutcome fetch() {
         List<RawPosting> all = new ArrayList<>();
         boolean allUnchanged = !sites.isEmpty();

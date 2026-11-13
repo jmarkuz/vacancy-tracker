@@ -183,4 +183,26 @@ class BackupRoundTripTest extends AbstractIntegrationTest {
         String json = actions.andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         return new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules().readValue(json, ImportReport.class);
     }
+
+    @Test
+    void thePostingDateSurvivesABackupAndARestore() throws Exception {
+        String id = JsonPath.read(mvc.perform(post("/api/vacancies").contentType(JSON)
+                .content("{\"title\":\"Java Developer\",\"company\":\"Zeta\"}")).andReturn().getResponse().getContentAsString(), "$.id");
+        jdbc.update("UPDATE vacancy SET posted_at = '2026-10-20T09:00:00Z' WHERE id = ?::uuid", id);
+        mvc.perform(get("/api/vacancies/" + id)).andExpect(jsonPath("$.postedAt").value("2026-10-20T09:00:00Z"));
+
+        String backup = exportBackup();
+        jdbc.execute("TRUNCATE vacancy CASCADE");
+        importJson(backup);
+
+        mvc.perform(get("/api/vacancies/" + id)).andExpect(jsonPath("$.postedAt").value("2026-10-20T09:00:00Z"));
+    }
+
+    @Test
+    void aVacancyWithoutAPostingDateReportsNone() throws Exception {
+        String id = JsonPath.read(mvc.perform(post("/api/vacancies").contentType(JSON)
+                .content("{\"title\":\"Java Developer\",\"company\":\"Zeta\"}")).andReturn().getResponse().getContentAsString(), "$.id");
+
+        mvc.perform(get("/api/vacancies/" + id)).andExpect(jsonPath("$.postedAt").doesNotExist());
+    }
 }

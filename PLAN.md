@@ -67,7 +67,7 @@ Phase 0 ended with an approval request to the owner. Approved 2026-11-01.
 | [x] 2026-11-02 | T-033 | Adapter: ats-ashby | S | T-027, T-030 | As T-031 |
 | [x] 2026-11-02 | T-034 | Adapter: arbeitnow | M | T-027, T-030 | As T-031; visa filter translated when criterion exists |
 | [x] 2026-11-02 | T-035 | Adapter: adzuna | M | T-027, T-030 | Key from `.env`; country validated against documented list; key never appears in logs |
-| [ ] | T-036 | Adapter: jooble | M | T-027, T-030 | POST body built; key masked in logs and errors |
+| [ ] blocked | T-036 | Adapter: jooble | M | T-027, T-030 | POST body built; key masked in logs and errors |
 | [x] 2026-11-01 | T-037 | Adapter: remotive with daily quota and attribution | S | T-027, T-030 | At most 4 calls per day enforced; attribution stored with each vacancy |
 | [x] 2026-11-01 | T-038 | Adapter: himalayas | S | T-027, T-030 | Pagination with limit 20; 429 handled |
 | [x] 2026-11-01 | T-039 | Adapter: jobicy | S | T-027, T-030 | `count` parameter used; fixtures tested |
@@ -130,7 +130,7 @@ Goal (owner, 2026-11-02): one tool for the whole cycle: find relevant vacancies,
 | Done | ID | Title | Est | Depends on | Acceptance criteria |
 |---|---|---|---|---|---|
 | [x] 2026-11-02 | T-076 | Audit and code review, critical fixes | M | - | `docs/code-review.md` lists findings with severity, place and state; critical and high findings fixed with tests; `mvn verify`, `npm test`, `npm run typecheck` green on current tools |
-| [x] 2026-11-02 | T-077 | Gap analysis against the compared platform | S | T-076 | `docs/gap-analysis.md` lists gaps by priority with the evidence and the task that closes each; automated access blocked by the site is recorded, not bypassed |
+| [x] 2026-11-02 | T-077 | Gap analysis against a comparable career platform | S | T-076 | `docs/gap-analysis.md` lists gaps by priority with the evidence and the task that closes each; automated access blocked by the site is recorded, not bypassed |
 | [x] 2026-11-02 | T-078 | Visa sponsorship detection and filter | M | T-077 | Sponsorship is read from the posting text (yes, no, unknown) and filterable in views and profiles; tests for both directions |
 | [x] 2026-11-02 | T-079 | Export and import screen, add by URL | S | T-077 | The Export screen downloads CSV, XLSX and JSON and imports CSV/JSON with the row report; the Pipeline adds a vacancy by URL |
 | [x] 2026-11-02 | T-080 | Resume upload and text extraction | M | T-076 | PDF, DOCX, TXT/MD or pasted text becomes the active resume; proposed keywords are editable; unreadable files give a clear message |
@@ -145,7 +145,7 @@ Goal (owner, 2026-11-02): one tool for the whole cycle: find relevant vacancies,
 | [x] 2026-11-02 | T-089 | Adapters for the allowed new sources | M | T-088 | Djinni RSS, Remote OK API (with attribution), Working Nomads API and Telegram posts forwarded to the owner's bot, each with fixture tests |
 | [x] 2026-11-02 | T-090 | third-party design file and dark-first UI | M | T-081 | design file copied with its licence; tokens and UI follow it; dark is the default theme; all shortcuts from docs/code-review.md still work |
 | [x] 2026-11-02 | T-091 | Full-cycle end-to-end test | M | T-087, T-089 | Playwright test with fake data, the fake AI adapter and a test letter: vacancy, fit, documents, package, Applied, reply, suggested status |
-| [ ] | T-092 | Backlog from the review | M | T-076 | Open findings of docs/code-review.md (body read deadline, board removal expiry, posted_at, Retry-After dates, token characters, list changes during a run, start-up sweep, palette, unsaved rules, component tests) |
+| [ ] | T-092 | Backlog from the review | M | T-076 | Open findings of docs/code-review.md (posted_at, Retry-After dates, token characters, list changes during a run, palette, component tests) |
 
 ## M7 AI presets, base documents, match score, PDF
 

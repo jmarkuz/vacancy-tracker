@@ -61,10 +61,65 @@ class MailClassifierTest {
     }
 
     @Test
+    void aMailWithNoTextAtAllIsClassifiedWithoutFailing() {
+        MailMessage empty = new MailMessage("<e@x>", "a@b.test", null, "Hello", Instant.parse("2026-11-02T10:00:00Z"), null, null);
+        MailMessage markupOnly = new MailMessage("<m@x>", "a@b.test", null, "Hello", Instant.parse("2026-11-02T10:00:00Z"), null, "<img src=\"x.png\">");
+
+        assertThat(MailClassifier.body(empty)).isEmpty();
+        assertThat(MailClassifier.body(markupOnly)).isEmpty();
+        assertThat(MailClassifier.classify(empty)).isNotNull();
+    }
+
+    @Test
+    void snippetsDropLinksAndTheirBrackets() {
+        String text = "Proposal from Марина, RecruitGarden\n<https://djinni.co/?utm_medium=email&utm_source=x> <https://djinni.co/my/inbox/1/?a=b#apply_job>\n"
+                + "RecruitGarden <https://djinni.co/my/inbox/1/?a=b>\n.\nМарина <https://djinni.co/my/inbox/1/> Hi!\nSee www.example.com/x now.";
+        MailMessage mail = new MailMessage("<d@x>", "magic@djinni.co", "Djinni", "Proposal", null, text, null);
+
+        assertThat(MailClassifier.snippet(mail, 500)).isEqualTo("Proposal from Марина, RecruitGarden\nRecruitGarden\nМарина Hi!\nSee now.");
+        assertThat(MailClassifier.body(mail)).contains("https://djinni.co/my/inbox/1/");
+    }
+
+    @Test
     void snippetsAreShortPlainText() {
         MailMessage html = new MailMessage("<k@x>", "a@b.c", null, "s", null, null, "<p>Hello</p><p>" + "x".repeat(700) + "</p>");
 
         assertThat(MailClassifier.snippet(html, 20)).startsWith("Hello").endsWith("…").hasSize(21);
+    }
+
+    @Test
+    void aTextWithinTheLimitIsKeptWholeAndALongerOneIsCutWithAnEllipsis() {
+        String whole = ("Paragraph of the offer.\n").repeat(100).strip();
+        MailMessage fits = new MailMessage("<f@x>", "a@b.c", null, "s", null, whole, null);
+        MailMessage exact = new MailMessage("<e@x>", "a@b.c", null, "s", null, "y".repeat(CorrespondenceService.SNIPPET), null);
+        MailMessage tooLong = new MailMessage("<t@x>", "a@b.c", null, "s", null, "word ".repeat(2000), null);
+
+        assertThat(MailClassifier.snippet(fits, CorrespondenceService.SNIPPET)).isEqualTo(whole).doesNotEndWith("…");
+        assertThat(MailClassifier.snippet(exact, CorrespondenceService.SNIPPET)).hasSize(CorrespondenceService.SNIPPET).doesNotEndWith("…");
+        String cut = MailClassifier.snippet(tooLong, CorrespondenceService.SNIPPET);
+        assertThat(cut).endsWith("…").hasSizeBetween(CorrespondenceService.SNIPPET - 5, CorrespondenceService.SNIPPET + 1);
+    }
+
+    @Test
+    void theStoredLimitIsFarMoreThanTheFoldedPreview() {
+        assertThat(CorrespondenceService.SNIPPET).isEqualTo(4000);
+    }
+
+    @Test
+    void aJobBoardSendersDomainDoesNotLinkAMailToAnUnrelatedVacancy() {
+        UUID first = UUID.randomUUID();
+        UUID second = UUID.randomUUID();
+        List<MailLinker.Candidate> candidates = List.of(
+                new MailLinker.Candidate(first, "Java Backend Developer", "VIG Re", "https://www.linkedin.com/jobs/view/1", false),
+                new MailLinker.Candidate(second, "Kotlin Developer", "Deutsche Börse Group", "https://www.linkedin.com/jobs/view/2", false));
+
+        Optional<MailLinker.Link> link = MailLinker.link(new MailMessage("<k@x>", "jobs-noreply@linkedin.com", "LinkedIn",
+                "Apply now: Kotlin Developer at Deutsche Börse Group", null, "Your saved job at Deutsche Börse Group", null), candidates);
+
+        assertThat(link).isPresent();
+        assertThat(link.get().vacancyId()).isEqualTo(second);
+        assertThat(MailLinker.link(new MailMessage("<j@x>", "jobalerts-noreply@linkedin.com", "LinkedIn", "New job at JetBrains", null,
+                "JetBrains is hiring", null), candidates)).isEmpty();
     }
 
     @Test

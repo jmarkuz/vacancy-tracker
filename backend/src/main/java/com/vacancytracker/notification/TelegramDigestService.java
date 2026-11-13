@@ -163,7 +163,7 @@ public class TelegramDigestService {
     }
 
     /** Returns an error text without the token, or null when Telegram accepted the message. */
-    private String post(String text) {
+    String post(String text) {
         ObjectNode body = mapper.createObjectNode();
         body.put("chat_id", chatId);
         body.put("text", text);

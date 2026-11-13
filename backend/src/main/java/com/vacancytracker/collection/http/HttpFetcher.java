@@ -25,6 +25,15 @@ public class HttpFetcher {
     static final String USER_AGENT = PRODUCT_TOKEN + "/0.1 (personal job search; no crawling)";
     static final int MAX_BODY_BYTES = 5 * 1024 * 1024;
     static final int MAX_REDIRECTS = 3;
+    /** Deadline for reading a whole answer body: the request timeout only covers the headers (T-092, F7). */
+    public static final Duration BODY_DEADLINE = Duration.ofSeconds(30);
+
+    private static final java.util.concurrent.ScheduledExecutorService WATCHDOG =
+            java.util.concurrent.Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread t = new Thread(r, "http-body-deadline");
+                t.setDaemon(true);
+                return t;
+            });
 
     private final HttpClient client = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(5))
@@ -178,8 +187,12 @@ public class HttpFetcher {
     }
 
     private static void closeQuietly(HttpResponse<java.io.InputStream> response) {
+        closeQuietly(response.body());
+    }
+
+    private static void closeQuietly(java.io.InputStream body) {
         try {
-            response.body().close();
+            body.close();
         } catch (IOException e) {
             // nothing to do: the connection is dropped either way
         }
@@ -201,14 +214,53 @@ public class HttpFetcher {
     }
 
     private static String readBounded(HttpResponse<java.io.InputStream> response) {
-        try (java.io.InputStream in = response.body()) {
+        return readBounded(response, BODY_DEADLINE);
+    }
+
+    /** A stalled body is cut by closing the stream when the deadline passes, so the run lock is never held for good. */
+    static String readBounded(HttpResponse<java.io.InputStream> response, Duration deadline) {
+        java.util.concurrent.atomic.AtomicBoolean expired = new java.util.concurrent.atomic.AtomicBoolean();
+        java.io.InputStream body = response.body();
+        java.util.concurrent.ScheduledFuture<?> timer = WATCHDOG.schedule(() -> {
+            expired.set(true);
+            closeQuietly(body);
+        }, deadline.toMillis(), java.util.concurrent.TimeUnit.MILLISECONDS);
+        try (java.io.InputStream in = body) {
             byte[] bytes = in.readNBytes(MAX_BODY_BYTES + 1);
             if (bytes.length > MAX_BODY_BYTES) {
                 throw new UpstreamException("The answer is larger than " + MAX_BODY_BYTES / (1024 * 1024) + " MB");
             }
             return new String(bytes, charsetOf(response.headers()));
         } catch (IOException e) {
+            if (expired.get()) {
+                throw new UpstreamException("The answer was not received within " + deadline.toSeconds() + " seconds");
+            }
             throw new UpstreamException("Network error while reading the answer");
+        } finally {
+            timer.cancel(false);
+        }
+    }
+
+    /**
+     * Reads at most {@code limit} bytes (a longer answer is cut, not refused) and gives up when the whole read takes
+     * longer than the deadline: the stream is closed, which ends a blocked read. For callers that wanted the head of
+     * a page only (manual import); {@link #get} refuses a body that is too large instead.
+     */
+    public static byte[] readHead(java.io.InputStream body, int limit, Duration deadline) throws IOException {
+        java.util.concurrent.atomic.AtomicBoolean expired = new java.util.concurrent.atomic.AtomicBoolean();
+        java.util.concurrent.ScheduledFuture<?> timer = WATCHDOG.schedule(() -> {
+            expired.set(true);
+            closeQuietly(body);
+        }, deadline.toMillis(), java.util.concurrent.TimeUnit.MILLISECONDS);
+        try (java.io.InputStream in = body) {
+            return in.readNBytes(limit);
+        } catch (IOException e) {
+            if (expired.get()) {
+                throw new UpstreamException("The answer was not received within " + deadline.toSeconds() + " seconds");
+            }
+            throw e;
+        } finally {
+            timer.cancel(false);
         }
     }
 

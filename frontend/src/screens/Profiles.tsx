@@ -1,3 +1,4 @@
+import { logFailure } from "../api/logFailure";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { ApiError } from "../api/client";
 import {
@@ -60,7 +61,7 @@ export function Profiles({ params }: Props) {
   useEffect(() => {
     load();
     getMeta().then(setMeta).catch(() => setError("Could not load the rule builder options."));
-    listSources().then((s) => setSourceIds(s.map((x) => x.id))).catch(() => undefined);
+    listSources().then((s) => setSourceIds(s.map((x) => x.id))).catch(logFailure("the source list"));
     // Pick up a job that is already running, for example one started by saving a profile.
     getRecalculationProgress()
       .then((p) => {
@@ -71,7 +72,7 @@ export function Profiles({ params }: Props) {
           }
         }
       })
-      .catch(() => undefined);
+      .catch(logFailure("the recalculation progress"));
     return () => window.clearInterval(timer.current);
   }, []);
 

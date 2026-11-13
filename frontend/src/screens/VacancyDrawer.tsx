@@ -1,9 +1,12 @@
+import { Icon } from "../components/Icon";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { isFieldTarget } from "../domain/triage";
 import { ApiError } from "../api/client";
 import { changeStatus, getHistory, getVacancy, patchVacancy, type StatusEvent } from "../api/vacancies";
 import type { Vacancy } from "../api/types";
 import { allowedNext } from "../domain/statuses";
+import { postedText } from "../domain/age";
+import { ghostReasons } from "../components/GhostBadge";
 import { safeLink } from "../domain/links";
 import { AnalysisPanel } from "../components/AnalysisPanel";
 import { DocumentsPanel } from "../components/DocumentsPanel";
@@ -149,7 +152,8 @@ export function VacancyDrawer({ id, onClose, onChange }: Props) {
             <h2 id={titleId}>{vacancy?.title ?? (loadError ? "Vacancy" : "Loading…")}</h2>
             {vacancy && <p class="muted">{vacancy.company}</p>}
           </div>
-          <button class="btn ghost" type="button" onClick={onClose} aria-label="Close vacancy">
+          <button class="btn ghost drawer-close" type="button" onClick={onClose} aria-label="Close vacancy">
+            <Icon name="close" />
             Close
           </button>
         </header>
@@ -187,6 +191,14 @@ export function VacancyDrawer({ id, onClose, onChange }: Props) {
                 </dd>
                 <dt>Visa sponsorship</dt>
                 <dd>{vacancy.visaSponsorship === true ? "Offered" : vacancy.visaSponsorship === false ? "Not offered" : "Not stated"}</dd>
+                <dt>Posted</dt>
+                <dd>{postedText(vacancy.postedAt, new Date())}</dd>
+                {ghostReasons(vacancy.ghost) && (
+                  <>
+                    <dt>Likely ghost</dt>
+                    <dd>{ghostReasons(vacancy.ghost)}</dd>
+                  </>
+                )}
                 <dt>Last seen</dt>
                 <dd class="num">{formatDate(vacancy.lastSeenAt)}</dd>
                 <dt>Original</dt>

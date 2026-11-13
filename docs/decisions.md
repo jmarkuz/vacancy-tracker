@@ -38,6 +38,9 @@ Index:
 - ADR-044 Visa sponsorship from the posting text
 - ADR-045 New sources from the owner's list
 - ADR-046 design, dark first
+- ADR-052 Beacon design, light first
+- ADR-053 Graphite: a calm light look, ink pills and a black dark theme over Beacon
+- ADR-054 Glass surfaces over Graphite
 
 ---
 
@@ -445,6 +448,7 @@ Status: Accepted (T-064)
 - "Processed" is stored in the database (`processed_mail`), keyed by the Message-ID header, or by folder, UID validity and UID when there is none. This holds even on servers that cannot store flags, and when a message is copied to another folder.
 - With `app.mail.imap.mark-processed=true` the folder is opened read-write and handled messages also get the user flag `VacancyTrackerProcessed`, where the server allows user flags. The flag is for the user's convenience; the database decides.
 - A handler answers PROCESSED (done or deliberately skipped) or RETRY. Only PROCESSED is remembered, so a message that could not be handled yet is offered again.
+- Only mail received in the last `max-age-days` (default 14; 0 = no limit) is looked at: the reader asks the server to search by date, so older mail is never listed or fetched. Deleting stored mails (one by one or older than N days) removes only the app's copy of the job mail; the mailbox is never changed.
 - At most `max-per-run` (default 50) messages are offered per read, oldest first; the rest waits for the next read. Bodies are capped at 2 million characters and attachments are never read.
 - The password comes from `.env` only. Error text shows the server's message but never the password, and TLS with host name checking is the default.
 - Disabled unless `app.mail.imap.enabled=true` and a host and user are set.
@@ -480,6 +484,7 @@ Status: Accepted (T-067)
 - Only vacancies first seen in the last `max-age-days` (3) are included, so enabling the digest does not send the whole backlog.
 - The bot token is part of Telegram's request address, so it is never logged: errors show only the exception type or Telegram's own description.
 - The digest runs in its own thread after the run is finished; it never delays or fails a run.
+- Mail suggestions (M8): with `app.notifications.telegram.mail-suggestions=true` (env `APP_NOTIFICATIONS_TELEGRAM_MAIL_SUGGESTIONS`, off by default, same token and chat as above), a mailbox read that stored new mails with a pending status suggestion sends one plain-text message: category, vacancy title, company and the suggested status, offers and interviews first, at most 10 lines then "…and N more". Only mails stored by that read count, so a mail seen again is never announced twice. The mail text is never sent. A failed send is logged without the token and does not affect the read.
 
 **Consequences.** Whoever can read the chat sees the vacancy titles. A vacancy that scores above its threshold only after a later recalculation is announced after the next run. There is no "send a test message" button yet.
 
@@ -575,7 +580,7 @@ Status: Accepted (T-073)
 
 **Decision.**
 - **Automation never hides what the user added.** A vacancy with no source (created or imported by hand) is skipped by the Inbox rule (ADR-026). Before, a recalculation could move it to Hidden.
-- **A run always ends.** An error that is not an upstream failure closes the run as interrupted and publishes the end of the stream. At start-up, runs still marked running are marked interrupted (`app.collection.sweep-stale-runs-on-startup`, default true).
+- **A run always ends.** An error that is not an upstream failure closes the run as interrupted and publishes the end of the stream. At start-up, runs still marked running are marked interrupted (`app.collection.sweep-stale-runs-on-startup`, default true). A watchdog closes a run that takes longer than `app.collection.max-run-minutes` (default 30, F7): the run is marked interrupted, its thread is interrupted and given up, and the next trigger runs on a fresh thread, so a source that stalls where no timeout reaches cannot hold the run lock until a restart. Expiry also leaves a vacancy alone when its ATS board is no longer on the owner's list (F8): an ATS adapter reports the companies it still follows, and a vacancy of any other company is not counted as missing.
 - **Quota sources are called once.** Remotive and Jobicy are fetched without retries (`HttpFetcher.getOnce`), because a retry is another call that the stored budget does not count. The next scheduled run is the retry.
 - **The ECB feed is fetched whole,** not with validators (same reason as ADR-037).
 - **Cross-site writes are refused.** A request that changes data and carries an `Origin` other than its own `Host` gets 403 (`OriginFilter`). Browsers send `Origin` on every cross-site POST, which closes the local-instance hole where a web page could start a run or import a profile. Requests without `Origin` are unchanged. `/api/auth/status` counts a wrong token against the same limit as `/login`.
@@ -609,7 +614,7 @@ Status: Accepted (T-076). Findings and their state: [code-review.md](code-review
 
 Status: Accepted (T-078). Gap G7 of [gap-analysis.md](gap-analysis.md).
 
-**Context.** `vacancy.visa_sponsorship` existed since V1 and profiles could already name the field, but nothing ever filled it, so every rule on it fell to its missing-value policy. the compared platform makes sponsorship a headline filter.
+**Context.** `vacancy.visa_sponsorship` existed since V1 and profiles could already name the field, but nothing ever filled it, so every rule on it fell to its missing-value policy. Comparable tools make sponsorship a headline filter.
 
 **Decision.**
 - `VisaSponsorship.detect(title, description)` reads the posting's own words: **false** for a refusal ("unable to sponsor", "no visa sponsorship", "must already have the right to work", German, Ukrainian and Russian equivalents), **true** for an offer ("visa sponsorship available", "we sponsor work visas", "visa support", "relocation and visa", German, Polish, Ukrainian and Russian equivalents), **null** otherwise. A refusal wins over an offer in the same text ("sponsorship is not available, but visa support for family members").
@@ -638,7 +643,7 @@ Status: Accepted (T-088, T-089). The checks are in [sources.md](sources.md), sec
 
 Status: Accepted (T-080, T-081). Gaps G1 and G2 of [gap-analysis.md](gap-analysis.md).
 
-**Context.** The full cycle starts with knowing how well a vacancy fits the owner. Profiles (ADR-008) score against rules the owner writes, not against the resume. the compared platform's core feature is "upload your resume once" and a match per job. The README forbids technologies and roles in the code.
+**Context.** The full cycle starts with knowing how well a vacancy fits the owner. Profiles (ADR-008) score against rules the owner writes, not against the resume. The compared kind of tool is built around a resume that is uploaded once and matched against each job. The README forbids technologies and roles in the code.
 
 **Decision.**
 - **A new module, `application`,** for the resume, the fit, AI documents, packages and correspondence. It may use `vacancy`, `matching`, `collection` and `common`; nothing but `web` uses it (ArchitectureTest), and it has the same 80% line-coverage gate as the other core modules.
@@ -798,3 +803,36 @@ Status: Accepted (T-101). Supersedes the look of ADR-046; its keyboard rules sta
 - **Language**: the owner kept the interface in English; the package's Ukrainian texts are used for their meaning, not translated literally.
 
 **Consequences.** The look of earlier screenshots and the Phase 0 mockup (now with the new tokens) differs. The package's manual checks (NVDA, real 200% zoom, users with low vision) are not automated and remain to be done before calling the design accepted; the automated checks cover contrast, keyboard tabs, text size and 640 px reflow.
+
+## ADR-053 Graphite: a calm light look, ink pills and a black dark theme over Beacon
+
+Status: Accepted. Restyles ADR-052; its structure, keyboard rules and accessibility targets stay. Source: the owner's design brief of 2026-11-03 (light and dark looks), used as a direction, not copied from any product.
+
+**Context.** The owner asked for a new look following that brief, with room for ideas of our own. Beacon's promises to people with low vision (text at 7:1, control borders at 3:1, an 18 to 22 px base, 44 px controls, a 3 px focus ring) are not negotiable, and the app still loads nothing from the internet.
+
+**Decision.**
+- **Light theme:** a warm grey canvas (`#f5f5f7`) under white cards with hairlines and 18 px corners, near-black ink (`#1d1d1f`), display type with tight tracking, a frosted header (translucent canvas with blur), a focus blue (`#0071e3`), and a press that scales a control to 97%.
+- **Actions:** every action is a pill; the primary one is ink (black in light, white in dark) in every section, so a screen has one obvious next step; secondary actions are outlined pills, ghost ones plain links; selected tabs and toggles are ink pills; overlays and the toast are the only things with a shadow.
+- **Dark theme and labels:** a true black canvas, near-black cards (`#141414`), hairlines, the ice blue `#c3d9f3` as the dark accent; navigation groups, table heads, field names and metric labels are uppercase monospace with wide tracking; the name is a wordmark in capitals with the widest tracking.
+- **Our own:** the Dashboard's numbers are an *instrument cluster*: one black band in both themes, divided by hairlines like a car's spec cells, light large numerals, and each metric's role as a lit dot. The four Beacon roles keep their meaning but recede to markers (a dot per section, badge tints, the cluster), so color marks meaning and ink marks action.
+- **Fonts:** system faces only (each platform's own UI face, Segoe UI Variable on Windows, a system monospace for labels). No font files are shipped.
+- **Implementation:** `tokens.css` holds the values (the contrast unit test still checks 58 pairs); `graphite.css` is a component layer loaded after `app.css`, so the layout and the markup are unchanged. Hairlines (`--color-hairline`) only separate surfaces that already differ; anything operable keeps a 3:1 border.
+
+**Consequences.** Primary buttons no longer carry the section color (Beacon filled them green, purple or amber); the role is still visible on the section marker and in badges. Exact typefaces differ by platform. The manual checks named in ADR-052 still apply.
+
+## ADR-054 Glass surfaces over Graphite
+
+Status: Accepted. Restyles ADR-053 without changing layout, markup or the accessibility targets. Source: the owner's brief of 2026-11-03 and public design guidance on translucent materials; no numeric value is taken from any product: blur, opacities and radii are our own, tuned by eye.
+
+**Context.** The owner asked for a translucent glass look. The app already had glass for a few floating things (the refresh popup, the toast).
+
+**Decision.** Follow the usual rules for the material, in CSS, in one file (`liquid-glass.css`, loaded last) on top of `--lg-*` tokens in `tokens.css`:
+- **Where:** only the layer that floats above the content: the header, the sidebar (one floating rounded panel), the toolbars' controls, the Mail control bars, the vacancy sheet (inset, rounded all round), dialogs, the palette, toasts and popovers. Content (tables, cards, lists, text) stays solid, so hierarchy between content and controls is clear.
+- **No glass on glass:** a control on a glass surface gets the thin fill and no blur of its own. Blur is also only paid for where there is something to blur: controls on the canvas, not on a solid card.
+- **One variant (Regular)**, never mixed with a clear one. **Tint only the primary action** (the ink pill, now translucent with a sheen), not every control; colour stays in the content (role markers, badges).
+- **Material:** a blurred, saturated backdrop, a tint, a bright rim on the lit side and a dark one opposite, a specular highlight along the top, a shadow that deepens with size; a press lights the control from within; dialogs and the palette materialize (scale and unblur) instead of fading. The canvas carries faint pools of the four role colours so the glass has something to pick up (an ambient colour).
+- **Shapes:** capsules and 28 px rounded forms; corners are concentric.
+- **Accessibility first:** the text tokens keep 7:1 on every fill, composited over the canvas and over the strongest ambient colour (`liquidGlass.test.ts`; it found and fixed a dark hover fill at 5.6:1). Glass turns solid with the system's Reduced transparency, with Increased contrast (which also restores the 3:1 control borders), in forced colours, and with the in-app switch Settings → Appearance → Glass effects (`data-glass="off"`, kept in this browser). Reduced motion removes the appearing animation.
+- **Not done:** real lensing (the bending of the background at the edge) and light that moves with the pointer or the device: CSS cannot do either across browsers. The rim, the highlight and the blur stand in for them.
+
+**Consequences.** Secondary controls no longer have the 3:1 outline in the default look: they are told apart by their rim, highlight and shadow, as in other glass interfaces; with Increased contrast (or the in-app switch) the outline is back. `backdrop-filter` costs on weak GPUs, which is why it is limited to a few surfaces and can be switched off. The manual checks named in ADR-052 (screen reader, real 200% zoom) still apply and have not been done for this change.
