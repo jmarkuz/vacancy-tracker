@@ -4,7 +4,6 @@ import { App } from "./App";
 import { installGlassMotion } from "./domain/glassMotion";
 import "./styles/tokens.css";
 import "./styles/app.css";
-import "./styles/graphite.css";
 import "./styles/liquid-glass.css";
 
 watchUnauthorized();
