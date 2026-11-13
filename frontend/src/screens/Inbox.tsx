@@ -1,13 +1,12 @@
-import { logFailure } from "../api/logFailure";
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { ApiError, getJson } from "../api/client";
 import type { PageResponse, Vacancy } from "../api/types";
 import { changeStatus } from "../api/vacancies";
 import { postedText } from "../domain/age";
 import { GhostBadge } from "../components/GhostBadge";
 import { safeLink } from "../domain/links";
-import { getFits, type ResumeFit } from "../api/resume";
-import { fitsById } from "../domain/fit";
+import type { ResumeFit } from "../api/resume";
+import { useFits } from "../useFits";
 import { FitBadge } from "../components/FitBadge";
 import { actionForKey, activatesOnKey, isTypingTarget, moveSelection, selectionAfterRemoval } from "../domain/triage";
 import { Toast } from "../components/Toast";
@@ -17,6 +16,7 @@ import { EMPTY_FILTER, filterFromParams, filterToParams, inboxCriteria, type Inb
 import { formatDate } from "./columns";
 import { VacancyDrawer } from "./VacancyDrawer";
 import { InboxInspector } from "../components/InboxInspector";
+import { pure } from "../components/pure";
 
 const PAGE_SIZE = 100;
 
@@ -25,6 +25,41 @@ interface Props {
   /** Grows when a refresh stored new data: the list loads again and the selected vacancy stays selected. */
   dataVersion?: number;
 }
+
+type InboxRowProps = {
+  v: Vacancy;
+  selected: boolean;
+  fit: ResumeFit | undefined;
+  onSelect: (id: string) => void;
+  onOpen: (id: string) => void;
+};
+
+/** One row of the list. Pure: choosing another row redraws only the two rows whose "selected" flag changed. */
+const InboxRow = pure(({ v, selected, fit, onSelect, onOpen }: InboxRowProps) => (
+  <li
+    id={`inbox-${v.id}`}
+    role="option"
+    aria-selected={selected}
+    class={`inbox-row${selected ? " selected" : ""}`}
+    onClick={() => onSelect(v.id)}
+    // Tabbing to a row's buttons selects the row, so S and X act on the row that has the focus ring.
+    onFocusIn={() => onSelect(v.id)}
+    onDblClick={() => onOpen(v.id)}
+  >
+    <span class="inbox-main">
+      <span class="inbox-title">{v.title}</span>
+      <span class="muted small">
+        {[v.company, v.location ?? "Location not specified", v.workMode].filter(Boolean).join(" · ")}
+        {v.postedAt ? ` · posted ${postedText(v.postedAt, new Date()).toLowerCase()}` : ""} · seen{" "}
+        <span class="num">{formatDate(v.lastSeenAt)}</span>
+      </span>
+    </span>
+    <span class="inbox-actions">
+      <GhostBadge ghost={v.ghost} />
+      <FitBadge fit={fit} />
+    </span>
+  </li>
+));
 
 /**
  * Inbox (T-048): New vacancies, triaged from the keyboard. J and K move, S saves, X dismisses, O opens the
@@ -56,7 +91,6 @@ export function Inbox({ params, dataVersion = 0 }: Props) {
   const openRef = useRef(openId);
   openRef.current = openId;
   const selected = items.findIndex((v) => v.id === selectedId);
-  const [fits, setFits] = useState<Record<string, ResumeFit>>({});
   // What is typed; it reaches the address (and so the list) a moment after typing stops.
   const applied = filterFromParams(params);
   const [draft, setDraft] = useState<InboxFilter>(applied);
@@ -73,19 +107,13 @@ export function Inbox({ params, dataVersion = 0 }: Props) {
     return () => window.clearTimeout(timer);
   }, [draft.words, draft.mode, draft.exclude]);
 
-  // Fit to the resume for the rows on show (T-081); none when no resume is uploaded.
-  useEffect(() => {
-    const controller = new AbortController();
-    getFits(items.map((v) => v.id), controller.signal)
-      .then((list) => setFits(fitsById(list)))
-      .catch(logFailure("the fit scores", controller.signal));
-    return () => controller.abort();
-  }, [items.map((v) => v.id).join(",")]);
+  const fits = useFits(useMemo(() => items.map((v) => v.id), [items]));
 
-  const select = (id: string | null) => {
+  const select = useCallback((id: string | null) => {
     selectedRef.current = id;
     setSelectedId(id);
-  };
+  }, []);
+  const openVacancy = useCallback((id: string) => setQuery({ open: id }), []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -292,30 +320,7 @@ export function Inbox({ params, dataVersion = 0 }: Props) {
           ref={listRef}
         >
           {items.map((v) => (
-            <li
-              key={v.id}
-              id={`inbox-${v.id}`}
-              role="option"
-              aria-selected={v.id === selectedId}
-              class={`inbox-row${v.id === selectedId ? " selected" : ""}`}
-              onClick={() => select(v.id)}
-              // Tabbing to a row's buttons selects the row, so S and X act on the row that has the focus ring.
-              onFocusIn={() => select(v.id)}
-              onDblClick={() => setQuery({ open: v.id })}
-            >
-              <span class="inbox-main">
-                <span class="inbox-title">{v.title}</span>
-                <span class="muted small">
-                  {[v.company, v.location ?? "Location not specified", v.workMode].filter(Boolean).join(" · ")}
-                  {v.postedAt ? ` · posted ${postedText(v.postedAt, new Date()).toLowerCase()}` : ""} · seen{" "}
-                  <span class="num">{formatDate(v.lastSeenAt)}</span>
-                </span>
-              </span>
-              <span class="inbox-actions">
-                <GhostBadge ghost={v.ghost} />
-                <FitBadge fit={fits[v.id]} />
-              </span>
-            </li>
+            <InboxRow key={v.id} v={v} selected={v.id === selectedId} fit={fits[v.id]} onSelect={select} onOpen={openVacancy} />
           ))}
         </ul>
         {selected >= 0 && (

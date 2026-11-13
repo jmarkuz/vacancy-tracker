@@ -6,7 +6,11 @@
  *  - Glass is for the layer that floats above the content: the header, the sidebar, toolbars, sheets, dialogs, the
  *    palette, toasts and the controls themselves. Content (tables, cards, lists, text) stays solid, so hierarchy
  *    between content and controls is clear.
- *  - No glass on glass: a control that sits on a glass surface gets the thin fill and no blur of its own.
+ *  - No glass on glass: a control that sits on a glass surface gets the thin fill. Controls never blur at all.
+ *  - The blur (backdrop-filter) is kept for a few surfaces that float over the content: the header, the sidebar, the
+ *    sheets, dialogs, the palette and toasts. Not on rows, cards, tables, panels, buttons or the bars on the canvas:
+ *    a blur on a long or repeated surface is expensive on a slow device. It is off for Reduced transparency, the
+ *    in-app "Glass effects" switch, Increased contrast and forced colours (the blocks near the end of this file).
  *  - One variant (Regular), never mixed with a clear one. Tint only for the primary action (the ink pill), not for
  *    every control; colour lives in the content (the role markers and badges).
  *  - Shapes are capsules and big rounded forms, and corners are concentric: an inner radius is the outer radius
@@ -126,8 +130,8 @@ body {
 /* ---------- Controls ---------- */
 
 /*
- * A secondary control is a glass capsule: a translucent fill, a rim, a specular highlight. The blur is only worth
- * paying for where the control sits on the canvas, not on a solid card, so it is switched on for the toolbars below.
+ * A secondary control is a glass capsule: a translucent fill, a rim, a specular highlight. It does not blur what is
+ * behind it: a blur on every button of a long list or toolbar is costly, and the fill and the rim give the look.
  */
 .btn {
   border-color: transparent;
@@ -286,7 +290,7 @@ kbd {
   box-shadow: inset 0 0 0 1px var(--lg-rim-dark);
 }
 
-/* ---------- No glass on glass: controls on a glass surface get a thin fill and no blur of their own ---------- */
+/* ---------- No glass on glass: controls on a glass surface get a thin fill ---------- */
 
 .header .btn:not(.primary),
 .drawer .btn:not(.primary),
@@ -296,8 +300,6 @@ kbd {
 .progress-pop .btn:not(.primary),
 .sidebar .btn:not(.primary) {
   background: var(--lg-fill-thin);
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
   box-shadow: inset 0 0 0 1px var(--lg-rim-dark), inset 0 1px 0 var(--lg-rim-light);
 }
 
@@ -306,17 +308,6 @@ kbd {
 .confirm-dialog .btn:not(.primary):hover:not(:disabled),
 .palette .btn:not(.primary):hover:not(:disabled) {
   background: var(--lg-fill-hover);
-}
-
-/* On the canvas (the toolbars), a control is real glass that blurs what is behind it. */
-.toolbar .btn:not(.primary),
-.toolbar .chip,
-.toolbar .tab,
-.mail-tools .btn,
-.sync-card .btn,
-.pager .btn {
-  -webkit-backdrop-filter: var(--lg-filter);
-  backdrop-filter: var(--lg-filter);
 }
 
 /* ---------- Surfaces that float above the page: sheets, dialogs, palette, toasts, popovers ---------- */
@@ -382,8 +373,6 @@ kbd {
 .palette-backdrop,
 .confirm-scrim {
   background: rgb(0 0 0 / 0.2);
-  -webkit-backdrop-filter: blur(3px);
-  backdrop-filter: blur(3px);
 }
 
 :root[data-theme="dark"] .scrim,
@@ -392,21 +381,17 @@ kbd {
   background: rgb(0 0 0 / 0.5);
 }
 
-/* The control bars on the canvas (Mail) are glass strips; the buttons on them take the thin fill. */
+/* The control bars on the canvas (Mail) are glass strips (a fill, no blur); the buttons on them take the thin fill. */
 .mail-tools,
 .sync-card {
   border: 0;
   background: var(--lg-specular), var(--lg-fill);
-  -webkit-backdrop-filter: var(--lg-filter);
-  backdrop-filter: var(--lg-filter);
   box-shadow: inset 0 1px 0 var(--lg-rim-light), inset 0 -1px 0 var(--lg-rim-dark), var(--lg-shadow-sm);
 }
 
 .mail-tools .btn,
 .sync-card .btn {
   background: var(--lg-fill-thin);
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
 }
 
 /* ---------- Motion: the material appears by lighting up, not by fading ---------- */
@@ -483,24 +468,9 @@ kbd {
   .progress-pop,
   .palette,
   .confirm-dialog,
-  .drawer,
-  .mail-tools,
-  .sync-card,
-  .btn,
-  .chip,
-  .tab {
+  .drawer {
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
-  }
-
-  .header::before,
-  .sidebar,
-  .glass,
-  .toast,
-  .progress-pop,
-  .palette,
-  .confirm-dialog,
-  .drawer {
     background: var(--lg-solid);
   }
 }
@@ -516,24 +486,9 @@ kbd {
 :root[data-glass="off"] .progress-pop,
 :root[data-glass="off"] .palette,
 :root[data-glass="off"] .confirm-dialog,
-:root[data-glass="off"] .drawer,
-:root[data-glass="off"] .mail-tools,
-:root[data-glass="off"] .sync-card,
-:root[data-glass="off"] .btn,
-:root[data-glass="off"] .chip,
-:root[data-glass="off"] .tab {
+:root[data-glass="off"] .drawer {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
-}
-
-:root[data-glass="off"] .header::before,
-:root[data-glass="off"] .sidebar,
-:root[data-glass="off"] .glass,
-:root[data-glass="off"] .toast,
-:root[data-glass="off"] .progress-pop,
-:root[data-glass="off"] .palette,
-:root[data-glass="off"] .confirm-dialog,
-:root[data-glass="off"] .drawer {
   background: var(--lg-solid);
 }
 

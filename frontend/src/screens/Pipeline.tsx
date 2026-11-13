@@ -1,5 +1,4 @@
-import { logFailure } from "../api/logFailure";
-import { useCallback, useEffect, useRef, useState } from "preact/hooks";
+import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { getJson, ApiError } from "../api/client";
 import { changeStatus } from "../api/vacancies";
 import { Board } from "../components/Board";
@@ -17,10 +16,11 @@ import { COLUMNS, DEFAULT_COLUMNS, type Column } from "./columns";
 import { VacancyDrawer } from "./VacancyDrawer";
 import { Icon } from "../components/Icon";
 import { AddVacancy } from "../components/AddVacancy";
-import { getFits, type ResumeFit } from "../api/resume";
-import { fitsById } from "../domain/fit";
+import type { ResumeFit } from "../api/resume";
+import { useFits } from "../useFits";
 import { FitBadge } from "../components/FitBadge";
 import { ColumnResizer } from "../components/ColumnResizer";
+import { pure } from "../components/pure";
 import { loadWidths, saveWidths, widthOf, withoutWidth, withWidth, type Widths } from "../domain/columnWidths";
 
 const PAGE_SIZE = 100;
@@ -39,7 +39,7 @@ interface Props {
 export function Pipeline({ params, dataVersion = 0 }: Props) {
   const sort = params.get("sort") ?? DEFAULT_SORT;
   const page = Math.max(0, Number(params.get("page") ?? 0) || 0);
-  const visible = resolveColumns(params.get("cols"));
+  const visible = useMemo(() => resolveColumns(params.get("cols")), [params.get("cols")]);
   const openId = params.get("open");
   const filterRaw = params.get("filter");
   const criteria = parseCriteria(filterRaw);
@@ -47,17 +47,18 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
   const viewId = params.get("view");
   const board = params.get("layout") === "board";
   const closeDrawer = useCallback(() => setQuery({ open: null }), []);
+  const openVacancy = useCallback((id: string) => setQuery({ open: id }), []);
 
   const [data, setData] = useState<PageResponse<Vacancy> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [attempt, setAttempt] = useState(0);
   const [selected, setSelected] = useState<string[]>([]);
+  const toggleRow = useCallback((id: string) => setSelected((now) => toggle(now, id)), []);
   const applying = useRef(false);
   const [target, setTarget] = useState("");
   const [toast, setToast] = useState<{ message: string; tone: "info" | "error"; undo?: () => void } | null>(null);
   const [adding, setAdding] = useState(false);
-  const [fits, setFits] = useState<Record<string, ResumeFit>>({});
   const [widths, setWidths] = useState<Widths>(() => loadWidths());
   const resizeColumn = (id: string, px: number) =>
     setWidths((current) => {
@@ -118,14 +119,7 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
     }
   }, [data]);
 
-  // Fit to the resume for the rows on show (T-081); none when no resume is uploaded.
-  useEffect(() => {
-    const controller = new AbortController();
-    getFits((data?.items ?? []).map((v) => v.id), controller.signal)
-      .then((list) => setFits(fitsById(list)))
-      .catch(logFailure("the fit scores", controller.signal));
-    return () => controller.abort();
-  }, [data]);
+  const fits = useFits(useMemo(() => (data?.items ?? []).map((v) => v.id), [data]));
 
   const selectedRows = (data?.items ?? []).filter((v) => selected.includes(v.id));
   const options = targetOptions(selectedRows);
@@ -278,26 +272,8 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
               </thead>
               <tbody>
                 {data.items.map((v) => (
-                  <tr key={v.id} aria-selected={selected.includes(v.id)}>
-                    <td class="check-col">
-                      <input type="checkbox" aria-label={`Select ${v.title}`} checked={selected.includes(v.id)}
-                        onChange={() => setSelected(toggle(selected, v.id))} />
-                    </td>
-                    {visible.map((col) => (
-                      <td key={col.id} class={`col-${col.id}${col.numeric ? " numeric" : ""}`}>
-                        {col.id === "title" ? (
-                          <div class="title-cell">
-                            <button type="button" class="row-open" title={v.title} onClick={() => setQuery({ open: v.id })}>
-                              {col.render(v)}
-                            </button>
-                            <FitBadge fit={fits[v.id]} />
-                          </div>
-                        ) : (
-                          col.render(v)
-                        )}
-                      </td>
-                    ))}
-                  </tr>
+                  <PipelineRow key={v.id} v={v} checked={selected.includes(v.id)} fit={fits[v.id]} columns={visible}
+                    onToggle={toggleRow} onOpen={openVacancy} />
                 ))}
               </tbody>
             </table>
@@ -305,17 +281,7 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
 
           <ul class="vcards" aria-label="Vacancies">
             {data.items.map((v) => (
-              <li key={v.id} class="vcard">
-                <button type="button" class="row-open vcard-title" onClick={() => setQuery({ open: v.id })}>
-                  {v.title}
-                </button>
-                <FitBadge fit={fits[v.id]} />
-                <div class="muted">{v.company}</div>
-                <div class="vcard-meta">
-                  <span class="badge-slot">{COLUMNS.find((c) => c.id === "status")?.render(v)}</span>
-                  <span class="num">{COLUMNS.find((c) => c.id === "salary")?.render(v)}</span>
-                </div>
-              </li>
+              <VacancyCard key={v.id} v={v} fit={fits[v.id]} onOpen={openVacancy} />
             ))}
           </ul>
 
@@ -377,6 +343,54 @@ function applyView(view: SavedView | null): void {
     page: null,
   });
 }
+
+type RowProps = {
+  v: Vacancy;
+  checked: boolean;
+  fit: ResumeFit | undefined;
+  columns: Column[];
+  onToggle: (id: string) => void;
+  onOpen: (id: string) => void;
+};
+
+/** One table row. Pure: ticking a box or loading the fit scores redraws only the rows that changed. */
+const PipelineRow = pure(({ v, checked, fit, columns, onToggle, onOpen }: RowProps) => (
+  <tr aria-selected={checked}>
+    <td class="check-col">
+      <input type="checkbox" aria-label={`Select ${v.title}`} checked={checked} onChange={() => onToggle(v.id)} />
+    </td>
+    {columns.map((col) => (
+      <td key={col.id} class={`col-${col.id}${col.numeric ? " numeric" : ""}`}>
+        {col.id === "title" ? (
+          <div class="title-cell">
+            <button type="button" class="row-open" title={v.title} onClick={() => onOpen(v.id)}>
+              {col.render(v)}
+            </button>
+            <FitBadge fit={fit} />
+          </div>
+        ) : (
+          col.render(v)
+        )}
+      </td>
+    ))}
+  </tr>
+));
+
+/** The same vacancy as a card, for narrow screens. */
+const VacancyCard = pure(({ v, fit, onOpen }: { v: Vacancy; fit: ResumeFit | undefined; onOpen: (id: string) => void }) => (
+  <li class="vcard">
+    <button type="button" class="row-open vcard-title" onClick={() => onOpen(v.id)}>
+      {v.title}
+    </button>
+    <FitBadge fit={fit} />
+    <div class="muted">{v.company}</div>
+    <div class="vcard-meta">
+      <span class="badge-slot">{COLUMNS.find((c) => c.id === "status")?.render(v)}</span>
+      <span class="num">{COLUMNS.find((c) => c.id === "salary")?.render(v)}</span>
+    </div>
+  </li>
+));
+
 
 /** Unknown column ids in the URL are ignored; at least one column always shows. */
 function resolveColumns(raw: string | null): Column[] {

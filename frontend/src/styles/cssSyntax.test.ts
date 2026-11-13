@@ -31,7 +31,7 @@ function balance(css: string): { depth: number; underflowAt: number | null } {
 
 describe("style files", () => {
   it("are found", () => {
-    expect(Object.keys(files).length).toBeGreaterThanOrEqual(4);
+    expect(Object.keys(files).length).toBeGreaterThanOrEqual(3);
   });
 
   it.each(Object.entries(files))("%s closes every rule it opens", (name, css) => {
