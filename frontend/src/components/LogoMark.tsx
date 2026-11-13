@@ -1,5 +1,5 @@
 /**
- * The Beacon mark (the design package/assets/logo-primary.svg): a geometric
+ * The Beacon mark (the owner's logo, as in frontend/public/favicon.svg): a geometric
  * beacon in the shape of an A with a crossbar. It takes the logo color (ink in Graphite, ADR-053: never the color of a section).
  */
 export function LogoMark({ title }: { title?: string }) {

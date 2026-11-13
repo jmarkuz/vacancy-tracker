@@ -96,7 +96,6 @@ README.md                      this file
 PLAN.md                        development plan and progress (source of truth)
 tasks.csv                      the same tasks for GitHub Projects or Jira
 CHANGELOG.md                   entries per completed task
-design file                      the earlier design language (MIT); now Beacon, see design/README.md
 docs/
   research.md                  comparable solutions and what we borrow
   sources.md                   sources, terms, limits, adapter capabilities
@@ -116,7 +115,6 @@ ops/
   backup/                      backup script and its Docker test
 design/
   tokens.css                   design tokens (light and dark)
-  the design package/   Beacon brand guide, tokens, logos and mockups
   dashboard.html               static clickable mockup with fake data
   README.md                    design rationale, states, keyboard shortcuts
 ```
