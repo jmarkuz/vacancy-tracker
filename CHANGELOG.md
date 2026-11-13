@@ -4,6 +4,9 @@ All notable changes are recorded here. Format: date, task ID, short description.
 
 ## [Unreleased]
 
+### 2026-11-13 — UI speed review
+- Faster loading: the server compresses the UI bundle and JSON answers with gzip (JavaScript 199 KB to 62 KB, CSS 82 KB to 14 KB on the wire), and the hashed files in `/assets/` are cached by the browser for a year (`immutable`), so a repeat visit downloads nothing. `index.html` and the icons are revalidated on every visit, so a new release is picked up at once. A missing file answers 404 with no cache header.
+
 ### 2026-11-12 — T-092 review backlog
 - F13: the start-up sweep no longer marks a live run as interrupted. A scheduled run can begin before the application is ready; the sweep now touches only runs that began before this process booted. Test: ExpiryAndRunLockTest.
 - U9: the profile editor no longer drops unsaved rules without asking. Close, a move to another screen or profile (the menu, a profile in the list, the browser's Back button) and closing the tab ask first while the draft differs from the saved profile; declining keeps the editor and its changes. Saving or closing from the editor itself does not ask again. Tests: ProfileEditor.test.tsx.
