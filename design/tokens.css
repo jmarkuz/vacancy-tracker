@@ -1,6 +1,6 @@
 /*
  * Design tokens: Vacancy Tracker / Beacon ("Маяк") 1.0 (T-101, ADR-052).
- * Source: the design package (styles/tokens.json is the source of the values).
+ * Source: the owner's Beacon brand guide and package (not kept in the repository).
  * Calm, clear, high-contrast: text at least 7:1 and control borders at least 3:1 in both themes, an 18 px base that
  * the owner can raise to 20 or 22 px, controls at least 44 px high, a 3 px focus ring with a 3 px offset.
  * Light is the default; dark applies with data-theme="dark", or with data-theme="system" when the system asks.
