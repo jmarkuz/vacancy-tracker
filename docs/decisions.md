@@ -37,7 +37,7 @@ Index:
 - ADR-043 Correspondence: job mail, links to applications, status suggestions
 - ADR-044 Visa sponsorship from the posting text
 - ADR-045 New sources from the owner's list
-- ADR-046 design, dark first
+- ADR-046 Dark-first design
 - ADR-052 Beacon design, light first
 - ADR-053 Graphite: a calm light look, ink pills and a black dark theme over Beacon
 - ADR-054 Glass surfaces over Graphite
@@ -695,14 +695,14 @@ Status: Accepted (T-086, T-087). Gap G6 of [gap-analysis.md](gap-analysis.md).
 
 **Consequences.** Wording outside the phrase lists falls back to "job mail" without a suggestion. Linking can miss a mail from an agency or an ATS address that names neither the company nor the title; the owner links it by hand. Reading INBOX means the app sees all mail in it: only job mail is kept, and the reader never changes the mailbox.
 
-## ADR-046 design, dark first
+## ADR-046 Dark-first design
 
 Status: Accepted (T-090).
 
-**Context.** The owner asked for the third-party theme from a public design collection, copied into the project as design file, with the UI updated and dark as the main theme, keeping every keyboard scenario.
+**Context.** The owner asked for a new dark-first look with the UI updated and dark as the main theme, keeping every keyboard scenario.
 
 **Decision.**
-- `design file` at the repository root is the unchanged file from `design-md/` (MIT, a public design collection), with a source and licence section added at the end. It analyses a marketing site, so the app takes its palette, type and shapes, not its page layouts: deep indigo-navy surfaces, a pale violet accent, the deep teal as the success colour, warm off-grey ink, hairline borders, Inter variable at 460/540, 8px buttons, 6px inputs, 12px cards, 16px dialogs. No logo, portrait or third-party name appears in the app.
+- The app takes its palette, type and shapes from its own tokens: deep indigo-navy surfaces, a pale violet accent, the deep teal as the success colour, warm off-grey ink, hairline borders, Inter variable at 460/540, 8px buttons, 6px inputs, 12px cards, 16px dialogs. No third-party logo, portrait or name appears in the app.
 - **Dark is the default**: the tokens' `:root` holds the dark values, `data-theme="light"` and `data-theme="system"` (light only when the system prefers it) override them, the page starts with `data-theme="dark"` (no flash), and a stored choice wins. The toggle cycles dark, light, system.
 - The keyboard inventory in [code-review.md](code-review.md) is the regression list; none was removed. The design README now states the real board and rule-builder keys (Alt+arrows), the Move buttons and the layout-independent letters. The selected Inbox row and palette option keep an outline in Windows High Contrast (`forced-colors`).
 
@@ -789,7 +789,7 @@ Status: Accepted (T-098). Specification: [specs/M7-ai-presets.md](specs/M7-ai-pr
 
 ## ADR-052 Beacon design, light first
 
-Status: Accepted (T-101). Supersedes the look of ADR-046; its keyboard rules stay. Source: [the design package](../the design package) (brand guide, tokens, logos, ten mockups, acceptance checklist), delivered by the owner on 2026-11-03.
+Status: Accepted (T-101). Supersedes the look of ADR-046; its keyboard rules stay. Source: the owner's brand guide and implementation package (brand guide, tokens, logos, ten mockups, acceptance checklist), delivered on 2026-11-03; the package itself is no longer kept in the repository, its logos and favicons live in `frontend/public`.
 
 **Context.** The owner chose the light "Beacon" ("Маяк") direction: context, the next action and the state of the data must be clear at first sight, for people with low vision too. The package targets text at 7:1, borders at 3:1, an 18 px base, 44 px controls and four color roles with fixed meanings.
 

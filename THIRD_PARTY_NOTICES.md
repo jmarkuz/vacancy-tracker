@@ -38,14 +38,6 @@ Used only to build and test: Vite, `@preact/preset-vite`, Vitest, `@vitest/cover
 
 The resume PDF embeds this font. The licence allows that and requires that the licence text travels with the font, which it does.
 
-## Design reference file
-
-| Component | Licence | Where |
-|---|---|---|
-| `design file`, a design-analysis file copied unchanged from the a public design collection `awesome-design-md` collection | MIT, Copyright (c) 2026 a public design collection | `design file`, which carries the licence text and the source in its last section |
-
-It is a record of an earlier design language (T-090) and is not part of the built application. It describes a public marketing site in an independent, "inspired" analysis; Vacancy Tracker is not affiliated with that company.
-
 ## Not included
 
-The Beacon design (colours, typography, logo, favicon) comes from the owner's own brand package (`the design package`). No design, text, code or data of any other product is copied; see the independence note in [docs/gap-analysis.md](docs/gap-analysis.md).
+The Beacon design (colours, typography, logo, favicon) comes from the owner's own brand package (logos and favicons in `frontend/public`). No design, text, code or data of any other product is copied; see the independence note in [docs/gap-analysis.md](docs/gap-analysis.md).

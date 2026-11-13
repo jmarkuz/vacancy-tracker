@@ -1,10 +1,10 @@
 # Design
 
-Status: Beacon 1.0, light first (T-101, ADR-052); before that the dark-first redesign after design file (T-090). Files: `tokens.css` (design tokens, the same file as `frontend/src/styles/tokens.css`), `dashboard.html` (static clickable mockup with fake data from Phase 0; it now picks up the new tokens but keeps its old layout). Open `dashboard.html` directly in a browser; it needs no build step. It uses the system font and loads nothing from the internet.
+Status: Beacon 1.0, light first (T-101, ADR-052); before that a dark-first redesign (T-090). Files: `tokens.css` (design tokens, the same file as `frontend/src/styles/tokens.css`), `dashboard.html` (static clickable mockup with fake data from Phase 0; it now picks up the new tokens but keeps its old layout). Open `dashboard.html` directly in a browser; it needs no build step. It uses the system font and loads nothing from the internet.
 
 ## 1. Rationale
 
-**Style: Beacon ("Маяк") 1.0, light first (T-101, ADR-052).** The brand guide and implementation package of 2026-11-03 are in [the design package](the design package) (start with its `index.html`; values in `styles/tokens.json`; acceptance checklist in `docs/acceptance.html`). The goal is that context, the next action and the state of the data are clear at first sight, also for people with low vision. It replaces the dark-first look of T-090 ([design file](../design file) stays as the record of that step).
+**Style: Beacon ("Маяк") 1.0, light first (T-101, ADR-052).** The owner's brand guide and implementation package of 2026-11-03 defined the values (they are no longer kept in the repository; the result is in `tokens.css`). The goal is that context, the next action and the state of the data are clear at first sight, also for people with low vision. It replaces the dark-first look of T-090.
 
 - Neutral, calm surfaces: canvas `#F2F5FA`, surface `#FFFFFF`, text `#14243B`, secondary text `#3E4E64`, control borders `#71839A`; dark theme on navy `#101B2C` / `#17263A`. Text is at least 7:1 and borders 3:1 against what they sit on (checked by `frontend/src/styles/contrast.test.ts`).
 - Four accent roles, each with one meaning everywhere: **blue** `#1243B2` for overview, inbox, search and mail; **green** `#13563C` for saving, the pipeline and applying ("Save" is always green, even in a blue section); **purple** `#5C2B98` for the resume, presets, AI and the skill match; **amber** `#704400` for sources, profiles, import and settings. Red `#9E2432` is only for errors and deleting. The logo is always blue.
