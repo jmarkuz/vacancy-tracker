@@ -1,6 +1,6 @@
 /**
- * translucent glass motion, the part that answers the pointer. A control under the pointer gets its highlight where the
- * pointer is (Apple's glass "reacts to touch and movement"). The rules here are pure so they can be tested; the
+ * Glass motion, the part that answers the pointer. A control under the pointer gets its highlight where the
+ * pointer is (the glass reacts to touch and movement). The rules here are pure so they can be tested; the
  * listeners that use them are in installGlassMotion below.
  */
 

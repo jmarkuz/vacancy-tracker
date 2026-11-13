@@ -15,7 +15,7 @@ export default defineConfig({
     environment: "jsdom",
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
     pool: "forks",
-    // The style files are read as text (?raw) by the contrast, translucent glass and syntax tests; Vitest hands any other CSS
+    // The style files are read as text (?raw) by the contrast, glass and syntax tests; Vitest hands any other CSS
     // over as an empty string, which would leave those tests with nothing to check. Components do not import CSS.
     css: { include: [/src\/styles\/.*\.css/] },
     execArgv,

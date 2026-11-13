@@ -39,8 +39,8 @@ Index:
 - ADR-045 New sources from the owner's list
 - ADR-046 design, dark first
 - ADR-052 Beacon design, light first
-- ADR-053 Graphite: Apple, Uber and sports-car references over Beacon
-- ADR-054 translucent glass over Graphite
+- ADR-053 Graphite: a calm light look, ink pills and a black dark theme over Beacon
+- ADR-054 Glass surfaces over Graphite
 
 ---
 
@@ -614,7 +614,7 @@ Status: Accepted (T-076). Findings and their state: [code-review.md](code-review
 
 Status: Accepted (T-078). Gap G7 of [gap-analysis.md](gap-analysis.md).
 
-**Context.** `vacancy.visa_sponsorship` existed since V1 and profiles could already name the field, but nothing ever filled it, so every rule on it fell to its missing-value policy. the compared platform makes sponsorship a headline filter.
+**Context.** `vacancy.visa_sponsorship` existed since V1 and profiles could already name the field, but nothing ever filled it, so every rule on it fell to its missing-value policy. Comparable tools make sponsorship a headline filter.
 
 **Decision.**
 - `VisaSponsorship.detect(title, description)` reads the posting's own words: **false** for a refusal ("unable to sponsor", "no visa sponsorship", "must already have the right to work", German, Ukrainian and Russian equivalents), **true** for an offer ("visa sponsorship available", "we sponsor work visas", "visa support", "relocation and visa", German, Polish, Ukrainian and Russian equivalents), **null** otherwise. A refusal wins over an offer in the same text ("sponsorship is not available, but visa support for family members").
@@ -643,7 +643,7 @@ Status: Accepted (T-088, T-089). The checks are in [sources.md](sources.md), sec
 
 Status: Accepted (T-080, T-081). Gaps G1 and G2 of [gap-analysis.md](gap-analysis.md).
 
-**Context.** The full cycle starts with knowing how well a vacancy fits the owner. Profiles (ADR-008) score against rules the owner writes, not against the resume. the compared platform's core feature is "upload your resume once" and a match per job. The README forbids technologies and roles in the code.
+**Context.** The full cycle starts with knowing how well a vacancy fits the owner. Profiles (ADR-008) score against rules the owner writes, not against the resume. The compared kind of tool is built around a resume that is uploaded once and matched against each job. The README forbids technologies and roles in the code.
 
 **Decision.**
 - **A new module, `application`,** for the resume, the fit, AI documents, packages and correspondence. It may use `vacancy`, `matching`, `collection` and `common`; nothing but `web` uses it (ArchitectureTest), and it has the same 80% line-coverage gate as the other core modules.
@@ -804,35 +804,35 @@ Status: Accepted (T-101). Supersedes the look of ADR-046; its keyboard rules sta
 
 **Consequences.** The look of earlier screenshots and the Phase 0 mockup (now with the new tokens) differs. The package's manual checks (NVDA, real 200% zoom, users with low vision) are not automated and remain to be done before calling the design accepted; the automated checks cover contrast, keyboard tabs, text size and 640 px reflow.
 
-## ADR-053 Graphite: Apple, Uber and sports-car references over Beacon
+## ADR-053 Graphite: a calm light look, ink pills and a black dark theme over Beacon
 
-Status: Accepted. Restyles ADR-052; its structure, keyboard rules and accessibility targets stay. Sources: the Apple, Uber and sports-car design analyses (light and dark) the owner delivered on 2026-11-03, used as references, not copied.
+Status: Accepted. Restyles ADR-052; its structure, keyboard rules and accessibility targets stay. Source: the owner's design brief of 2026-11-03 (light and dark looks), used as a direction, not copied from any product.
 
-**Context.** The owner asked for a new look built on those three references, with room for ideas of our own. Beacon's promises to people with low vision (text at 7:1, control borders at 3:1, an 18 to 22 px base, 44 px controls, a 3 px focus ring) are not negotiable, and the app still loads nothing from the internet.
+**Context.** The owner asked for a new look following that brief, with room for ideas of our own. Beacon's promises to people with low vision (text at 7:1, control borders at 3:1, an 18 to 22 px base, 44 px controls, a 3 px focus ring) are not negotiable, and the app still loads nothing from the internet.
 
 **Decision.**
-- **Light theme from Apple:** a parchment canvas (`#f5f5f7`) under white cards with hairlines and 18 px corners, near-black ink (`#1d1d1f`), display type with tight tracking, a frosted header (translucent canvas with blur), Apple's focus blue (`#0071e3`), and a press that scales a control to 97%.
-- **Actions from Uber:** every action is a pill; the primary one is ink (black in light, white in dark) in every section, so a screen has one obvious next step; secondary actions are outlined pills, ghost ones plain links; selected tabs and toggles are ink pills; overlays and the toast are the only things with a shadow.
-- **Dark theme and labels from sports-car:** a true black canvas, near-black cards (`#141414`), hairlines, the ice blue `#c3d9f3` as the dark accent; navigation groups, table heads, field names and metric labels are uppercase monospace with wide tracking; the name is a wordmark in capitals with the widest tracking.
+- **Light theme:** a warm grey canvas (`#f5f5f7`) under white cards with hairlines and 18 px corners, near-black ink (`#1d1d1f`), display type with tight tracking, a frosted header (translucent canvas with blur), a focus blue (`#0071e3`), and a press that scales a control to 97%.
+- **Actions:** every action is a pill; the primary one is ink (black in light, white in dark) in every section, so a screen has one obvious next step; secondary actions are outlined pills, ghost ones plain links; selected tabs and toggles are ink pills; overlays and the toast are the only things with a shadow.
+- **Dark theme and labels:** a true black canvas, near-black cards (`#141414`), hairlines, the ice blue `#c3d9f3` as the dark accent; navigation groups, table heads, field names and metric labels are uppercase monospace with wide tracking; the name is a wordmark in capitals with the widest tracking.
 - **Our own:** the Dashboard's numbers are an *instrument cluster*: one black band in both themes, divided by hairlines like a car's spec cells, light large numerals, and each metric's role as a lit dot. The four Beacon roles keep their meaning but recede to markers (a dot per section, badge tints, the cluster), so color marks meaning and ink marks action.
-- **Fonts:** system faces only (SF Pro on Apple devices, Segoe UI Variable on Windows, the system UI face elsewhere; a system monospace for labels). No font files are shipped.
+- **Fonts:** system faces only (each platform's own UI face, Segoe UI Variable on Windows, a system monospace for labels). No font files are shipped.
 - **Implementation:** `tokens.css` holds the values (the contrast unit test still checks 58 pairs); `graphite.css` is a component layer loaded after `app.css`, so the layout and the markup are unchanged. Hairlines (`--color-hairline`) only separate surfaces that already differ; anything operable keeps a 3:1 border.
 
 **Consequences.** Primary buttons no longer carry the section color (Beacon filled them green, purple or amber); the role is still visible on the section marker and in badges. Exact typefaces differ by platform. The manual checks named in ADR-052 still apply.
 
-## ADR-054 translucent glass over Graphite
+## ADR-054 Glass surfaces over Graphite
 
-Status: Accepted. Restyles ADR-053 without changing layout, markup or the accessibility targets. Sources: Apple's a developer conference25 session "Meet translucent glass" (read in full) and the Apple design analysis the owner delivered on 2026-11-03; the HIG Materials page could not be read (it is rendered by script), so no numeric value is taken from Apple: blur, opacities and radii are our own, tuned by eye.
+Status: Accepted. Restyles ADR-053 without changing layout, markup or the accessibility targets. Source: the owner's brief of 2026-11-03 and public design guidance on translucent materials; no numeric value is taken from any product: blur, opacities and radii are our own, tuned by eye.
 
-**Context.** The owner asked for the look of Apple's translucent glass. The app already had glass for a few floating things (the refresh popup, the toast).
+**Context.** The owner asked for a translucent glass look. The app already had glass for a few floating things (the refresh popup, the toast).
 
-**Decision.** Follow Apple's rules for the material, in CSS, in one file (`liquid-glass.css`, loaded last) on top of `--lg-*` tokens in `tokens.css`:
+**Decision.** Follow the usual rules for the material, in CSS, in one file (`liquid-glass.css`, loaded last) on top of `--lg-*` tokens in `tokens.css`:
 - **Where:** only the layer that floats above the content: the header, the sidebar (one floating rounded panel), the toolbars' controls, the Mail control bars, the vacancy sheet (inset, rounded all round), dialogs, the palette, toasts and popovers. Content (tables, cards, lists, text) stays solid, so hierarchy between content and controls is clear.
 - **No glass on glass:** a control on a glass surface gets the thin fill and no blur of its own. Blur is also only paid for where there is something to blur: controls on the canvas, not on a solid card.
 - **One variant (Regular)**, never mixed with a clear one. **Tint only the primary action** (the ink pill, now translucent with a sheen), not every control; colour stays in the content (role markers, badges).
-- **Material:** a blurred, saturated backdrop, a tint, a bright rim on the lit side and a dark one opposite, a specular highlight along the top, a shadow that deepens with size; a press lights the control from within; dialogs and the palette materialize (scale and unblur) instead of fading. The canvas carries faint pools of the four role colours so the glass has something to pick up (Apple's ambient colour).
+- **Material:** a blurred, saturated backdrop, a tint, a bright rim on the lit side and a dark one opposite, a specular highlight along the top, a shadow that deepens with size; a press lights the control from within; dialogs and the palette materialize (scale and unblur) instead of fading. The canvas carries faint pools of the four role colours so the glass has something to pick up (an ambient colour).
 - **Shapes:** capsules and 28 px rounded forms; corners are concentric.
 - **Accessibility first:** the text tokens keep 7:1 on every fill, composited over the canvas and over the strongest ambient colour (`liquidGlass.test.ts`; it found and fixed a dark hover fill at 5.6:1). Glass turns solid with the system's Reduced transparency, with Increased contrast (which also restores the 3:1 control borders), in forced colours, and with the in-app switch Settings → Appearance → Glass effects (`data-glass="off"`, kept in this browser). Reduced motion removes the appearing animation.
 - **Not done:** real lensing (the bending of the background at the edge) and light that moves with the pointer or the device: CSS cannot do either across browsers. The rim, the highlight and the blur stand in for them.
 
-**Consequences.** Secondary controls no longer have the 3:1 outline in the default look: they are told apart by their rim, highlight and shadow, as in Apple's own interfaces; with Increased contrast (or the in-app switch) the outline is back. `backdrop-filter` costs on weak GPUs, which is why it is limited to a few surfaces and can be switched off. The manual checks named in ADR-052 (screen reader, real 200% zoom) still apply and have not been done for this change.
+**Consequences.** Secondary controls no longer have the 3:1 outline in the default look: they are told apart by their rim, highlight and shadow, as in other glass interfaces; with Increased contrast (or the in-app switch) the outline is back. `backdrop-filter` costs on weak GPUs, which is why it is limited to a few surfaces and can be switched off. The manual checks named in ADR-052 (screen reader, real 200% zoom) still apply and have not been done for this change.

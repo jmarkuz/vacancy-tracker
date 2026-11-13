@@ -92,7 +92,7 @@ export function App() {
   useEffect(() => applyTheme(theme), [theme]);
   // The base text size chosen in Settings (18, 20 or 22 px); Settings applies changes itself.
   useEffect(() => applyTextSize(readTextSize()), []);
-  // Glass effects (translucent glass) on or off, as the owner chose in Settings.
+  // Glass effects on or off, as the owner chose in Settings.
   useEffect(() => applyGlass(readGlass()), []);
 
   // Ctrl/Cmd+K works from anywhere, including inside a text box, and replaces the browser's own binding.

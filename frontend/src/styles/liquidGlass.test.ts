@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import css from "./tokens.css?raw";
 
 /**
- * translucent glass keeps Beacon's text contrast (7:1). A glass fill is translucent, so its contrast depends on what it
+ * Glass keeps Beacon's text contrast (7:1). A glass fill is translucent, so its contrast depends on what it
  * lies on: here every fill is composited over the plain canvas and over the strongest ambient colour of the page
  * (the canvas with a pool of one role colour at its full strength), and the text tokens are checked on the result.
  * The values are read from tokens.css itself, so a changed token is checked at once.
@@ -57,7 +57,7 @@ function ratio(a: Rgba, b: Rgba): number {
 
 const lightBase = blockAt(css.indexOf(":root {"));
 const darkBase = blockAt(css.indexOf(':root[data-theme="dark"] {'));
-// The translucent glass tokens are in their own blocks, the last :root and the last dark block of the file.
+// The Glass tokens are in their own blocks, the last :root and the last dark block of the file.
 const lightLg = blockAt(css.lastIndexOf(":root {", css.indexOf("--lg-filter:")));
 const darkLg = blockAt(css.lastIndexOf(':root[data-theme="dark"] {'));
 
@@ -80,7 +80,7 @@ const AMBIENT = {
 describe.each([
   ["light", lightBase, lightLg, AMBIENT.light],
   ["dark", darkBase, darkLg, AMBIENT.dark],
-])("translucent glass, %s theme", (name, base, lg, ambient) => {
+])("Glass, %s theme", (name, base, lg, ambient) => {
   const bg = parse(token(base, "color-bg"));
   const text = parse(token(base, "color-text"));
   const muted = parse(token(base, "color-text-muted"));
@@ -110,7 +110,7 @@ describe.each([
   });
 });
 
-describe("translucent glass tokens", () => {
+describe("Glass tokens", () => {
   it("are the same in the explicit dark theme and in 'follow the system' dark", () => {
     const system = blockAt(css.indexOf(':root[data-theme="system"] {', css.indexOf("--lg-filter:")));
     const names = [...darkLg.matchAll(/--(lg-[\w-]+):/g)].map((m) => m[1]);

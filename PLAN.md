@@ -130,7 +130,7 @@ Goal (owner, 2026-11-02): one tool for the whole cycle: find relevant vacancies,
 | Done | ID | Title | Est | Depends on | Acceptance criteria |
 |---|---|---|---|---|---|
 | [x] 2026-11-02 | T-076 | Audit and code review, critical fixes | M | - | `docs/code-review.md` lists findings with severity, place and state; critical and high findings fixed with tests; `mvn verify`, `npm test`, `npm run typecheck` green on current tools |
-| [x] 2026-11-02 | T-077 | Gap analysis against the compared platform | S | T-076 | `docs/gap-analysis.md` lists gaps by priority with the evidence and the task that closes each; automated access blocked by the site is recorded, not bypassed |
+| [x] 2026-11-02 | T-077 | Gap analysis against a comparable career platform | S | T-076 | `docs/gap-analysis.md` lists gaps by priority with the evidence and the task that closes each; automated access blocked by the site is recorded, not bypassed |
 | [x] 2026-11-02 | T-078 | Visa sponsorship detection and filter | M | T-077 | Sponsorship is read from the posting text (yes, no, unknown) and filterable in views and profiles; tests for both directions |
 | [x] 2026-11-02 | T-079 | Export and import screen, add by URL | S | T-077 | The Export screen downloads CSV, XLSX and JSON and imports CSV/JSON with the row report; the Pipeline adds a vacancy by URL |
 | [x] 2026-11-02 | T-080 | Resume upload and text extraction | M | T-076 | PDF, DOCX, TXT/MD or pasted text becomes the active resume; proposed keywords are editable; unreadable files give a clear message |

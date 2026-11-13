@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import css from "./liquid-glass.css?raw";
 
 /**
- * The motion of translucent glass, checked on the file itself: every spring and press stops under "reduce motion", and the
+ * The motion of Glass, checked on the file itself: every spring and press stops under "reduce motion", and the
  * light that follows the pointer keeps the text at 7:1.
  */
 
@@ -26,7 +26,7 @@ function ratio(a: [number, number, number], b: [number, number, number]): number
   return (hi + 0.05) / (lo + 0.05);
 }
 
-describe("translucent glass motion, file level", () => {
+describe("Glass motion, file level", () => {
   it("defines one spring and one quick press, used by the controls", () => {
     expect(css).toContain("--lg-ease-spring: cubic-bezier(0.25, 1.75, 0.45, 1)");
     expect(css).toContain("--lg-dur-press: 110ms");

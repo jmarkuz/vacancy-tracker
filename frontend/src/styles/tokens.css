@@ -1,12 +1,12 @@
 /*
  * Design tokens: Vacancy Tracker / Graphite 2.0 (ADR-053), built on Beacon 1.0 (ADR-052).
- * References: the Apple, Uber and sports-car design analyses the owner delivered on 2026-11-03.
- * - Apple: a parchment canvas (#f5f5f7) under white cards, near-black ink (#1d1d1f), a frosted header, tight display
+ * The look, in the owner's own brief of 2026-11-03:
+ * - Light: a warm grey canvas (#f5f5f7) under white cards, near-black ink (#1d1d1f), a frosted header, tight display
  *   type, one blue for focus, and a press that shrinks the control a little.
- * - Uber: a black and white duet: the primary action is an ink pill, cards round to 18 px, controls are pills,
- *   and a black band breaks the light rhythm (the Dashboard's instrument cluster).
- * - sports-car: the dark theme is a true black canvas with near-black cards (#141414) and hairlines (#262626); labels,
- *   captions and the wordmark are uppercase with wide tracking; the ice blue #c3d9f3 is the dark accent.
+ * - Actions: black and white: the primary action is an ink pill, cards round to 18 px, controls are pills, and a
+ *   black band breaks the light rhythm (the Dashboard's instrument cluster).
+ * - Dark: a true black canvas with near-black cards (#141414) and hairlines (#262626); labels, captions and the
+ *   wordmark are uppercase with wide tracking; the ice blue #c3d9f3 is the dark accent.
  * Beacon's accessibility contract stays: text at least 7:1 and control borders at least 3:1 in both themes (the unit
  * test reads this file), an 18 px base the owner can raise to 20 or 22 px, controls at least 44 px, a 3 px focus ring.
  * The four roles keep their meanings (blue overview, green pipeline, purple resume and AI, amber sources and
@@ -15,7 +15,7 @@
  */
 
 :root {
-  /* Neutral surfaces and text (light, the default): Apple parchment and ink */
+  /* Neutral surfaces and text (light, the default): a warm grey canvas and near-black ink */
   --color-bg: #f5f5f7;
   --color-bg-subtle: #fafafc;
   --color-bg-muted: #e8e8ed;
@@ -29,13 +29,13 @@
   --color-text-subtle: #424245;
   --color-text-on-accent: #ffffff;
 
-  /* Ink: the one action color (Uber's black pill); inverted in the dark theme */
+  /* Ink: the one action color (a black pill); inverted in the dark theme */
   --color-ink: #1d1d1f;
   --color-ink-hover: #000000;
   --color-on-ink: #ffffff;
-  /* The frosted header (Apple's sub-nav: parchment at 80% with blur) */
+  /* The frosted header (the canvas at 80% with blur) */
   --color-glass: rgb(245 245 247 / 0.8);
-  /* The instrument band: black in both themes (Uber's polarity flip, sports-car's black) */
+  /* The instrument band: black in both themes (black in both themes: the polarity flips between light and dark) */
   --color-band: #000000;
   --color-band-line: rgb(255 255 255 / 0.16);
   --color-on-band: #ffffff;
@@ -46,7 +46,7 @@
   --signal-purple: #d9c2ff;
   --signal-amber: #f0cd86;
 
-  /* Translucent glass (floating popups): a translucent tint, a bright edge, a specular top highlight, strong blur */
+  /* Glass (floating popups): a translucent tint, a bright edge, a specular top highlight, strong blur */
   --glass-bg: rgb(255 255 255 / 0.66);
   --glass-bg-error: rgb(255 238 240 / 0.78);
   --glass-edge: rgb(255 255 255 / 0.85);
@@ -76,7 +76,7 @@
   --color-accent-hover: var(--role-blue-hover);
   --color-accent-subtle: var(--role-blue-soft);
   --color-accent-border: var(--role-blue);
-  /* Apple's focus blue */
+  /* The focus blue */
   --color-focus: #0071e3;
   --color-logo: #1d1d1f;
 
@@ -111,9 +111,9 @@
   --score-low: #424245;
 
   /*
-   * Typography: system faces only, nothing is downloaded. SF Pro on Apple devices, Segoe UI Variable on Windows,
-   * the system UI face elsewhere. Display (headings) and Text (everything else) as Apple splits them; Mono carries
-   * sports-car's machined labels: navigation groups, table heads, metric labels, the wordmark.
+   * Typography: system faces only, nothing is downloaded. Each platform's own UI face: the system face on Apple devices, Segoe UI Variable on Windows,
+   * the system UI face elsewhere. Display (headings) and Text (everything else) are split; Mono carries
+   * machined labels: navigation groups, table heads, metric labels, the wordmark.
    */
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", system-ui, Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI Variable Display", "Segoe UI", system-ui, Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -135,7 +135,7 @@
   --font-weight-medium: 600;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
-  /* Apple's tight display tracking; sports-car's wide label and wordmark tracking */
+  /* Tight display tracking, and wide label and wordmark tracking */
   --letter-spacing-display: -0.022em;
   --letter-spacing-heading: -0.012em;
   --letter-spacing-label: 0.14em;
@@ -154,7 +154,7 @@
   --space-10: 40px;
   --space-12: 48px;
 
-  /* Radii: pills for everything you press, 12 for fields, 18 for cards (Apple's utility card), 24 for the band */
+  /* Radii: pills for everything you press, 12 for fields, 18 for cards, 24 for the band */
   --radius-xs: 6px;
   --radius-input: 12px;
   --radius-sm: 12px;
@@ -182,7 +182,7 @@
   --ease-out: cubic-bezier(0.25, 0.1, 0.25, 1);
   --press-scale: 0.97;
 
-  /* Elevation: flat cards; only floating things (drawer, palette, toast, the selected tab) cast a shadow (Uber) */
+  /* Elevation: flat cards; only floating things (drawer, palette, toast, the selected tab) cast a shadow */
   --shadow-1: none;
   --shadow-2: 0 24px 64px rgb(0 0 0 / 0.18), 0 4px 16px rgb(0 0 0 / 0.08);
   --shadow-float: 0 2px 8px rgb(0 0 0 / 0.16);
@@ -199,7 +199,7 @@
   --text-base: 22px;
 }
 
-/* Dark: sports-car's black canvas, near-black cards, hairlines, ice-blue accent; the ink inverts to white. */
+/* Dark: a black canvas, near-black cards, hairlines, ice-blue accent; the ink inverts to white. */
 :root[data-theme="dark"] {
   --color-bg: #000000;
   --color-bg-subtle: #0d0d0d;
@@ -324,7 +324,7 @@
 }
 
 /*
- * translucent glass (Apple, the Regular variant), used by liquid-glass.css. The material is a blurred, saturated view of what
+ * Glass (the regular variant), used by liquid-glass.css. The material is a blurred, saturated view of what
  * is behind it, a tint, a bright rim on the lit side and a dark one opposite, a specular highlight along the top, and a
  * shadow that deepens with size. It is for the layer that floats above the content (header, sidebar, toolbars, sheets,
  * dialogs, toasts), never for the content itself, and never on top of other glass: controls placed on glass use the
@@ -348,7 +348,7 @@
   --lg-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.05), 0 6px 16px rgb(0 0 0 / 0.07);
   --lg-shadow-md: 0 2px 6px rgb(0 0 0 / 0.06), 0 14px 34px rgb(0 0 0 / 0.1);
   --lg-shadow-lg: 0 4px 12px rgb(0 0 0 / 0.08), 0 28px 70px rgb(0 0 0 / 0.18);
-  /* Colour for the glass to pick up: faint pools of the four roles on the canvas (Apple's ambient colour) */
+  /* Colour for the glass to pick up: faint pools of the four roles on the canvas (an ambient colour) */
   --lg-ambient:
     radial-gradient(60rem 38rem at 8% -8%, rgb(18 67 178 / 0.11), transparent 62%),
     radial-gradient(52rem 36rem at 96% 6%, rgb(92 43 152 / 0.1), transparent 62%),

@@ -4,7 +4,7 @@
  */
 export type Theme = "light" | "dark" | "system";
 export type TextSize = "18" | "20" | "22";
-/** translucent glass: translucent, blurred surfaces ("on", the default) or plain solid ones ("off", like Reduce Transparency). */
+/** Glass: translucent, blurred surfaces ("on", the default) or plain solid ones ("off", like Reduce Transparency). */
 export type Glass = "on" | "off";
 const GLASS_KEY = "vt-glass";
 const KEY = "vt-theme";
