@@ -2,6 +2,7 @@ package com.vacancytracker.collection.adapter.himalayas;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vacancytracker.collection.adapter.AdapterDates;
 import com.vacancytracker.collection.adapter.FetchOutcome;
 import com.vacancytracker.collection.adapter.RawPosting;
 import com.vacancytracker.collection.adapter.SourceAdapter;
@@ -13,7 +14,6 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -111,8 +111,7 @@ public class HimalayasAdapter implements SourceAdapter {
                 decimal(job.path("maxSalary")),
                 job.hasNonNull("currency") ? job.get("currency").asText() : null,
                 null,
-                job.hasNonNull("pubDate") && job.get("pubDate").canConvertToLong()
-                        ? Instant.ofEpochSecond(job.get("pubDate").asLong()) : null);
+                AdapterDates.fromNode(job.path("pubDate")));
     }
 
     private static String locations(JsonNode restrictions) {

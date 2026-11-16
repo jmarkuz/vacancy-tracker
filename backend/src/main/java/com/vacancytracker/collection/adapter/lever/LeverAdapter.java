@@ -2,6 +2,7 @@ package com.vacancytracker.collection.adapter.lever;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vacancytracker.collection.adapter.AdapterDates;
 import com.vacancytracker.collection.adapter.FetchOutcome;
 import com.vacancytracker.collection.adapter.RawPosting;
 import com.vacancytracker.collection.adapter.SourceAdapter;
@@ -11,7 +12,6 @@ import com.vacancytracker.collection.http.UpstreamException;
 import com.vacancytracker.collection.normalize.Normalizer;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -108,7 +108,7 @@ public class LeverAdapter implements SourceAdapter {
                 decimal(salary.path("max")),
                 salary.hasNonNull("currency") ? salary.get("currency").asText() : null,
                 salary.hasNonNull("interval") ? salary.get("interval").asText() : null,
-                p.hasNonNull("createdAt") ? Instant.ofEpochMilli(p.get("createdAt").asLong()) : null,
+                AdapterDates.fromNode(p.path("createdAt")),
                 p.hasNonNull("country") ? p.get("country").asText() : null);
     }
 

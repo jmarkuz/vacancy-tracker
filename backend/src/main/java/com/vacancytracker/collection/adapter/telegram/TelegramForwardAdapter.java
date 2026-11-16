@@ -2,6 +2,7 @@ package com.vacancytracker.collection.adapter.telegram;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vacancytracker.collection.adapter.AdapterDates;
 import com.vacancytracker.collection.adapter.FetchOutcome;
 import com.vacancytracker.collection.adapter.RawPosting;
 import com.vacancytracker.collection.adapter.SourceAdapter;
@@ -141,9 +142,9 @@ public class TelegramForwardAdapter implements SourceAdapter {
         String source = "Telegram";
         String url = null;
         String externalId = "msg:" + message.path("chat").path("id").asText() + ":" + message.path("message_id").asText();
-        Instant posted = Instant.ofEpochSecond(message.path("date").asLong());
+        Instant posted = AdapterDates.fromEpoch(message.path("date").asLong());
         if (!origin.isMissingNode()) {
-            posted = Instant.ofEpochSecond(origin.path("date").asLong(message.path("date").asLong()));
+            posted = AdapterDates.fromEpoch(origin.path("date").asLong(message.path("date").asLong()));
             JsonNode chat = origin.path("chat");
             if ("channel".equals(origin.path("type").asText())) {
                 source = chat.path("title").asText(source);

@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vacancytracker.collection.adapter.RawPosting;
 import java.time.Clock;
-import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /** Field mapping of the Jobicy payload, without a network or a database. */
