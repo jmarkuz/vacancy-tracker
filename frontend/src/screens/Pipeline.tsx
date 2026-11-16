@@ -22,6 +22,7 @@ import { FitBadge } from "../components/FitBadge";
 import { ColumnResizer } from "../components/ColumnResizer";
 import { pure } from "../components/pure";
 import { parseSort } from "../domain/sort";
+import { PINNED_COLUMN, resolveColumnIds } from "../domain/columnPrefs";
 import { loadWidths, saveWidths, widthOf, withoutWidth, withWidth, type Widths } from "../domain/columnWidths";
 
 const PAGE_SIZE = 100;
@@ -340,7 +341,10 @@ function applyView(view: SavedView | null): void {
     view: view.id,
     filter: serializeCriteria(project(view.criteria)),
     sort: view.sort,
-    cols: view.visibleColumns.length ? view.visibleColumns.join(",") : null,
+    // A view saved before a column was removed may list ids that no longer exist: they are dropped here.
+    cols: view.visibleColumns.some((id) => COLUMN_IDS.includes(id.trim()))
+      ? resolveColumnIds(view.visibleColumns, COLUMN_IDS, DEFAULT_COLUMNS).join(",")
+      : null,
     page: null,
   });
 }
@@ -393,12 +397,13 @@ const VacancyCard = pure(({ v, fit, onOpen }: { v: Vacancy; fit: ResumeFit | und
 ));
 
 
-/** Unknown column ids in the URL are ignored; at least one column always shows. */
+/** The columns of the address: unknown and repeated ids are ignored, the title always shows, nothing left means the defaults. */
 function resolveColumns(raw: string | null): Column[] {
-  const ids = raw ? raw.split(",") : DEFAULT_COLUMNS;
-  const picked = COLUMNS.filter((c) => ids.includes(c.id));
-  return picked.length > 0 ? picked : COLUMNS.filter((c) => DEFAULT_COLUMNS.includes(c.id));
+  const ids = resolveColumnIds(raw, COLUMN_IDS, DEFAULT_COLUMNS);
+  return COLUMNS.filter((c) => ids.includes(c.id));
 }
+
+const COLUMN_IDS = COLUMNS.map((c) => c.id);
 
 /** The table is at least as wide as its columns, so a narrow window scrolls sideways instead of squeezing them. */
 export function tableMinWidth(columns: Column[], widths: Widths): number {
@@ -447,12 +452,8 @@ function ColumnPicker({ selected }: { selected: Column[] }) {
   const selectedIds = selected.map((c) => c.id);
   const toggle = (id: string, on: boolean) => {
     const next = on ? [...selectedIds, id] : selectedIds.filter((x) => x !== id);
-    if (next.length === 0) {
-      return;
-    }
     // Keep the table's column order, not the click order.
-    const ordered = COLUMNS.map((c) => c.id).filter((x) => next.includes(x));
-    setQuery({ cols: ordered.join(",") });
+    setQuery({ cols: resolveColumnIds(next, COLUMN_IDS, DEFAULT_COLUMNS).join(",") });
   };
   return (
     <details class="column-picker">
@@ -467,7 +468,7 @@ function ColumnPicker({ selected }: { selected: Column[] }) {
             <input
               type="checkbox"
               checked={selectedIds.includes(c.id)}
-              disabled={selectedIds.includes(c.id) && selectedIds.length === 1}
+              disabled={c.id === PINNED_COLUMN}
               onChange={(e) => toggle(c.id, (e.target as HTMLInputElement).checked)}
             />
             {c.label}

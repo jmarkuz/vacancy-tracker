@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { project } from "./ViewBar";
+import { project, savedColumns } from "./ViewBar";
+
+describe("savedColumns", () => {
+  it("stores the columns the table shows: no stale ids, no repeats, the title always", () => {
+    expect(savedColumns("salary,gone,salary")).toEqual(["title", "salary"]);
+  });
+
+  it("stores nothing when the address has no choice, so the view keeps following the defaults", () => {
+    expect(savedColumns(null)).toEqual([]);
+    expect(savedColumns("")).toEqual([]);
+  });
+});
 
 describe("project", () => {
   it("keeps only field, operator and value, so server-only fields do not count as changes", () => {

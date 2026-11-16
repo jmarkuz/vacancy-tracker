@@ -311,6 +311,35 @@ describe("Pipeline: cells of every value shape", () => {
   });
 });
 
+describe("Pipeline: the columns in the address", () => {
+  const headers = () => [...host.querySelectorAll("thead th:not(.check-col)")].map((th) => th.className.match(/col-(\w+)/)?.[1]);
+
+  it("ignores unknown and repeated ids and falls back to the defaults when none is known", async () => {
+    items = [row(1)];
+    total = 1;
+    await show("cols=company,gone,company, status ");
+    expect(headers()).toEqual(["title", "company", "status"]);
+
+    await show("cols=gone,removed");
+    expect(headers()).toEqual(["title", "company", "status", "location", "salary", "lastSeenAt"]);
+
+    await show("cols=");
+    expect(headers()).toEqual(["title", "company", "status", "location", "salary", "lastSeenAt"]);
+  });
+
+  it("always shows the title column, because it holds the button that opens a vacancy", async () => {
+    items = [row(1)];
+    total = 1;
+    await show("cols=salary");
+
+    expect(headers()).toEqual(["title", "salary"]);
+    expect(host.querySelector("tbody .row-open")).not.toBeNull();
+    const pinned = [...host.querySelectorAll(".column-picker input")].find((i) => i.parentElement?.textContent?.trim() === "Title") as HTMLInputElement;
+    expect(pinned.checked).toBe(true);
+    expect(pinned.disabled).toBe(true);
+  });
+});
+
 describe("Pipeline: the sort in the address", () => {
   const requested = () => (fetch as unknown as { mock: { calls: string[][] } }).mock.calls.map((c) => c[0]).filter((u) => u.startsWith("/api/vacancies"));
   const ariaSort = (id: string) => host.querySelector(`thead th.col-${id}`)?.getAttribute("aria-sort");
