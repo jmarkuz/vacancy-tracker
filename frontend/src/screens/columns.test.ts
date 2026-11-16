@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { formatDate, formatSalary } from "./columns";
+import { clip, formatDate, formatSalary } from "./columns";
+import { priorityLabel, tagsText, workModeLabel } from "../domain/cells";
 import type { Vacancy } from "../api/types";
 
 function vacancy(overrides: Partial<Vacancy>): Vacancy {
@@ -82,6 +83,56 @@ describe("formatSalary", () => {
 
   it("shows a large amount in full", () => {
     expect(formatSalary(vacancy({ salaryMin: 1234567, salaryMax: 1234567, currency: "JPY" }))).toMatch(/^1.234.567 JPY$/);
+  });
+});
+
+describe("workModeLabel", () => {
+  it("writes the three modes the collection stores the same way whatever the source spelled", () => {
+    expect(workModeLabel("remote")).toBe("Remote");
+    expect(workModeLabel("hybrid")).toBe("Hybrid");
+    expect(workModeLabel("onsite")).toBe("On-site");
+    for (const given of ["On-site", "on site", "ON_SITE", " Onsite "]) {
+      expect(workModeLabel(given)).toBe("On-site");
+    }
+    expect(workModeLabel("REMOTE")).toBe("Remote");
+  });
+
+  it("shows any other value as given with a capital, and nothing as a dash", () => {
+    expect(workModeLabel("flexible")).toBe("Flexible");
+    expect(workModeLabel(null)).toBe("-");
+    expect(workModeLabel(undefined)).toBe("-");
+    expect(workModeLabel("  ")).toBe("-");
+  });
+});
+
+describe("priorityLabel", () => {
+  it("names the three priorities and shows nothing as a dash", () => {
+    expect(priorityLabel(1)).toBe("1 · high");
+    expect(priorityLabel(2)).toBe("2 · medium");
+    expect(priorityLabel(3)).toBe("3 · low");
+    expect(priorityLabel(null)).toBe("-");
+  });
+
+  it("shows a number outside 1 to 3 as it is", () => {
+    expect(priorityLabel(7)).toBe("7");
+    expect(priorityLabel(Number.NaN)).toBe("-");
+  });
+});
+
+describe("tagsText", () => {
+  it("joins the tags, skips blank ones and shows no tags as a dash", () => {
+    expect(tagsText(["remote", " ", "java"])).toBe("remote, java");
+    expect(tagsText([])).toBe("-");
+    expect(tagsText(undefined)).toBe("-");
+  });
+});
+
+describe("clip", () => {
+  it("shows a blank text as a dash and keeps the full text in the tooltip", () => {
+    const blank = clip("   ") as { props: { children: string; title: string } };
+    expect(blank.props.children).toBe("-");
+    const text = clip(" Berlin ") as { props: { children: string; title: string } };
+    expect(text.props.title).toBe("Berlin");
   });
 });
 

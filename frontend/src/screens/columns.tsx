@@ -1,7 +1,7 @@
 import type { ComponentChildren } from "preact";
 import { StatusBadge } from "../components/StatusBadge";
 import type { Vacancy } from "../api/types";
-import { formatDate, formatSalary, textOrDash } from "../domain/cells";
+import { formatDate, formatSalary, priorityLabel, tagsText, textOrDash, workModeLabel } from "../domain/cells";
 
 export interface Column {
   id: string;
@@ -26,7 +26,7 @@ export const COLUMNS: Column[] = [
   { id: "company", label: "Company", sortKey: "company", render: (v) => clip(v.company) },
   { id: "status", label: "Status", sortKey: "status", render: (v) => <StatusBadge status={v.status} /> },
   { id: "location", label: "Location", sortKey: "location", render: (v) => clip(v.location) },
-  { id: "workMode", label: "Work mode", sortKey: "workMode", render: (v) => v.workMode ?? "-" },
+  { id: "workMode", label: "Work mode", sortKey: "workMode", render: (v) => workModeLabel(v.workMode) },
   {
     id: "salary",
     label: "Salary",
@@ -34,7 +34,7 @@ export const COLUMNS: Column[] = [
     numeric: true,
     render: (v) => <span class="num">{formatSalary(v)}</span>,
   },
-  { id: "priority", label: "Priority", sortKey: "priority", numeric: true, render: (v) => v.priority ?? "-" },
+  { id: "priority", label: "Priority", sortKey: "priority", render: (v) => priorityLabel(v.priority) },
   {
     id: "nextActionAt",
     label: "Next action",
@@ -53,7 +53,7 @@ export const COLUMNS: Column[] = [
     sortKey: "postedAt",
     render: (v) => <span class="num">{formatDate(v.postedAt ?? null)}</span>,
   },
-  { id: "tags", label: "Tags", render: (v) => clip(v.tags.length ? v.tags.join(", ") : null) },
+  { id: "tags", label: "Tags", render: (v) => clip(tagsText(v.tags)) },
 ];
 
 export const DEFAULT_COLUMNS = ["title", "company", "status", "location", "salary", "lastSeenAt"];

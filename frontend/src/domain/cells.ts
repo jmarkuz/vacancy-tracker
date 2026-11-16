@@ -60,6 +60,37 @@ export function formatSalary(v: Pick<Vacancy, "salaryMin" | "salaryMax" | "curre
   return `${range}${currency ? ` ${currency}` : ""}${period ? ` / ${period}` : ""}`;
 }
 
+const WORK_MODES: Record<string, string> = { remote: "Remote", hybrid: "Hybrid", onsite: "On-site" };
+
+/**
+ * The work mode as the collection stores it ("remote", "hybrid", "onsite"), written for people. Imports and old data
+ * may hold other spellings ("On-site", "on site") or other words, which are shown as given.
+ */
+export function workModeLabel(mode: string | null | undefined): string {
+  const text = mode?.trim();
+  if (!text) {
+    return "-";
+  }
+  return WORK_MODES[text.toLowerCase().replace(/[\s_-]+/g, "")] ?? text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+const PRIORITY_NAMES: Record<number, string> = { 1: "high", 2: "medium", 3: "low" };
+
+/** Priority 1 to 3 with its name (the drawer's words, so "1" is never a guess); other numbers as they are. */
+export function priorityLabel(priority: number | null | undefined): string {
+  if (typeof priority !== "number" || !Number.isFinite(priority)) {
+    return "-";
+  }
+  const name = PRIORITY_NAMES[priority];
+  return name ? `${priority} · ${name}` : String(priority);
+}
+
+/** The tags in one line; blank tags are skipped and no tags is a dash. */
+export function tagsText(tags: string[] | null | undefined): string {
+  const shown = (tags ?? []).map((t) => t.trim()).filter(Boolean);
+  return shown.length ? shown.join(", ") : "-";
+}
+
 /** Long text for a clipped cell: surrounding blanks go, and nothing left is shown as a dash. */
 export function textOrDash(text: string | null | undefined): string {
   return text?.trim() || "-";

@@ -260,6 +260,32 @@ describe("Pipeline: the dense table", () => {
   });
 });
 
+describe("Pipeline: cells of every value shape", () => {
+  const cell = (id: string) => host.querySelector(`tbody td.col-${id}`)?.textContent;
+
+  it("writes the stored work mode and priority for people and empty ones as a dash", async () => {
+    items = [{ ...row(1), priority: 1 as never }, { ...row(2), workMode: null as never, tags: [] }];
+    total = 2;
+    await show("cols=title,workMode,priority,tags");
+
+    expect(cell("workMode")).toBe("Remote");
+    expect(cell("priority")).toBe("1 · high");
+    const second = host.querySelectorAll("tbody tr")[1];
+    expect(second.querySelector("td.col-workMode")?.textContent).toBe("-");
+    expect(second.querySelector("td.col-priority")?.textContent).toBe("-");
+    expect(second.querySelector("td.col-tags")?.textContent).toBe("-");
+  });
+
+  it("does not break the table for a date it cannot read or a salary of zero", async () => {
+    items = [{ ...row(1), lastSeenAt: "garbage", salaryMin: 0 as never, salaryMax: 0 as never }];
+    total = 1;
+    await show();
+
+    expect(cell("lastSeenAt")).toBe("-");
+    expect(cell("salary")).toBe("Not specified");
+  });
+});
+
 describe("Pipeline: resizable columns", () => {
   const handle = (label: string) => host.querySelector(`[role="separator"][aria-label="Resize ${label} column"]`) as HTMLElement;
   const colOf = (id: string) => {
