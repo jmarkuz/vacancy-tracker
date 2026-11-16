@@ -1,4 +1,4 @@
-import type { FunnelStage, ReplyOutcomes, Week } from "../api/dashboard";
+import type { FunnelStage, ReplyOutcomes, TopMatch, Week } from "../api/dashboard";
 import { serializeCriteria } from "./criteria";
 
 /** The statuses of a vacancy the user is working on. Keep in sync with DashboardService.ACTIVE. */
@@ -96,3 +96,15 @@ export function outcomeRows(o: ReplyOutcomes): OutcomeRow[] {
 
 /** The period in words: "the last 30 days". */
 export const periodText = (days: number) => `the last ${days} days`;
+
+/**
+ * A score of 100 can come from one stated fact (the other rules had no value in the posting and were skipped), so a
+ * top match whose coverage is below 100 says so. Scores made before coverage existed have none and are not flagged.
+ */
+export function isPartial(m: Pick<TopMatch, "coverage">): boolean {
+  return typeof m.coverage === "number" && m.coverage < 100;
+}
+
+export function scoreLabel(m: Pick<TopMatch, "score" | "coverage">): string {
+  return isPartial(m) ? `Score ${m.score}, based on ${m.coverage} percent of your rules` : `Score ${m.score}`;
+}

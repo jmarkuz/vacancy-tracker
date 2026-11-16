@@ -115,11 +115,12 @@ public class MatchService {
                     .orElseGet(() -> Scorer.score(profile.criteria(), result,
                             companyLists.verdict(profile.id(), vacancy.getCompany()), allowlistBonus));
             matches.upsert(new VacancyMatch(vacancyId, profile.id(), profile.version(), outcome.score(),
-                    outcome.hidden(), outcome.reasons(), clock.instant()));
+                    outcome.hidden(), outcome.reasons(), clock.instant(), outcome.coverage()));
             applicable.add(profile);
         }
         matches.deleteExcept(vacancyId, applicable.stream().map(SearchProfile::id).toList());
-        vacancies.updateMatchScore(vacancyId, matches.bestScore(vacancyId).orElse(null));
+        VacancyMatchRepository.Best best = matches.best(vacancyId).orElse(null);
+        vacancies.updateMatchScore(vacancyId, best == null ? null : best.score(), best == null ? null : best.coverage());
         List<VacancyMatch> stored = matches.findForVacancy(vacancyId);
         applyInboxRule(vacancy, applicable, stored);
         return stored;
@@ -151,7 +152,12 @@ public class MatchService {
         }
     }
 
-    /** With no applicable profile there is nothing to filter by. Otherwise one acceptance is enough. */
+    /**
+     * With no applicable profile there is nothing to filter by. Otherwise one acceptance is enough: a profile that did
+     * not filter the vacancy out and scored it at its threshold, or one that could not judge it at all. A profile whose
+     * scoring rules all lack a value in this posting (or that has only filters) gives a score of 0 on no evidence, and
+     * "ignore" is meant to keep such a vacancy visible, so it is accepted whatever the threshold.
+     */
     private static boolean accepted(List<SearchProfile> applicable, List<VacancyMatch> stored) {
         if (applicable.isEmpty()) {
             return true;
@@ -160,6 +166,7 @@ public class MatchService {
                 .collect(Collectors.toMap(SearchProfile::id, p -> p.thresholds().inboxMinScore(), (a, b) -> a));
         return stored.stream().anyMatch(m -> !m.hidden() && m.score() != null
                 && (m.score() >= minScores.getOrDefault(m.profileId(), Integer.MAX_VALUE)
+                || Integer.valueOf(0).equals(m.coverage())
                 || m.reasons().stream().anyMatch(r -> "allowlist".equals(r.kind()))));
     }
 

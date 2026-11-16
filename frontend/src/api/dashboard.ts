@@ -5,6 +5,8 @@ export interface TopMatch {
   title: string;
   company: string;
   score: number;
+  /** Share (0-100) of the profile's scoring rules the posting could be judged by; absent for older scores. */
+  coverage?: number | null;
 }
 
 export interface NextAction {

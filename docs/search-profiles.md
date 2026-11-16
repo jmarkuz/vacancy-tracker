@@ -147,6 +147,8 @@ Clarifications (T-052, ADR-025):
 - Integer arithmetic is used: `score = min(100, (200 * max(0, raw + absorb) + denominator) / (2 * denominator))`.
 - A filtered vacancy has no score (stored as null with `hidden = true`); its reasons list the filters.
 
+**Coverage** (ADR-055) is stored next to the score: `round(100 * (maxPositive + maxNegativeAbsorb) / (weight of all prefer and avoid criteria))`, so a posting that states one of four wished-for facts scores 100 on it with a coverage of about 25. It is 0 when there is nothing to judge by (only filters, or every value missing); a filtered vacancy has none. The Dashboard's Top matches skips coverage 0, orders equal scores by coverage and marks a coverage below 100.
+
 Properties:
 - Deterministic: same vacancy, profile version and rules always give the same score.
 - Monotonic: adding a satisfied prefer criterion never lowers the score.
@@ -173,7 +175,7 @@ Plain-language rendering uses the criterion `label` when set, otherwise a genera
 
 | Threshold | Meaning |
 |---|---|
-| `inboxMinScore` | Below it, the vacancy is `Hidden` (still visible via the "hidden by score" filter). Default 40 |
+| `inboxMinScore` | Below it, the vacancy is `Hidden` (still visible via the "hidden by score" filter). Default 40. A profile that could judge nothing (coverage 0: only filters, or every scored value missing) accepts the vacancy whatever the threshold |
 | `notifyMinScore` | Minimum score for a vacancy to appear in the Telegram digest. Default 70 |
 | `maxAgeDays` | A vacancy whose source dates the posting as older than this is filtered out for this profile (reason "posted N days ago"; shown in the preview too). A vacancy without a posting date is never filtered by age: the date is not guessed. Default 60 |
 

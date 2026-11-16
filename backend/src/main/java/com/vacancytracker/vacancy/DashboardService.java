@@ -40,7 +40,11 @@ public class DashboardService {
     static final int TOP = 5;
     static final int NEXT_ACTIONS = 5;
 
-    public record TopMatch(UUID id, String title, String company, int score) {
+    /**
+     * coverage: the share of the profile's scoring rules the posting could be judged by (null for scores made before it
+     * existed). A score of 100 with a coverage of 25 means one stated fact matched and the rest are not stated.
+     */
+    public record TopMatch(UUID id, String title, String company, int score, Integer coverage) {
     }
 
     public record NextAction(UUID id, String title, String company, String status, Instant dueAt, String note, boolean overdue) {
@@ -86,11 +90,15 @@ public class DashboardService {
         long overdue = jdbc.sql("SELECT count(*) FROM vacancy WHERE status = ANY (:active) AND next_action_at < :now")
                 .param("active", active).param("now", java.sql.Timestamp.from(now)).query(Long.class).single();
 
-        List<TopMatch> top = jdbc.sql("SELECT id, title, company, match_score FROM vacancy WHERE status = 'New' AND match_score IS NOT NULL"
-                        + " ORDER BY match_score DESC, last_seen_at DESC, id LIMIT :n")
+        // A coverage of 0 means no rule of the profile could be judged (only filters, or every value missing): the score
+        // 0 is not a ranking, so the vacancy is left out. Among equal scores the one judged by more of its rules comes
+        // first, so a full match is not outranked by a posting that merely states less.
+        List<TopMatch> top = jdbc.sql("SELECT id, title, company, match_score, match_coverage FROM vacancy"
+                        + " WHERE status = 'New' AND match_score IS NOT NULL AND (match_coverage IS NULL OR match_coverage > 0)"
+                        + " ORDER BY match_score DESC, match_coverage DESC NULLS LAST, last_seen_at DESC, id LIMIT :n")
                 .param("n", TOP)
                 .query((rs, i) -> new TopMatch(rs.getObject("id", UUID.class), rs.getString("title"), rs.getString("company"),
-                        rs.getBigDecimal("match_score").intValue()))
+                        rs.getBigDecimal("match_score").intValue(), (Integer) rs.getObject("match_coverage")))
                 .list();
 
         List<NextAction> next = jdbc.sql("SELECT id, title, company, status, next_action_at, next_action_note FROM vacancy"

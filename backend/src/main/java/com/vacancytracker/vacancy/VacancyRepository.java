@@ -280,11 +280,15 @@ public class VacancyRepository {
                 .list();
     }
 
-    /** The derived best score across profiles; null when no profile gives the vacancy a score. */
-    public void updateMatchScore(UUID vacancyId, Integer score) {
-        jdbc.sql("UPDATE vacancy SET match_score = :score WHERE id = :id")
+    /**
+     * The derived best score across profiles and the coverage behind it; null when no profile gives the vacancy a
+     * score (the coverage is null then too, and for scores made before coverage existed).
+     */
+    public void updateMatchScore(UUID vacancyId, Integer score, Integer coverage) {
+        jdbc.sql("UPDATE vacancy SET match_score = :score, match_coverage = :coverage WHERE id = :id")
                 .param("id", vacancyId)
                 .param("score", score)
+                .param("coverage", coverage)
                 .update();
     }
 
