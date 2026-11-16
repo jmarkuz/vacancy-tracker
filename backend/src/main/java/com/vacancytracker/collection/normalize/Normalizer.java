@@ -52,7 +52,7 @@ public final class Normalizer {
                 title,
                 company,
                 location,
-                CountryDetector.detect(location).orElse(null),
+                CountryDetector.fromField(raw.country()).or(() -> CountryDetector.detect(location)).orElse(null),
                 workMode,
                 description,
                 hasSalary ? (min != null ? min : max) : null,

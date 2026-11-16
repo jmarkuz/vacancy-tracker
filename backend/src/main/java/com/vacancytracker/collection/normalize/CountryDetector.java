@@ -24,6 +24,7 @@ public final class CountryDetector {
             "uk", "GB", "u.k.", "GB", "great britain", "GB", "england", "GB", "scotland", "GB",
             "usa", "US", "u.s.", "US", "u.s.a.", "US", "us", "US", "czech republic", "CZ");
     private static final Set<String> EXCLUDED = Set.of("georgia", "granada", "jersey");
+    private static final Set<String> ISO_CODES = Set.of(Locale.getISOCountries());
     private static final Map<String, String> BY_NAME = build();
 
     private CountryDetector() {
@@ -45,6 +46,18 @@ public final class CountryDetector {
             found = code;
         }
         return Optional.ofNullable(found);
+    }
+
+    /** The country a source states in a field of its own: an ISO 3166 code ("DE", "de") or a country name. */
+    public static Optional<String> fromField(String value) {
+        if (value == null || value.isBlank()) {
+            return Optional.empty();
+        }
+        String text = value.strip();
+        if (text.length() == 2 && ISO_CODES.contains(text.toUpperCase(Locale.ROOT))) {
+            return Optional.of(text.toUpperCase(Locale.ROOT));
+        }
+        return detect(text);
     }
 
     private static Map<String, String> build() {

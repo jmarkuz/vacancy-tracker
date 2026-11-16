@@ -168,4 +168,16 @@ class NormalizerTest {
         assertThat(n.salaryPeriod()).isEqualTo(expected == null || expected.isEmpty() ? null : expected);
         assertThat(n.salaryMin()).isEqualByComparingTo("50");
     }
+
+    @ParameterizedTest
+    @CsvSource({"gb, Leeds, GB", "DE, Remote, DE", "Germany, , DE", "UK, London, GB", "EU, 'Berlin, Germany', DE", "EU, Berlin, ",
+            ", Leeds, "})
+    void aCountryTheSourceStatesApartFromTheLocationIsUsed(String country, String location, String expected) {
+        RawPosting posting = new RawPosting("test", "1", "https://ex.com/jobs/1", "Dev", "Acme", location, null, null,
+                null, null, null, null, null, country);
+
+        String detected = Normalizer.normalize(posting).orElseThrow().country();
+
+        assertThat(detected).isEqualTo(expected == null || expected.isEmpty() ? null : expected);
+    }
 }
