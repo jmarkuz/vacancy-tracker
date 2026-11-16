@@ -104,4 +104,36 @@ class NormalizerTest {
         assertThat(Normalizer.normalize(raw("R&D Lead", "AT&T", null, null, null, null, null, null, null)).orElseThrow().title())
                 .isEqualTo("R&D Lead");
     }
+
+    @Test
+    void aSourceFieldThatNamesNoModeFallsBackToTheText() {
+        assertThat(Normalizer.normalize(raw("Dev", "Acme", "Remote - EU", "unspecified", null, null, null, null, null))
+                .orElseThrow().workMode()).isEqualTo("remote");
+        assertThat(Normalizer.normalize(raw("Dev", "Acme", "Berlin", "", null, null, null, null, null))
+                .orElseThrow().workMode()).isNull();
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', value = {
+            "Senior Java Developer (Remote)|Berlin||remote",
+            "Java Developer - Hybrid|Berlin||hybrid",
+            "Remote Java Developer|Berlin||remote",
+            "Hybrid Cloud Architect|Berlin||",
+            "Remote Sensing Engineer|Berlin||",
+            "Dev|Anywhere||remote",
+            "Dev|Worldwide||remote",
+            "Dev|Remote|We offer a hybrid model|remote",
+            "Dev|Praha / Vzdáleně||remote",
+            "Dev|Київ, віддалено||remote",
+            "Dev|Москва, удалённо||remote",
+            "Dev|Berlin|Homeoffice possible|remote",
+            "Dev|Brno|Hybridní model|hybrid",
+            "Dev|Berlin|This is not a remote position||",
+            "Dev|Berlin|Our hybrid cloud platform||",
+    })
+    void readsTheModeFromTitleAndOtherLanguages(String title, String location, String description, String expected) {
+        NormalizedPosting n = Normalizer.normalize(raw(title, "Acme", location, null, description, null, null, null, null))
+                .orElseThrow();
+        assertThat(n.workMode()).isEqualTo(expected == null || expected.isEmpty() ? null : expected);
+    }
 }

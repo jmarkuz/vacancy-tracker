@@ -27,9 +27,11 @@ public final class Normalizer {
         }
         String location = singleLine(raw.location());
         String description = plainText(raw.description());
-        String workMode = raw.workMode() != null
-                ? normalizeWorkMode(raw.workMode())
-                : detectWorkMode(location, description);
+        // A source's own field wins; when it names no mode ("unspecified") the text is read like any other posting.
+        String workMode = WorkModes.fromField(raw.workMode());
+        if (workMode == null) {
+            workMode = WorkModes.detect(location, title, description);
+        }
 
         BigDecimal min = nonNegative(raw.salaryMin());
         BigDecimal max = nonNegative(raw.salaryMax());
@@ -77,36 +79,6 @@ public final class Normalizer {
         String decoded = value.indexOf('&') >= 0 ? Parser.unescapeEntities(value, false) : value;
         String text = decoded.replaceAll("\\s+", " ").trim();
         return text.isEmpty() ? null : text;
-    }
-
-    static String normalizeWorkMode(String value) {
-        String lower = value.toLowerCase(Locale.ROOT);
-        if (lower.contains("hybrid")) {
-            return "hybrid";
-        }
-        if (lower.contains("remote")) {
-            return "remote";
-        }
-        if (lower.contains("onsite") || lower.contains("on-site") || lower.contains("on site")) {
-            return "onsite";
-        }
-        return detectWorkMode(value, null);
-    }
-
-    /** Looks for work-mode words in the location and description. Hybrid is checked first. */
-    static String detectWorkMode(String location, String description) {
-        String text = ((location == null ? "" : location) + " " + (description == null ? "" : description))
-                .toLowerCase(Locale.ROOT);
-        if (text.contains("hybrid")) {
-            return "hybrid";
-        }
-        if (text.contains("remote")) {
-            return "remote";
-        }
-        if (text.contains("onsite") || text.contains("on-site") || text.contains("on site")) {
-            return "onsite";
-        }
-        return null;
     }
 
     private static BigDecimal nonNegative(BigDecimal value) {

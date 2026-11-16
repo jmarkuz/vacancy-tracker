@@ -22,6 +22,7 @@ All notable changes are recorded here. Format: date, task ID, short description.
 
 ### 2026-11-16 - Collection mapping review
 - Titles, companies and places that a source sends HTML-escaped ("Dev &amp; Ops", "&#8211;") are decoded before they are stored (Normalizer).
+- Work mode is read more completely: a source field that names no mode ("unspecified") no longer hides a mode written in the location; the title ("(Remote)", "- Hybrid"), "Anywhere"/"Worldwide" places and Czech, Ukrainian, Russian, Polish and German words (vzdáleně, віддалено, удалённо, Homeoffice) count; the location outranks the title and the description outranks nothing; "hybrid cloud", "remote sensing" and "not remote" are not read as a mode.
 
 ### 2026-11-13 — UI speed review
 - Fewer requests: the fit scores of the Inbox and Pipeline rows (`useFits`) are asked for once per row. A list that shrinks after a triage, or reloads with the same rows, no longer repeats the request; only new rows are asked for, a failed request is retried, and the list itself never waits for the scores (the server may have to score postings first, so they stay a separate request).
