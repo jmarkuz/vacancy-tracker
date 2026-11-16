@@ -41,6 +41,7 @@ Index:
 - ADR-052 Beacon design, light first
 - ADR-053 Graphite: a calm light look, ink pills and a black dark theme over Beacon
 - ADR-054 Glass surfaces over Graphite
+- ADR-055 Score coverage: a score made on little data says so
 
 ---
 
@@ -836,3 +837,19 @@ Status: Accepted. Restyles ADR-053 without changing layout, markup or the access
 - **Not done:** real lensing (the bending of the background at the edge) and light that moves with the pointer or the device: CSS cannot do either across browsers. The rim, the highlight and the blur stand in for them.
 
 **Consequences.** Secondary controls no longer have the 3:1 outline in the default look: they are told apart by their rim, highlight and shadow, as in other glass interfaces; with Increased contrast (or the in-app switch) the outline is back. `backdrop-filter` costs on weak GPUs, which is why it is limited to a few surfaces and can be switched off. The manual checks named in ADR-052 (screen reader, real 200% zoom) still apply and have not been done for this change.
+
+---
+
+## ADR-055 Score coverage: a score made on little data says so
+
+Status: Accepted.
+
+**Context.** Top matches showed 100 for almost every vacancy. The formula (ADR-025) is as documented: a rule whose value the posting does not state, with the `ignore` policy, takes no part in the score, numerator or denominator. The first-run wizard makes every rule `ignore`, and many postings state no work mode, country or salary, so a posting that matches the one stated fact (the keyword) scores 100 exactly like a posting that matches all of them. A second effect: when no scoring rule could be judged (a profile of filters only, or every value missing) the score is 0, which is below the default `inboxMinScore` of 40, so such vacancies were hidden although "ignore keeps useful vacancies visible".
+
+**Decision.**
+- The score formula and `ignore` do not change (ranking and thresholds stay as users know them). Each match also stores a **coverage**: 100 x (weight of the prefer and avoid rules that were judged) / (weight of all prefer and avoid rules), rounded; 0 when nothing was judged. A penalized missing value counts as judged. `vacancy_match.coverage` and `vacancy.match_coverage` (the coverage of the match that gave the best score) hold it (V29); rows scored earlier have none until a recalculation.
+- The best match is the highest score, and on a tie the higher coverage.
+- **Inbox rule:** a profile that could judge nothing (coverage 0) accepts the vacancy it did not filter out, whatever its threshold.
+- **Top matches:** left out when the best match has coverage 0 (the 0 is not a ranking); equal scores are ordered by coverage; a score with a coverage below 100 reads "Based on N% of your rules: the rest are not stated".
+
+**Consequences.** Scores and thresholds of postings that state their facts are unchanged. Vacancies with scoring rules but no stated values are no longer hidden. Telegram digests still use the score alone, so a posting that matches one stated fact can reach `notifyMinScore`; the digest could use coverage later.

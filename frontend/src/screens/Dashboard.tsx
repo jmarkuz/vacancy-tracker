@@ -1,7 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { getDashboard, type Dashboard as Data } from "../api/dashboard";
 import { listSources, type SourceStatus } from "../api/sources";
-import { barPercent, chartSummary, funnelMax, kpis, quietText, weekLabel, weekMax } from "../domain/dashboard";
+import { barPercent, chartSummary, funnelMax, isPartial, kpis, quietText, scoreLabel, weekLabel, weekMax } from "../domain/dashboard";
 import { healthDetail, healthLabel } from "../domain/sources";
 import { LoadFailed } from "../components/LoadFailed";
 import { RepliesCard } from "../components/RepliesCard";
@@ -92,8 +92,11 @@ export function Dashboard({ dataVersion = 0 }: { dataVersion?: number }) {
                     <a class="meta" href={`#/inbox?open=${m.id}`}>
                       <div>{m.title}</div>
                       <div class="small subtle">{m.company}</div>
+                      {isPartial(m) && (
+                        <div class="small subtle" data-role="partial">Based on {m.coverage}% of your rules: the rest are not stated</div>
+                      )}
                     </a>
-                    <span class="badge score num" aria-label={`Score ${m.score}`}>{m.score}</span>
+                    <span class="badge score num" aria-label={scoreLabel(m)}>{m.score}</span>
                   </li>
                 ))}
               </ul>

@@ -156,3 +156,27 @@ describe("Dashboard: load failure", () => {
     expect(host.textContent).toContain("Top matches");
   });
 });
+
+describe("Dashboard: top matches", () => {
+  it("says when a score rests on part of the profile, and not otherwise", async () => {
+    listSources.mockResolvedValue([]);
+    getDashboard.mockResolvedValue({
+      ...data,
+      topMatches: [
+        { id: "a", title: "States one fact", company: "Acme", score: 100, coverage: 53 },
+        { id: "b", title: "States everything", company: "Beta", score: 100, coverage: 100 },
+        { id: "c", title: "Scored earlier", company: "Gamma", score: 90 },
+      ],
+    });
+
+    await show();
+
+    const rows = Array.from(host.querySelectorAll('ul[aria-label="Top matches"] li'));
+    expect(rows).toHaveLength(3);
+    expect(rows[0].querySelector('[data-role="partial"]')?.textContent).toBe("Based on 53% of your rules: the rest are not stated");
+    expect(rows[0].querySelector(".badge.score")?.getAttribute("aria-label")).toBe("Score 100, based on 53 percent of your rules");
+    expect(rows[1].querySelector('[data-role="partial"]')).toBeNull();
+    expect(rows[1].querySelector(".badge.score")?.getAttribute("aria-label")).toBe("Score 100");
+    expect(rows[2].querySelector('[data-role="partial"]')).toBeNull();
+  });
+});

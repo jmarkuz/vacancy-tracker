@@ -92,6 +92,37 @@ class DashboardServiceTest extends AbstractIntegrationTest {
         assertThat(d.nextActions().get(0).note()).isEqualTo("Do overdue");
     }
 
+    private void coverage(UUID id, Integer coverage) {
+        template.update("UPDATE vacancy SET match_coverage = ? WHERE id = ?", coverage, id);
+    }
+
+    @Test
+    void amongEqualScoresTheVacancyJudgedByMoreOfItsRulesComesFirst() {
+        Instant now = Instant.now();
+        UUID thin = vacancy("states one fact", "New", 100, now, null, null);
+        UUID full = vacancy("states everything", "New", 100, now.minus(3, ChronoUnit.DAYS), null, null);
+        UUID legacy = vacancy("scored before coverage existed", "New", 100, now.minus(5, ChronoUnit.DAYS), null, null);
+        coverage(thin, 25);
+        coverage(full, 100);
+
+        Dashboard d = service.dashboard();
+
+        assertThat(d.topMatches()).extracting(DashboardService.TopMatch::title)
+                .containsExactly("states everything", "states one fact", "scored before coverage existed");
+        assertThat(d.topMatches()).extracting(DashboardService.TopMatch::coverage).containsExactly(100, 25, null);
+        assertThat(legacy).isNotNull();
+    }
+
+    @Test
+    void aScoreMadeOnNoEvidenceIsNotARanking() {
+        Instant now = Instant.now();
+        UUID noEvidence = vacancy("nothing to judge by", "New", 0, now, null, null);
+        coverage(noEvidence, 0);
+        vacancy("judged", "New", 20, now, null, null);
+
+        assertThat(service.dashboard().topMatches()).extracting(DashboardService.TopMatch::title).containsExactly("judged");
+    }
+
     @Test
     void theFunnelCountsEveryVacancyThatReachedAStageOrLater() {
         Instant now = Instant.now();

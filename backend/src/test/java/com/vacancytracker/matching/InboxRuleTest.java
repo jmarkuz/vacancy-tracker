@@ -116,6 +116,39 @@ class InboxRuleTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void aProfileWithOnlyFiltersKeepsTheVacanciesThatPassThem() {
+        // No prefer or avoid rule: the score is 0 on no evidence, and that must not read as "below the threshold".
+        profile("Filters only", 40, c("must", "title", "contains_any", "[\"java\"]", "require", 5));
+        UUID id = vacancy("Java Developer");
+
+        matchService.match(id);
+
+        assertThat(statusOf(id)).isEqualTo(VacancyStatus.NEW);
+        assertThat(history(id)).isEmpty();
+    }
+
+    @Test
+    void aVacancyThatStatesNoValueForTheScoringRulesIsKeptNotHidden() {
+        // The rule needs a salary and "ignore" skips it when the posting states none: "ignore keeps useful vacancies visible".
+        profile("Pay", 40, c("pay", "salary", "gte", "{\"amount\":50000,\"currency\":\"EUR\",\"period\":\"year\"}", "prefer", 5));
+        UUID id = vacancy("Java Developer");
+
+        matchService.match(id);
+
+        assertThat(statusOf(id)).isEqualTo(VacancyStatus.NEW);
+    }
+
+    @Test
+    void aVacancyThatIsJudgedAndScoresBelowTheThresholdIsStillHidden() {
+        profile("Main", 40, java(), c("pay", "salary", "gte", "{\"amount\":50000,\"currency\":\"EUR\",\"period\":\"year\"}", "prefer", 5));
+        UUID id = vacancy("Cobol Developer");   // judged by the keyword (not met); the salary is not stated
+
+        matchService.match(id);
+
+        assertThat(statusOf(id)).isEqualTo(VacancyStatus.HIDDEN);
+    }
+
+    @Test
     void aVacancyThatAProfileFiltersOutIsHidden() {
         profile("Strict", 0, c("ban", "title", "contains_any", "[\"intern\"]", "exclude", 5));
         UUID id = vacancy("Java Intern");

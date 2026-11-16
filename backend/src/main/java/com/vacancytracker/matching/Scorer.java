@@ -16,11 +16,23 @@ import java.util.Optional;
  * avoid criteria. A criterion skipped by "ignore" because its value is missing takes no part at all.
  * score = clamp(round(100 * (positive - negative + bonus + absorb) / (maxPositive + absorb + bonus)), 0, 100).
  * A filtered vacancy has no score. Adding a satisfied prefer criterion never lowers the score.
+ *
+ * coverage = 100 * (maxPositive + absorb) / (weight of all prefer and avoid criteria), rounded: how much of the profile
+ * the posting could be judged by. A posting that states only one of four wished-for facts scores 100 on that one,
+ * with a coverage of 25; the score alone cannot tell it from a posting that satisfies all four. No scoring criteria
+ * at all, or none that the posting gives a value for, is a coverage of 0: there is nothing to rank by.
  */
 public final class Scorer {
 
-    /** score is null when the vacancy is filtered out; reasons explain every change and every filter. */
-    public record ScoreOutcome(Integer score, boolean hidden, List<MatchReason> reasons) {
+    /**
+     * score is null when the vacancy is filtered out; reasons explain every change and every filter. coverage is null
+     * for a filtered vacancy (and for outcomes made without it).
+     */
+    public record ScoreOutcome(Integer score, boolean hidden, List<MatchReason> reasons, Integer coverage) {
+
+        public ScoreOutcome(Integer score, boolean hidden, List<MatchReason> reasons) {
+            this(score, hidden, reasons, null);
+        }
     }
 
     private Scorer() {
@@ -41,6 +53,7 @@ public final class Scorer {
         int negative = 0;
         int maxPositive = 0;
         int absorb = 0;
+        int scoringWeight = 0;
         List<MatchReason> reasons = new ArrayList<>();
         if (list == ListVerdict.BLOCKED) {
             reasons.add(new MatchReason("company-blocklist", 0, "blocklist", "Filtered out: the company is on your blocklist"));
@@ -53,6 +66,9 @@ public final class Scorer {
             CriterionResult r = result.results().get(i);
             int w = r.weight();
             boolean skipped = r.verdict() == Verdict.MISSING && r.effect() == Effect.NONE;
+            if ("prefer".equals(c.mode()) || "avoid".equals(c.mode())) {
+                scoringWeight += w;
+            }
             if (!skipped) {
                 if ("prefer".equals(c.mode())) {
                     maxPositive += w;
@@ -79,13 +95,14 @@ public final class Scorer {
         if (result.hidden() || list == ListVerdict.BLOCKED) {
             return new ScoreOutcome(null, true, List.copyOf(reasons));
         }
+        int coverage = scoringWeight == 0 ? 0 : (200 * (maxPositive + absorb) + scoringWeight) / (2 * scoringWeight);
         int denominator = maxPositive + absorb + bonus;
         if (denominator == 0) {
-            return new ScoreOutcome(0, false, List.copyOf(reasons));
+            return new ScoreOutcome(0, false, List.copyOf(reasons), 0);
         }
         int numerator = Math.max(0, positive - negative + bonus + absorb);
         int score = Math.min(100, (200 * numerator + denominator) / (2 * denominator));
-        return new ScoreOutcome(score, false, List.copyOf(reasons));
+        return new ScoreOutcome(score, false, List.copyOf(reasons), coverage);
     }
 
     /**

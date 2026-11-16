@@ -77,6 +77,56 @@ class ScorerTest {
     }
 
     @Test
+    void coverageTellsHowMuchOfTheProfileThePostingCouldBeJudgedBy() {
+        Criterion keyword = token("kw", "java", "prefer", 8);
+        Criterion mode = c("mode", "workMode", "in", "[\"Remote\"]", "prefer", 4, "ignore", null);
+        Criterion country = c("cty", "country", "in", "[\"UA\"]", "prefer", 3, "ignore", null);
+        List<Criterion> wizard = List.of(keyword, mode, country);
+
+        ScoreOutcome thin = score(wizard, Map.of("title", "java"));
+        ScoreOutcome full = score(wizard, Map.of("title", "java", "workMode", "Remote", "country", "UA"));
+        ScoreOutcome partlyKnown = score(wizard, Map.of("title", "java", "workMode", "On-site"));
+
+        // The same 100 for a posting that states one fact and one that states all three: only coverage tells them apart.
+        assertThat(thin.score()).isEqualTo(100);
+        assertThat(thin.coverage()).isEqualTo(53);   // 8 of 15
+        assertThat(full.score()).isEqualTo(100);
+        assertThat(full.coverage()).isEqualTo(100);
+        assertThat(partlyKnown.score()).isEqualTo(67);   // 8 of 12: the on-site posting did not earn the mode
+        assertThat(partlyKnown.coverage()).isEqualTo(80);   // 12 of 15
+    }
+
+    @Test
+    void aPenalizedMissingValueIsJudgedSoItCountsAsCovered() {
+        Criterion keyword = token("kw", "java", "prefer", 5);
+        Criterion salary = c("sal", "salary", "gte", "{\"amount\":50000,\"currency\":\"EUR\",\"period\":\"year\"}",
+                "prefer", 5, "penalize", null);
+
+        assertThat(score(List.of(keyword, salary), Map.of("title", "java")).coverage()).isEqualTo(100);
+    }
+
+    @Test
+    void withNothingToJudgeByCoverageIsZero() {
+        Criterion salary = c("sal", "salary", "gte", "{\"amount\":50000,\"currency\":\"EUR\",\"period\":\"year\"}",
+                "prefer", 5, "ignore", null);
+        Criterion must = c("must", "country", "in", "[\"DE\"]", "require", 5, null, null);
+
+        assertThat(score(List.of(salary), Map.of("title", "java")).coverage()).isZero();    // every value missing
+        assertThat(score(List.of(must), Map.of("country", "DE")).coverage()).isZero();      // filters only
+        assertThat(score(List.of(), Map.of()).coverage()).isZero();
+    }
+
+    @Test
+    void aFilteredVacancyHasNoCoverage() {
+        Criterion block = c("ex", "title", "contains_any", "[\"cobol\"]", "exclude", 5, null, null);
+
+        ScoreOutcome outcome = score(List.of(block), Map.of("title", "cobol dev"));
+
+        assertThat(outcome.hidden()).isTrue();
+        assertThat(outcome.coverage()).isNull();
+    }
+
+    @Test
     void aPenalizedMissingValueCountsAgainstTheVacancy() {
         Criterion keyword = token("kw", "java", "prefer", 5);
         Criterion salary = c("sal", "salary", "gte", "{\"amount\":50000,\"currency\":\"EUR\",\"period\":\"year\"}",

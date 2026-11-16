@@ -118,3 +118,17 @@ describe("reply statistics", () => {
     expect(periodText(30)).toBe("the last 30 days");
   });
 });
+
+describe("top matches with partial data", () => {
+  it("flags a score that rests on part of the profile only", async () => {
+    const { isPartial, scoreLabel } = await import("./dashboard");
+
+    expect(isPartial({ coverage: 53 })).toBe(true);
+    expect(isPartial({ coverage: 100 })).toBe(false);
+    expect(isPartial({ coverage: null })).toBe(false);
+    expect(isPartial({})).toBe(false);
+    expect(scoreLabel({ score: 100, coverage: 53 })).toBe("Score 100, based on 53 percent of your rules");
+    expect(scoreLabel({ score: 80, coverage: 100 })).toBe("Score 80");
+    expect(scoreLabel({ score: 80 })).toBe("Score 80");
+  });
+});

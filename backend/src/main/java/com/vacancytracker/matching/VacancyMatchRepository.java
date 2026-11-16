@@ -28,11 +28,11 @@ class VacancyMatchRepository {
     }
 
     void upsert(VacancyMatch m) {
-        jdbc.sql("INSERT INTO vacancy_match (vacancy_id, profile_id, profile_version, score, hidden, match_reasons, matched_at)"
-                        + " VALUES (:vacancy, :profile, :version, :score, :hidden, CAST(:reasons AS JSONB), :at)"
+        jdbc.sql("INSERT INTO vacancy_match (vacancy_id, profile_id, profile_version, score, hidden, match_reasons, matched_at, coverage)"
+                        + " VALUES (:vacancy, :profile, :version, :score, :hidden, CAST(:reasons AS JSONB), :at, :coverage)"
                         + " ON CONFLICT (vacancy_id, profile_id) DO UPDATE SET profile_version = EXCLUDED.profile_version,"
                         + " score = EXCLUDED.score, hidden = EXCLUDED.hidden, match_reasons = EXCLUDED.match_reasons,"
-                        + " matched_at = EXCLUDED.matched_at")
+                        + " matched_at = EXCLUDED.matched_at, coverage = EXCLUDED.coverage")
                 .param("vacancy", m.vacancyId())
                 .param("profile", m.profileId())
                 .param("version", m.profileVersion())
@@ -40,6 +40,7 @@ class VacancyMatchRepository {
                 .param("hidden", m.hidden())
                 .param("reasons", json(m.reasons()))
                 .param("at", OffsetDateTime.ofInstant(m.matchedAt(), ZoneOffset.UTC))
+                .param("coverage", m.coverage())
                 .update();
     }
 
@@ -57,23 +58,30 @@ class VacancyMatchRepository {
 
     List<VacancyMatch> findForVacancy(UUID vacancyId) {
         return jdbc.sql("SELECT vacancy_id, profile_id, profile_version, score, hidden, CAST(match_reasons AS TEXT) AS reasons,"
-                        + " matched_at FROM vacancy_match WHERE vacancy_id = :v ORDER BY score DESC NULLS LAST, profile_id")
+                        + " matched_at, coverage FROM vacancy_match WHERE vacancy_id = :v ORDER BY score DESC NULLS LAST, profile_id")
                 .param("v", vacancyId)
                 .query((rs, n) -> new VacancyMatch(rs.getObject("vacancy_id", UUID.class),
                         rs.getObject("profile_id", UUID.class), rs.getInt("profile_version"),
                         (Integer) rs.getObject("score"), rs.getBoolean("hidden"), read(rs.getString("reasons")),
-                        rs.getObject("matched_at", OffsetDateTime.class).toInstant()))
+                        rs.getObject("matched_at", OffsetDateTime.class).toInstant(), (Integer) rs.getObject("coverage")))
                 .list();
     }
 
-    /** The best score across enabled profiles that did not filter the vacancy out. */
-    Optional<Integer> bestScore(UUID vacancyId) {
-        return jdbc.sql("SELECT max(m.score) FROM vacancy_match m JOIN search_profile p ON p.id = m.profile_id"
-                        + " WHERE m.vacancy_id = :v AND NOT m.hidden AND p.enabled")
+    /** The best score across enabled profiles that did not filter the vacancy out, and the coverage behind it. */
+    record Best(Integer score, Integer coverage) {
+    }
+
+    /**
+     * The match that gives the vacancy its score: the highest score; on a tie the one judged by more of its rules.
+     * Empty when no enabled profile scored the vacancy.
+     */
+    Optional<Best> best(UUID vacancyId) {
+        return jdbc.sql("SELECT m.score, m.coverage FROM vacancy_match m JOIN search_profile p ON p.id = m.profile_id"
+                        + " WHERE m.vacancy_id = :v AND NOT m.hidden AND p.enabled"
+                        + " ORDER BY m.score DESC, m.coverage DESC NULLS LAST, m.profile_id LIMIT 1")
                 .param("v", vacancyId)
-                .query((rs, n) -> (Integer) rs.getObject(1))
-                .optional()
-                .map(v -> v);
+                .query((rs, n) -> new Best((Integer) rs.getObject("score"), (Integer) rs.getObject("coverage")))
+                .optional();
     }
 
     private String json(Object value) {
