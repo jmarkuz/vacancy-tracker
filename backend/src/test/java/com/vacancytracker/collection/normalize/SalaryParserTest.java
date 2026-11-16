@@ -20,6 +20,12 @@ class SalaryParserTest {
             "CHF 4.500 per hour|4500|4500|CHF|hour",
             "95.000 EUR annual|95000|95000|EUR|year",
             "18.5 USD per hour|18.5|18.5|USD|hour",
+            "$60/h|60|60|USD|hour",
+            "80 000 – 100 000 Kč měsíčně|80000|100000|CZK|month",
+            "25 000 zł / mies.|25000|25000|PLN|month",
+            "50k-60k грн / міс.|50000|60000|UAH|month",
+            "$100,000 p.a.|100000|100000|USD|year",
+            "35 000 Kč|35000|35000|CZK|null",
     })
     void readsRangesCurrenciesAndPeriods(String text, String min, String max, String currency, String period) {
         var salary = SalaryParser.parse(text).orElseThrow();

@@ -12,6 +12,7 @@ import com.vacancytracker.collection.http.HttpFetcher;
 import com.vacancytracker.collection.http.UpstreamException;
 import com.vacancytracker.collection.normalize.Normalizer;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
@@ -90,6 +91,8 @@ public class JobicyAdapter implements SourceAdapter {
 
     private static RawPosting toPosting(JsonNode job) {
         String html = job.path("jobDescription").asText(null);
+        BigDecimal min = amount(job.path("annualSalaryMin"));
+        BigDecimal max = amount(job.path("annualSalaryMax"));
         return new RawPosting(
                 ID,
                 job.path("id").asText(),
@@ -99,11 +102,29 @@ public class JobicyAdapter implements SourceAdapter {
                 job.path("jobGeo").asText(null),
                 "remote",
                 html == null ? null : Normalizer.plainText(html),
-                null,
-                null,
-                null,
-                null,
+                min,
+                max,
+                min != null || max != null ? currency(job) : null,
+                // The fields are named annual, which is the period they state.
+                min != null || max != null ? "year" : null,
                 AdapterDates.instantOrNull(job.path("pubDate").asText(null)));
+    }
+
+    private static String currency(JsonNode job) {
+        return job.hasNonNull("salaryCurrency") ? job.get("salaryCurrency").asText() : null;
+    }
+
+    /** The feed sends the amounts as numbers or as text; an empty or missing value is no amount. */
+    private static BigDecimal amount(JsonNode node) {
+        if (node.isNumber()) {
+            return node.decimalValue();
+        }
+        String text = node.asText("").replaceAll("[\\s,]", "");
+        try {
+            return text.isEmpty() ? null : new BigDecimal(text);
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
 }

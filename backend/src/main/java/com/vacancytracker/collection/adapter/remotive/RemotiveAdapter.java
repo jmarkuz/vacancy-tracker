@@ -2,6 +2,7 @@ package com.vacancytracker.collection.adapter.remotive;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vacancytracker.collection.adapter.AdapterDates;
 import com.vacancytracker.collection.adapter.FetchOutcome;
 import com.vacancytracker.collection.adapter.RawPosting;
 import com.vacancytracker.collection.adapter.SourceAdapter;
@@ -14,7 +15,6 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
-import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
@@ -113,13 +113,6 @@ public class RemotiveAdapter implements SourceAdapter {
 
     /** Remotive sends local-looking timestamps without a zone; they are read as UTC. */
     static java.time.Instant publishedAt(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        try {
-            return LocalDateTime.parse(value.trim()).toInstant(ZoneOffset.UTC);
-        } catch (java.time.format.DateTimeParseException e) {
-            return null;
-        }
+        return AdapterDates.instantOrNull(value);
     }
 }

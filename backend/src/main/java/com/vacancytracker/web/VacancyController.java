@@ -74,14 +74,13 @@ public class VacancyController {
             criteria.add(new Criterion(null, "status", "equals", TextNode.valueOf(status), "require", null, null, null));
         }
         SqlFragment where = compiler.compile(criteria);
-        List<VacancyResponse> items = service.search(where, VacancySort.parse(sort), page, size).stream()
-                .map(VacancyResponse::from).toList();
+        List<VacancyResponse> items = VacancyResponse.allOf(service, service.search(where, VacancySort.parse(sort), page, size));
         return new PageResponse<>(items, page, size, service.countMatching(where));
     }
 
     @GetMapping("/{id}")
     public VacancyResponse get(@PathVariable UUID id) {
-        return VacancyResponse.from(service.get(id));
+        return VacancyResponse.of(service, service.get(id));
     }
 
     @PostMapping
@@ -93,7 +92,7 @@ public class VacancyController {
 
     @PatchMapping("/{id}")
     public VacancyResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateRequest request) {
-        return VacancyResponse.from(service.update(id, new VacancyService.UpdateCommand(
+        return VacancyResponse.of(service, service.update(id, new VacancyService.UpdateCommand(
                 request.description(), request.notes(), request.contact(), request.priority(), request.tags(),
                 request.nextActionAt(), request.nextActionNote())));
     }
@@ -111,7 +110,7 @@ public class VacancyController {
 
     @PostMapping("/{id}/status")
     public VacancyResponse changeStatus(@PathVariable UUID id, @Valid @RequestBody StatusRequest request) {
-        return VacancyResponse.from(service.changeStatus(id, VacancyStatus.fromLabel(request.status()), request.note()));
+        return VacancyResponse.of(service, service.changeStatus(id, VacancyStatus.fromLabel(request.status()), request.note()));
     }
 
     /** Score and reasons of the vacancy for each profile, best first. */
@@ -157,14 +156,38 @@ public class VacancyController {
             java.math.BigDecimal salaryMin, java.math.BigDecimal salaryMax, String currency, String salaryPeriod,
             String status, Integer priority, String notes, String contact, String nextActionNote, Instant nextActionAt,
             List<String> tags, Set<String> userEditedFields, Instant firstSeenAt, Instant lastSeenAt, boolean isNew,
-            Boolean visaSponsorship, Instant postedAt, GhostResponse ghost) {
+            Boolean visaSponsorship, Instant postedAt, GhostResponse ghost,
+            Integer matchScore, List<String> sources) {
 
+        /** Without the derived facts (score and sources); use {@link #allOf} where they are known. */
         static VacancyResponse from(Vacancy v) {
+            return from(v, null, List.of());
+        }
+
+        /**
+         * matchScore is the best profile score (null when no profile scores the vacancy); sources are the adapter ids
+         * that listed it, earliest first (empty for a vacancy added by hand).
+         */
+        static VacancyResponse from(Vacancy v, Integer matchScore, List<String> sources) {
             return new VacancyResponse(v.getId(), v.getTitle(), v.getCompany(), v.getUrl(), v.getCanonicalUrl(),
                     v.getLocation(), v.getCountry(), v.getWorkMode(), v.getDescription(), v.getSalaryMin(), v.getSalaryMax(), v.getCurrency(), v.getSalaryPeriod(),
                     v.getStatus().label(), v.getPriority(), v.getNotes(), v.getContact(), v.getNextActionNote(),
                     v.getNextActionAt(), v.getTags(), v.getUserEditedFields(), v.getFirstSeenAt(), v.getLastSeenAt(),
-                    v.isNew(), v.getVisaSponsorship(), v.getPostedAt(), GhostResponse.of(v));
+                    v.isNew(), v.getVisaSponsorship(), v.getPostedAt(), GhostResponse.of(v), matchScore, sources);
+        }
+
+        /** The responses of a list of vacancies with their score and sources, read in two queries for the whole list. */
+        static List<VacancyResponse> allOf(VacancyService service, List<Vacancy> vacancies) {
+            List<UUID> ids = vacancies.stream().map(Vacancy::getId).toList();
+            java.util.Map<UUID, Integer> scores = service.matchScoresOf(ids);
+            java.util.Map<UUID, List<String>> sources = service.sourcesOf(ids);
+            return vacancies.stream()
+                    .map(v -> from(v, scores.get(v.getId()), sources.getOrDefault(v.getId(), List.of())))
+                    .toList();
+        }
+
+        static VacancyResponse of(VacancyService service, Vacancy vacancy) {
+            return allOf(service, List.of(vacancy)).get(0);
         }
     }
 

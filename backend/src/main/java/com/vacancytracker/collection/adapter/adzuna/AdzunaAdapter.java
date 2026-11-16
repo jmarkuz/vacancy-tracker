@@ -92,6 +92,14 @@ public class AdzunaAdapter implements SourceAdapter {
     static final Set<String> SUPPORTED_COUNTRIES = Set.of("at", "au", "be", "br", "ca", "ch", "de", "es", "fr",
             "gb", "in", "it", "mx", "nl", "nz", "pl", "sg", "us", "za");
 
+    /** Adzuna states a country's salaries in that country's currency; used when the configuration names none. */
+    static final Map<String, String> DEFAULT_CURRENCIES = Map.ofEntries(
+            Map.entry("at", "EUR"), Map.entry("au", "AUD"), Map.entry("be", "EUR"), Map.entry("br", "BRL"),
+            Map.entry("ca", "CAD"), Map.entry("ch", "CHF"), Map.entry("de", "EUR"), Map.entry("es", "EUR"),
+            Map.entry("fr", "EUR"), Map.entry("gb", "GBP"), Map.entry("in", "INR"), Map.entry("it", "EUR"),
+            Map.entry("mx", "MXN"), Map.entry("nl", "EUR"), Map.entry("nz", "NZD"), Map.entry("pl", "PLN"),
+            Map.entry("sg", "SGD"), Map.entry("us", "USD"), Map.entry("za", "ZAR"));
+
     @Override
     public Set<String> serverSideFields() {
         return Set.of("keywords", "location", "country");
@@ -143,7 +151,7 @@ public class AdzunaAdapter implements SourceAdapter {
     }
 
     private RawPosting toPosting(String country, JsonNode job) {
-        String currency = currencies.get(country);
+        String currency = currencies.getOrDefault(country, DEFAULT_CURRENCIES.get(country));
         // Adzuna fills many results with an estimate (salary_is_predicted = "1"); that is not a stated salary.
         boolean predicted = "1".equals(job.path("salary_is_predicted").asText());
         BigDecimal min = predicted ? null : decimal(job.path("salary_min"));
@@ -162,7 +170,9 @@ public class AdzunaAdapter implements SourceAdapter {
                 currency,
                 // The period is not stated by the docs read in T-027, so it is left unknown rather than guessed.
                 null,
-                AdapterDates.instantOrNull(job.path("created").asText(null)));
+                AdapterDates.instantOrNull(job.path("created").asText(null)),
+                // Each search is for one country's site, so every result is a vacancy of that country.
+                country.toUpperCase(java.util.Locale.ROOT));
     }
 
 

@@ -2,6 +2,7 @@ package com.vacancytracker.collection.adapter.arbeitnow;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vacancytracker.collection.adapter.AdapterDates;
 import com.vacancytracker.collection.adapter.FetchOutcome;
 import com.vacancytracker.collection.adapter.RawPosting;
 import com.vacancytracker.collection.adapter.SourceAdapter;
@@ -9,7 +10,6 @@ import com.vacancytracker.collection.http.FetchResult;
 import com.vacancytracker.collection.http.HttpFetcher;
 import com.vacancytracker.collection.http.UpstreamException;
 import java.io.IOException;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -106,6 +106,6 @@ public class ArbeitnowAdapter implements SourceAdapter {
                 null,
                 null,
                 null,
-                job.hasNonNull("created_at") ? Instant.ofEpochSecond(job.get("created_at").asLong()) : null);
+                AdapterDates.fromNode(job.path("created_at")));
     }
 }

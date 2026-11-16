@@ -2,6 +2,9 @@ import { useEffect, useState } from "preact/hooks";
 import { createView, deleteView, listViews, type SavedView, updateView } from "../api/views";
 import type { Criterion } from "../domain/criteria";
 import { Icon } from "./Icon";
+import { COLUMNS, DEFAULT_COLUMNS } from "../screens/columns";
+import { resolveColumnIds, sameColumns } from "../domain/columnPrefs";
+import { parseSort } from "../domain/sort";
 
 interface Props {
   viewId: string | null;
@@ -15,6 +18,13 @@ interface Props {
 /** Only the parts a view stores, so server-only fields (id, mode) do not count as changes. */
 export function project(criteria: Criterion[]): Criterion[] {
   return criteria.map((c) => (c.value === undefined ? { field: c.field, operator: c.operator } : { field: c.field, operator: c.operator, value: c.value }));
+}
+
+const COLUMN_IDS = COLUMNS.map((c) => c.id);
+
+/** The columns a view stores: the ones the table shows, or nothing when the address has no choice (the defaults). */
+export function savedColumns(cols: string | null): string[] {
+  return cols ? resolveColumnIds(cols, COLUMN_IDS, DEFAULT_COLUMNS) : [];
 }
 
 function sameCriteria(a: Criterion[], b: Criterion[]): boolean {
@@ -37,9 +47,11 @@ export function ViewBar({ viewId, criteria, sort, cols, onApply }: Props) {
   }, []);
 
   const active = viewId ? views.find((v) => v.id === viewId) ?? null : null;
-  const viewCols = active ? active.visibleColumns.join(",") || null : null;
   const dirty =
-    !!active && (!sameCriteria(active.criteria, criteria) || (active.sort ?? null) !== sort || viewCols !== cols);
+    !!active &&
+    (!sameCriteria(active.criteria, criteria) ||
+      parseSort(active.sort).value !== parseSort(sort).value ||
+      !sameColumns(active.visibleColumns, cols, COLUMN_IDS, DEFAULT_COLUMNS));
 
   const run = async (action: () => Promise<unknown>, success: string) => {
     setBusy(true);
@@ -65,8 +77,8 @@ export function ViewBar({ viewId, criteria, sort, cols, onApply }: Props) {
       const created = await createView({
         name: trimmed,
         criteria: project(criteria),
-        sort,
-        visibleColumns: cols ? cols.split(",") : [],
+        sort: sort === null ? null : parseSort(sort).value,
+        visibleColumns: savedColumns(cols),
       });
       setName("");
       onApply(created);
@@ -81,8 +93,8 @@ export function ViewBar({ viewId, criteria, sort, cols, onApply }: Props) {
       const updated = await updateView(active.id, {
         name: active.name,
         criteria: project(criteria),
-        sort,
-        visibleColumns: cols ? cols.split(",") : [],
+        sort: sort === null ? null : parseSort(sort).value,
+        visibleColumns: savedColumns(cols),
       });
       onApply(updated);
     }, "View updated.");

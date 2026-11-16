@@ -453,6 +453,28 @@ td.numeric {
   margin-top: var(--space-2);
 }
 
+.vcard-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin: var(--space-2) 0 0;
+}
+
+.vcard-facts div {
+  display: flex;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.vcard-facts dt {
+  color: var(--color-text-muted, inherit);
+}
+
+.vcard-facts dd {
+  margin: 0;
+  min-width: 0;
+}
+
 .empty-state {
   text-align: center;
 }

@@ -10,6 +10,7 @@ import com.vacancytracker.collection.http.FetchResult;
 import com.vacancytracker.collection.http.HttpFetcher;
 import com.vacancytracker.collection.http.UpstreamException;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -18,7 +19,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Ashby public job board API (T-033). No key is needed. Postings with isListed=false are direct-link
- * only and are not collected (docs). Compensation is not mapped yet.
+ * only and are not collected (docs). The salary component of the compensation is mapped.
  */
 @Component
 public class AshbyAdapter implements SourceAdapter {
@@ -90,6 +91,11 @@ public class AshbyAdapter implements SourceAdapter {
     }
 
     private static RawPosting toPosting(String board, JsonNode job) {
+        JsonNode salary = salaryComponent(job.path("compensation").path("summaryComponents"));
+        String workMode = workMode(job.path("workplaceType").asText(null));
+        if (workMode == null && job.path("isRemote").asBoolean(false)) {
+            workMode = "remote";
+        }
         return new RawPosting(
                 ID,
                 job.path("id").asText(),
@@ -97,13 +103,29 @@ public class AshbyAdapter implements SourceAdapter {
                 job.path("title").asText(),
                 board,
                 job.path("location").asText(null),
-                workMode(job.path("workplaceType").asText(null)),
+                workMode,
                 job.path("descriptionPlain").asText(null),
-                null,
-                null,
-                null,
-                null,
-                AdapterDates.instantOrNull(job.path("publishedAt").asText(null)));
+                decimal(salary.path("minValue")),
+                decimal(salary.path("maxValue")),
+                salary.hasNonNull("currencyCode") ? salary.get("currencyCode").asText() : null,
+                salary.hasNonNull("interval") ? salary.get("interval").asText() : null,
+                AdapterDates.instantOrNull(job.path("publishedAt").asText(null)),
+                job.path("address").path("postalAddress").hasNonNull("addressCountry")
+                        ? job.path("address").path("postalAddress").get("addressCountry").asText() : null);
+    }
+
+    /** The base salary among the compensation components (bonus and equity are not salary); missing when there is none. */
+    private static JsonNode salaryComponent(JsonNode components) {
+        for (JsonNode component : components) {
+            if ("Salary".equalsIgnoreCase(component.path("compensationType").asText())) {
+                return component;
+            }
+        }
+        return com.fasterxml.jackson.databind.node.MissingNode.getInstance();
+    }
+
+    private static BigDecimal decimal(JsonNode node) {
+        return node.isNumber() ? node.decimalValue() : null;
     }
 
     static String workMode(String ashby) {

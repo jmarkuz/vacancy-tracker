@@ -40,7 +40,7 @@ public class IngestService {
             Vacancy created = Vacancy.discovered(UUID.randomUUID(), posting.title(), posting.company(), posting.url(),
                     posting.canonicalUrl(), posting.description(), now);
             created.setPlacement(posting.location(), posting.country(), posting.workMode());
-            created.recordPostedAt(posting.postedAt());
+            created.recordPostedAt(notInTheFuture(posting.postedAt(), now));
             created.applyAutomated(new AutomatedFields(null, posting.salaryMin(), posting.salaryMax(),
                     posting.currency(), posting.salaryPeriod(), now));
             vacancies.save(created.toState());
@@ -53,22 +53,42 @@ public class IngestService {
         String before = existing.getDescription();
         BigDecimal beforeMin = existing.getSalaryMin();
         BigDecimal beforeMax = existing.getSalaryMax();
-        existing.recordPostedAt(posting.postedAt());
-        existing.applyAutomated(new AutomatedFields(posting.description(), posting.salaryMin(), posting.salaryMax(),
-                posting.currency(), posting.salaryPeriod(), now));
-        if (existing.getLocation() == null && posting.location() != null) {
-            existing.setPlacement(posting.location(), existing.getCountry(), existing.getWorkMode());
+        existing.recordPostedAt(notInTheFuture(posting.postedAt(), now));
+        existing.applyAutomated(new AutomatedFields(descriptionToWrite(before, posting.description()), posting.salaryMin(),
+                posting.salaryMax(), posting.currency(), posting.salaryPeriod(), now));
+        // Placement the vacancy lacks is filled from this sighting; what is already there is never overwritten.
+        String location = existing.getLocation() == null ? posting.location() : existing.getLocation();
+        String country = existing.getCountry();
+        if (country == null && posting.country() != null && Objects.equals(location, posting.location())) {
+            country = posting.country();
         }
-        boolean countryFilled = existing.getCountry() == null && posting.country() != null
-                && Objects.equals(existing.getLocation(), posting.location());
-        if (countryFilled) {
-            existing.setPlacement(existing.getLocation(), posting.country(), existing.getWorkMode());
+        String workMode = existing.getWorkMode() == null ? posting.workMode() : existing.getWorkMode();
+        boolean placementFilled = !Objects.equals(location, existing.getLocation()) || !Objects.equals(country, existing.getCountry())
+                || !Objects.equals(workMode, existing.getWorkMode());
+        if (placementFilled) {
+            existing.setPlacement(location, country, workMode);
         }
-        boolean changed = countryFilled || !Objects.equals(before, existing.getDescription())
+        boolean changed = placementFilled || !Objects.equals(before, existing.getDescription())
                 || !Objects.equals(beforeMin, existing.getSalaryMin())
                 || !Objects.equals(beforeMax, existing.getSalaryMax());
         vacancies.save(existing.toState());
         vacancies.upsertSource(id, posting.adapter(), posting.externalId(), posting.url(), now);
         return new Ingested(changed ? Outcome.UPDATED : Outcome.DUPLICATE, id);
+    }
+
+    /** A date after the moment of the run is a source's clock or zone error; it is read as "now". */
+    private static Instant notInTheFuture(Instant postedAt, Instant now) {
+        return postedAt != null && postedAt.isAfter(now) ? now : postedAt;
+    }
+
+    /**
+     * What to write as the description of a vacancy seen again. A text under half the stored length is a snippet or a
+     * teaser from another source (a feed, an aggregator); it must not replace the full text, so nothing is written.
+     */
+    private static String descriptionToWrite(String stored, String seen) {
+        if (seen == null || stored != null && seen.length() * 2 < stored.length()) {
+            return null;
+        }
+        return seen;
     }
 }

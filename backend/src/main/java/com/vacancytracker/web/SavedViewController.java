@@ -77,8 +77,8 @@ public class SavedViewController {
         SavedView view = views.get(id);
         SqlFragment where = views.compileFor(view);
         VacancySort sort = VacancySort.parse(view.sort());
-        List<VacancyController.VacancyResponse> items = vacancies.search(where, sort, page, size).stream()
-                .map(VacancyController.VacancyResponse::from).toList();
+        List<VacancyController.VacancyResponse> items =
+                VacancyController.VacancyResponse.allOf(vacancies, vacancies.search(where, sort, page, size));
         return new VacancyController.PageResponse<>(items, page, size, vacancies.countMatching(where));
     }
 

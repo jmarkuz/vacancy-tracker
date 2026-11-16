@@ -234,4 +234,51 @@ class CollectionPipelineTest extends AbstractIntegrationTest {
         assertThat(second.adapters().get(0).stats().updated).isZero();
         assertThat(second.adapters().get(0).stats().duplicates).isEqualTo(1);
     }
+
+    private static RawPosting full(String adapter, String ext, String workMode, String description, Instant postedAt) {
+        return new RawPosting(adapter, ext, "https://ex.com/job/42", "Platform Engineer", "Northwind", "Berlin", workMode,
+                description, null, null, null, null, postedAt);
+    }
+
+    private String stored(String column) {
+        return jdbc.sql("SELECT " + column + " FROM vacancy WHERE title = 'Platform Engineer'").query(String.class).single();
+    }
+
+    @Test
+    void aSecondSourceFillsAWorkModeTheFirstOneDidNotState() {
+        pipeline(List.of(fixed("fake-a", () -> FetchOutcome.of(List.of(full("fake-a", "a1", null, "Plain description.", null)))))).run("manual");
+
+        var summary = pipeline(List.of(fixed("fake-b", () -> FetchOutcome.of(List.of(full("fake-b", "b1", "remote", "Plain description.", null)))))).run("manual");
+
+        assertThat(stored("work_mode")).isEqualTo("remote");
+        assertThat(summary.adapters().get(0).stats().updated).isEqualTo(1);
+
+        // A mode that is already stored is kept: another source does not overwrite it.
+        pipeline(List.of(fixed("fake-c", () -> FetchOutcome.of(List.of(full("fake-c", "c1", "hybrid", "Plain description.", null)))))).run("manual");
+        assertThat(stored("work_mode")).isEqualTo("remote");
+    }
+
+    @Test
+    void aShortSnippetFromAnotherSourceDoesNotReplaceTheFullDescription() {
+        String fullText = "Build and run the platform. ".repeat(40);
+        pipeline(List.of(fixed("fake-a", () -> FetchOutcome.of(List.of(full("fake-a", "a1", null, fullText, null)))))).run("manual");
+
+        pipeline(List.of(fixed("fake-b", () -> FetchOutcome.of(List.of(full("fake-b", "b1", null, "Build and run the platform. ...", null)))))).run("manual");
+        assertThat(stored("description")).isEqualTo(fullText.strip());
+
+        // The same source publishing a changed text of a similar size does replace it.
+        String edited = "Build and run the platform together. ".repeat(30);
+        pipeline(List.of(fixed("fake-a", () -> FetchOutcome.of(List.of(full("fake-a", "a1", null, edited, null)))))).run("manual");
+        assertThat(stored("description")).isEqualTo(edited.strip());
+    }
+
+    @Test
+    void aPostingDateInTheFutureIsNotStoredAsIs() {
+        // The fixed clock of these tests is 2026-11-01T10:00:00Z.
+        pipeline(List.of(fixed("fake-a", () -> FetchOutcome.of(List.of(full("fake-a", "a1", null, "Plain description.",
+                Instant.parse("2026-11-20T09:00:00Z"))))))).run("manual");
+
+        var at = jdbc.sql("SELECT posted_at FROM vacancy WHERE title = 'Platform Engineer'").query(java.time.OffsetDateTime.class).single();
+        assertThat(at.toInstant()).isEqualTo(Instant.parse("2026-11-01T10:00:00Z"));
+    }
 }

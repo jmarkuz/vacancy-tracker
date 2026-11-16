@@ -86,6 +86,15 @@ class AdzunaContractTest extends AdapterContractTest {
     }
 
     @Test
+    void theSearchedCountryIsTheCountryAndTheCurrencyDefaultsToItsOwn() {
+        var posting = adapter(healthy, "id1", "key1", "").fetch().postings().get(0);
+
+        assertThat(posting.country()).isEqualTo("GB");
+        assertThat(posting.currency()).isEqualTo("GBP");
+        assertThat(posting.salaryMin()).isEqualByComparingTo("50000");
+    }
+
+    @Test
     void keysAreNeverStoredInTheCache() {
         healthyAdapter().fetch();
 

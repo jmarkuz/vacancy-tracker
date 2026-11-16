@@ -21,13 +21,14 @@ import { useFits } from "../useFits";
 import { FitBadge } from "../components/FitBadge";
 import { ColumnResizer } from "../components/ColumnResizer";
 import { pure } from "../components/pure";
+import { parseSort } from "../domain/sort";
+import { PINNED_COLUMN, resolveColumnIds } from "../domain/columnPrefs";
 import { loadWidths, saveWidths, widthOf, withoutWidth, withWidth, type Widths } from "../domain/columnWidths";
 
 const PAGE_SIZE = 100;
 /** Room kept for the title column, which has no width of its own, and for the checkbox column. */
 const TITLE_ROOM = 280;
 const CHECK_WIDTH = 36;
-const DEFAULT_SORT = "lastSeenAt:desc";
 
 interface Props {
   params: URLSearchParams;
@@ -37,8 +38,9 @@ interface Props {
 
 /** Sort, page and visible columns are all in the URL, so a view can be bookmarked and shared. */
 export function Pipeline({ params, dataVersion = 0 }: Props) {
-  const sort = params.get("sort") ?? DEFAULT_SORT;
-  const page = Math.max(0, Number(params.get("page") ?? 0) || 0);
+  // The address may hold a sort the server would refuse (old link, hand edit): it shows the default order instead.
+  const sort = parseSort(params.get("sort")).value;
+  const page = pageOf(params.get("page"));
   const visible = useMemo(() => resolveColumns(params.get("cols")), [params.get("cols")]);
   const openId = params.get("open");
   const filterRaw = params.get("filter");
@@ -211,8 +213,18 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
 
       {!error && data && data.total === 0 && !loading && (
         <div class="panel empty-state">
-          <h2>No vacancies yet</h2>
-          <p class="muted">Add one with "Add vacancy", or refresh the sources once they are configured.</p>
+          {criteria.length > 0 ? (
+            <>
+              <h2>No vacancies match</h2>
+              <p class="muted">Nothing fits the current filter. Change or remove a filter to see more.</p>
+              <button type="button" class="btn" onClick={() => setFilter([])}>Clear filters</button>
+            </>
+          ) : (
+            <>
+              <h2>No vacancies yet</h2>
+              <p class="muted">Add one with "Add vacancy", or refresh the sources once they are configured.</p>
+            </>
+          )}
         </div>
       )}
 
@@ -281,7 +293,7 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
 
           <ul class="vcards" aria-label="Vacancies">
             {data.items.map((v) => (
-              <VacancyCard key={v.id} v={v} fit={fits[v.id]} onOpen={openVacancy} />
+              <VacancyCard key={v.id} v={v} fit={fits[v.id]} columns={visible} onOpen={openVacancy} />
             ))}
           </ul>
 
@@ -324,6 +336,15 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
   );
 }
 
+/** The server refuses a page it cannot reach (10 million rows in) and a fraction: a hand-edited address is made safe. */
+const MAX_PAGE = 99_999;
+
+/** The zero-based page of the address; anything that is not a whole number from 0 up is the first page. */
+export function pageOf(raw: string | null): number {
+  const n = Math.floor(Number(raw ?? 0));
+  return Number.isFinite(n) && n > 0 ? Math.min(n, MAX_PAGE) : 0;
+}
+
 /** Writes the filter into the URL and returns to the first page. */
 function setFilter(next: Criterion[]): void {
   setQuery({ filter: serializeCriteria(next), page: null });
@@ -339,7 +360,10 @@ function applyView(view: SavedView | null): void {
     view: view.id,
     filter: serializeCriteria(project(view.criteria)),
     sort: view.sort,
-    cols: view.visibleColumns.length ? view.visibleColumns.join(",") : null,
+    // A view saved before a column was removed may list ids that no longer exist: they are dropped here.
+    cols: view.visibleColumns.some((id) => COLUMN_IDS.includes(id.trim()))
+      ? resolveColumnIds(view.visibleColumns, COLUMN_IDS, DEFAULT_COLUMNS).join(",")
+      : null,
     page: null,
   });
 }
@@ -377,27 +401,46 @@ const PipelineRow = pure(({ v, checked, fit, columns, onToggle, onOpen }: RowPro
 ));
 
 /** The same vacancy as a card, for narrow screens. */
-const VacancyCard = pure(({ v, fit, onOpen }: { v: Vacancy; fit: ResumeFit | undefined; onOpen: (id: string) => void }) => (
-  <li class="vcard">
-    <button type="button" class="row-open vcard-title" onClick={() => onOpen(v.id)}>
-      {v.title}
-    </button>
-    <FitBadge fit={fit} />
-    <div class="muted">{v.company}</div>
-    <div class="vcard-meta">
-      <span class="badge-slot">{COLUMNS.find((c) => c.id === "status")?.render(v)}</span>
-      <span class="num">{COLUMNS.find((c) => c.id === "salary")?.render(v)}</span>
-    </div>
-  </li>
-));
+const VacancyCard = pure(({ v, fit, columns, onOpen }: { v: Vacancy; fit: ResumeFit | undefined; columns: Column[]; onOpen: (id: string) => void }) => {
+  // Status and salary are always on the card, as before; every other visible column adds a labelled fact, so the
+  // card says what the table says, with the same dash for a missing value.
+  const rest = columns.filter((c) => !CARD_HEAD.includes(c.id));
+  return (
+    <li class="vcard">
+      <button type="button" class="row-open vcard-title" onClick={() => onOpen(v.id)}>
+        {columnById("title").render(v)}
+      </button>
+      <FitBadge fit={fit} />
+      <div class="muted">{columnById("company").render(v)}</div>
+      <div class="vcard-meta">
+        <span class="badge-slot">{columnById("status").render(v)}</span>
+        <span class="num">{columnById("salary").render(v)}</span>
+      </div>
+      {rest.length > 0 && (
+        <dl class="vcard-facts">
+          {rest.map((c) => (
+            <div key={c.id}>
+              <dt>{c.label}</dt>
+              <dd>{c.render(v)}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </li>
+  );
+});
+
+const CARD_HEAD = ["title", "company", "status", "salary"];
+const columnById = (id: string): Column => COLUMNS.find((c) => c.id === id) as Column;
 
 
-/** Unknown column ids in the URL are ignored; at least one column always shows. */
+/** The columns of the address: unknown and repeated ids are ignored, the title always shows, nothing left means the defaults. */
 function resolveColumns(raw: string | null): Column[] {
-  const ids = raw ? raw.split(",") : DEFAULT_COLUMNS;
-  const picked = COLUMNS.filter((c) => ids.includes(c.id));
-  return picked.length > 0 ? picked : COLUMNS.filter((c) => DEFAULT_COLUMNS.includes(c.id));
+  const ids = resolveColumnIds(raw, COLUMN_IDS, DEFAULT_COLUMNS);
+  return COLUMNS.filter((c) => ids.includes(c.id));
 }
+
+const COLUMN_IDS = COLUMNS.map((c) => c.id);
 
 /** The table is at least as wide as its columns, so a narrow window scrolls sideways instead of squeezing them. */
 export function tableMinWidth(columns: Column[], widths: Widths): number {
@@ -446,12 +489,8 @@ function ColumnPicker({ selected }: { selected: Column[] }) {
   const selectedIds = selected.map((c) => c.id);
   const toggle = (id: string, on: boolean) => {
     const next = on ? [...selectedIds, id] : selectedIds.filter((x) => x !== id);
-    if (next.length === 0) {
-      return;
-    }
     // Keep the table's column order, not the click order.
-    const ordered = COLUMNS.map((c) => c.id).filter((x) => next.includes(x));
-    setQuery({ cols: ordered.join(",") });
+    setQuery({ cols: resolveColumnIds(next, COLUMN_IDS, DEFAULT_COLUMNS).join(",") });
   };
   return (
     <details class="column-picker">
@@ -466,7 +505,7 @@ function ColumnPicker({ selected }: { selected: Column[] }) {
             <input
               type="checkbox"
               checked={selectedIds.includes(c.id)}
-              disabled={selectedIds.includes(c.id) && selectedIds.length === 1}
+              disabled={c.id === PINNED_COLUMN}
               onChange={(e) => toggle(c.id, (e.target as HTMLInputElement).checked)}
             />
             {c.label}

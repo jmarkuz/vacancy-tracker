@@ -2,16 +2,19 @@ package com.vacancytracker.collection.adapter.telegram;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vacancytracker.collection.adapter.AdapterDates;
 import com.vacancytracker.collection.adapter.FetchOutcome;
 import com.vacancytracker.collection.adapter.RawPosting;
 import com.vacancytracker.collection.adapter.SourceAdapter;
 import com.vacancytracker.collection.http.FetchResult;
 import com.vacancytracker.collection.http.HttpFetcher;
 import com.vacancytracker.collection.http.UpstreamException;
+import com.vacancytracker.collection.normalize.SalaryParser;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -38,6 +41,10 @@ public class TelegramForwardAdapter implements SourceAdapter {
     static final String ID = "telegram-forward";
     static final int MAX_TITLE = 200;
     private static final Pattern LINK = Pattern.compile("https?://\\S+");
+    private static final Pattern LOCATION = Pattern.compile(
+            "(?imu)^\\W*(?:локація|локация|location|місто|город|city|країна|страна|country)\\s*[:\\-–—]\\s*(.{2,80})$");
+    private static final Pattern SALARY = Pattern.compile(
+            "(?imu)^\\W*(?:зарплата|заробітна плата|salary|зп|з/п|вилка|оплата|ставка|rate|compensation)\\s*[:\\-–—]\\s*(.{2,80})$");
     private static final Pattern COMPANY = Pattern.compile(
             "(?imu)^\\W*(?:компанія|компания|company|employer|роботодавець|работодатель)\\s*[:\\-–—]\\s*(.{2,80})$");
 
@@ -141,9 +148,9 @@ public class TelegramForwardAdapter implements SourceAdapter {
         String source = "Telegram";
         String url = null;
         String externalId = "msg:" + message.path("chat").path("id").asText() + ":" + message.path("message_id").asText();
-        Instant posted = Instant.ofEpochSecond(message.path("date").asLong());
+        Instant posted = AdapterDates.fromEpoch(message.path("date").asLong());
         if (!origin.isMissingNode()) {
-            posted = Instant.ofEpochSecond(origin.path("date").asLong(message.path("date").asLong()));
+            posted = AdapterDates.fromEpoch(origin.path("date").asLong(message.path("date").asLong()));
             JsonNode chat = origin.path("chat");
             if ("channel".equals(origin.path("type").asText())) {
                 source = chat.path("title").asText(source);
@@ -165,11 +172,31 @@ public class TelegramForwardAdapter implements SourceAdapter {
             Matcher link = LINK.matcher(text);
             if (link.find()) {
                 url = link.group().replaceAll("[).,;!]+$", "");
+            } else {
+                url = hiddenLink(message);
             }
         }
         Matcher company = COMPANY.matcher(text);
+        Matcher place = LOCATION.matcher(text);
+        Matcher pay = SALARY.matcher(text);
+        Optional<SalaryParser.Salary> salary = pay.find() ? SalaryParser.parse(pay.group(1)) : Optional.empty();
         return new RawPosting(ID, externalId, url, title(text), company.find() ? company.group(1).trim() : blankTo(source, "Telegram"),
-                null, null, text, null, null, null, null, posted);
+                place.find() ? place.group(1).trim() : null, null, text,
+                salary.map(SalaryParser.Salary::min).orElse(null), salary.map(SalaryParser.Salary::max).orElse(null),
+                salary.map(SalaryParser.Salary::currency).orElse(null), salary.map(SalaryParser.Salary::period).orElse(null), posted);
+    }
+
+    /** A link behind the words of a post ("Apply here") is not in the text; Telegram lists it as a text_link entity. */
+    private static String hiddenLink(JsonNode message) {
+        for (String field : new String[] {"entities", "caption_entities"}) {
+            for (JsonNode entity : message.path(field)) {
+                String url = entity.path("url").asText("");
+                if ("text_link".equals(entity.path("type").asText()) && (url.startsWith("https://") || url.startsWith("http://"))) {
+                    return url;
+                }
+            }
+        }
+        return null;
     }
 
     /** The first line with letters, without leading emoji and markup, cut at a word. */

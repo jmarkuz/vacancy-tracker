@@ -5,7 +5,9 @@ import com.vacancytracker.collection.adapter.RawPosting;
 import java.math.BigDecimal;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import org.jsoup.Jsoup;
+import org.jsoup.parser.Parser;
 
 /**
  * Turns a RawPosting into a NormalizedPosting (T-041). Returns empty when the posting lacks a title or
@@ -26,9 +28,11 @@ public final class Normalizer {
         }
         String location = singleLine(raw.location());
         String description = plainText(raw.description());
-        String workMode = raw.workMode() != null
-                ? normalizeWorkMode(raw.workMode())
-                : detectWorkMode(location, description);
+        // A source's own field wins; when it names no mode ("unspecified") the text is read like any other posting.
+        String workMode = WorkModes.fromField(raw.workMode());
+        if (workMode == null) {
+            workMode = WorkModes.detect(location, title, description);
+        }
 
         BigDecimal min = nonNegative(raw.salaryMin());
         BigDecimal max = nonNegative(raw.salaryMax());
@@ -37,7 +41,7 @@ public final class Normalizer {
             min = max;
             max = swap;
         }
-        String currency = raw.currency() == null ? null : raw.currency().trim().toUpperCase(Locale.ROOT);
+        String currency = SalaryParser.isoCurrency(raw.currency());
         // A salary without a currency cannot be compared (ADR-011), so it is dropped.
         boolean hasSalary = currency != null && (min != null || max != null);
 
@@ -49,22 +53,31 @@ public final class Normalizer {
                 title,
                 company,
                 location,
-                CountryDetector.detect(location).orElse(null),
+                CountryDetector.fromField(raw.country()).or(() -> CountryDetector.detect(location)).orElse(null),
                 workMode,
                 description,
                 hasSalary ? (min != null ? min : max) : null,
                 hasSalary ? (max != null ? max : min) : null,
                 hasSalary ? currency : null,
-                hasSalary ? raw.salaryPeriod() : null,
+                hasSalary ? period(raw.salaryPeriod()) : null,
                 raw.postedAt()));
     }
 
-    /** HTML to plain text, whitespace collapsed; blank becomes null. */
+    /** A known HTML tag, a comment or a character reference; "Map<String>" or "<T>" is text, not markup. */
+    private static final Pattern MARKUP = Pattern.compile(
+            "</?(?:p|br|div|span|ul|ol|li|b|i|u|em|strong|a|h[1-6]|table|thead|tbody|tr|td|th|img|hr|pre|code|blockquote"
+                    + "|section|article|font|center|small|sup|sub|dl|dt|dd|style|script)\\b[^>]*>|<!--|&(?:[a-zA-Z]{2,8}|#\\d{1,7}|#[xX][0-9a-fA-F]{1,6});");
+
+    /**
+     * HTML to plain text, whitespace collapsed; blank becomes null. Text that holds no markup (a description a source
+     * sent as plain text, or one an adapter has already converted) is only tidied: reading it as HTML would drop
+     * "<T>" or "List<String>".
+     */
     public static String plainText(String html) {
         if (html == null || html.isBlank()) {
             return null;
         }
-        String text = Jsoup.parse(html).text().replaceAll("\\s+", " ").trim();
+        String text = (MARKUP.matcher(html).find() ? Jsoup.parse(html).text() : html).replaceAll("\\s+", " ").trim();
         return text.isEmpty() ? null : text;
     }
 
@@ -72,42 +85,36 @@ public final class Normalizer {
         if (value == null) {
             return null;
         }
-        String text = value.replaceAll("\\s+", " ").trim();
+        // Some feeds send titles and names HTML-escaped ("Dev &amp; Ops", "Senior &#8211; Remote").
+        String decoded = value.indexOf('&') >= 0 ? Parser.unescapeEntities(value, false) : value;
+        String text = decoded.replaceAll("\\s+", " ").trim();
         return text.isEmpty() ? null : text;
     }
 
-    static String normalizeWorkMode(String value) {
-        String lower = value.toLowerCase(Locale.ROOT);
-        if (lower.contains("hybrid")) {
-            return "hybrid";
-        }
-        if (lower.contains("remote")) {
-            return "remote";
-        }
-        if (lower.contains("onsite") || lower.contains("on-site") || lower.contains("on site")) {
-            return "onsite";
-        }
-        return detectWorkMode(value, null);
-    }
-
-    /** Looks for work-mode words in the location and description. Hybrid is checked first. */
-    static String detectWorkMode(String location, String description) {
-        String text = ((location == null ? "" : location) + " " + (description == null ? "" : description))
-                .toLowerCase(Locale.ROOT);
-        if (text.contains("hybrid")) {
-            return "hybrid";
-        }
-        if (text.contains("remote")) {
-            return "remote";
-        }
-        if (text.contains("onsite") || text.contains("on-site") || text.contains("on site")) {
-            return "onsite";
-        }
-        return null;
-    }
-
+    /** Zero is how some sources say "not given" (Remote OK), and a negative amount is no salary. */
     private static BigDecimal nonNegative(BigDecimal value) {
-        return value == null || value.signum() < 0 ? null : value;
+        return value == null || value.signum() <= 0 ? null : value;
+    }
+
+    /** year, month, week, day or hour; a source's wording ("yearly", "per-hour-wage") is mapped, anything else is unknown. */
+    static String period(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        String lower = value.toLowerCase(Locale.ROOT);
+        if (lower.matches(".*\\b(?:year|yearly|annual|annually|annum|yr|p\\.?a\\.?)\\b.*")) {
+            return "year";
+        }
+        if (lower.matches(".*\\b(?:month|monthly|mo)\\b.*")) {
+            return "month";
+        }
+        if (lower.matches(".*\\b(?:week|weekly|wk)\\b.*")) {
+            return "week";
+        }
+        if (lower.matches(".*\\b(?:day|daily)\\b.*")) {
+            return "day";
+        }
+        return lower.matches(".*\\b(?:hour|hourly|hr|h)\\b.*") ? "hour" : null;
     }
 
     private static String blankToNull(String value) {

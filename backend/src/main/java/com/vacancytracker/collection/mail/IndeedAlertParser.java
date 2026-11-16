@@ -19,4 +19,25 @@ public class IndeedAlertParser extends LinkAlertParser {
                 (id, host) -> "https://" + (host == null || host.isBlank() ? "www.indeed.com" : host) + "/viewjob?jk=" + id,
                 List.of("view job", "apply now", "apply", "see all jobs", "view all jobs", "unsubscribe", "easily apply"));
     }
+
+    private static final Pattern COUNTRY_SITE = Pattern.compile("([a-z]{2,3})\\.indeed\\.com");
+
+    /** Indeed runs one site per country: cz.indeed.com is Czechia, www.indeed.com the United States. */
+    @Override
+    public String country(ParsedJob job) {
+        String host;
+        try {
+            host = java.net.URI.create(job.url()).getHost();
+        } catch (IllegalArgumentException | NullPointerException e) {
+            return null;
+        }
+        if (host == null) {
+            return null;
+        }
+        java.util.regex.Matcher m = COUNTRY_SITE.matcher(host.toLowerCase(java.util.Locale.ROOT));
+        if (!m.matches()) {
+            return null;
+        }
+        return "www".equals(m.group(1)) ? "US" : m.group(1).toUpperCase(java.util.Locale.ROOT);
+    }
 }

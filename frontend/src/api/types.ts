@@ -30,6 +30,10 @@ export interface Vacancy {
   isNew: boolean;
   /** From the posting text: true offered, false not offered, null not stated (ADR-044). */
   visaSponsorship?: boolean | null;
+  /** The best score any profile gives the vacancy (0 to 100); absent when no profile scores it. */
+  matchScore?: number | null;
+  /** The sources (adapter ids) that listed the vacancy, earliest first; empty for one added by hand. */
+  sources?: string[];
 }
 
 export interface Ghost {

@@ -37,6 +37,7 @@ export const FIELDS: FieldSpec[] = [
   { field: "title", label: "Title", operators: TEXT_OPS },
   { field: "company", label: "Company", operators: TEXT_OPS },
   { field: "location", label: "Location", operators: TEXT_OPS },
+  { field: "country", label: "Country", operators: [{ op: "equals", label: "is", value: "text" }] },
   { field: "keywords", label: "Keywords (title or description)", operators: [{ op: "contains_any", label: "contains", value: "list" }] },
   { field: "workMode", label: "Work mode", operators: [{ op: "equals", label: "is", value: "text" }] },
   {

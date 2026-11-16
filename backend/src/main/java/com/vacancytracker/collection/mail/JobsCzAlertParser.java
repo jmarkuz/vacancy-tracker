@@ -16,4 +16,10 @@ public class JobsCzAlertParser extends LinkAlertParser {
                 (id, host) -> "https://www.jobs.cz/rpd/" + id + "/",
                 List.of("zobrazit nabídku", "zobrazit", "více", "zobrazit všechny nabídky", "odhlásit", "view job", "apply"));
     }
+
+    /** Jobs.cz is the Czech market. */
+    @Override
+    public String country(ParsedJob job) {
+        return "CZ";
+    }
 }

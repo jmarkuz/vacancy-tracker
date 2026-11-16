@@ -292,6 +292,19 @@ public class VacancyRepository {
                 .update();
     }
 
+    /** The derived best score of each given vacancy; vacancies without a score are absent. One query. */
+    public Map<UUID, Integer> findMatchScoresFor(java.util.Collection<UUID> vacancyIds) {
+        Map<UUID, Integer> out = new java.util.HashMap<>();
+        if (vacancyIds.isEmpty()) {
+            return out;
+        }
+        jdbc.sql("SELECT id, match_score FROM vacancy WHERE match_score IS NOT NULL AND id = ANY (CAST(:ids AS UUID[]))")
+                .param("ids", vacancyIds.stream().map(UUID::toString).toArray(String[]::new))
+                .query((rs, n) -> out.put(rs.getObject("id", UUID.class), rs.getInt("match_score")))
+                .list();
+        return out;
+    }
+
     /** Replaces the whole history of one vacancy (used by import). */
     public void deleteHistory(UUID vacancyId) {
         jdbc.sql("DELETE FROM status_event WHERE vacancy_id = :id").param("id", vacancyId).update();

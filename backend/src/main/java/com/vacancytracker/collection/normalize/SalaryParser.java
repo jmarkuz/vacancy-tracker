@@ -19,7 +19,7 @@ public final class SalaryParser {
     public record Salary(BigDecimal min, BigDecimal max, String currency, String period) {
     }
 
-    private static final Pattern NUMBER = Pattern.compile("(\\d{1,3}(?:[.,]\\d{3})+|\\d{1,3}(?: \\d{3})+(?!\\d)|\\d+(?:[.,]\\d+)?)\\s?(k(?![a-z]))?",
+    private static final Pattern NUMBER = Pattern.compile("(\\d{1,3}(?:[.,]\\d{3})+|\\d{1,3}(?: \\d{3})+(?!\\d)|\\d+(?:[.,]\\d+)?)\\s?(k(?!\\p{L}))?",
             Pattern.CASE_INSENSITIVE);
     private static final Pattern CODE = Pattern.compile("\\b([A-Z]{3})\\b");
 
@@ -70,6 +70,16 @@ public final class SalaryParser {
         if (text.contains("£")) {
             return "GBP";
         }
+        String lowerText = text.toLowerCase(Locale.ROOT);
+        if (lowerText.contains("k\u010d") || lowerText.matches("(?s).*\\d\\s?kc\\b.*")) {
+            return "CZK";
+        }
+        if (lowerText.contains("z\u0142") || lowerText.matches("(?s).*\\d\\s?zl\\b.*")) {
+            return "PLN";
+        }
+        if (lowerText.contains("\u20b4") || lowerText.contains("\u0433\u0440\u043d")) {
+            return "UAH";
+        }
         // Only a real ISO 4217 code counts: "NET 18-22k PLN" must give PLN, not NET.
         Matcher code = CODE.matcher(text);
         while (code.find()) {
@@ -78,6 +88,28 @@ public final class SalaryParser {
             }
         }
         return null;
+    }
+
+    /**
+     * An ISO 4217 code from what a source gave: a code in any case, or one of the symbols € $ £. Anything else
+     * (a word such as "Euro", an unknown code) is null, and the salary is then dropped as having no currency.
+     */
+    static String isoCurrency(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        String text = value.trim();
+        String symbol = switch (text) {
+            case "€" -> "EUR";
+            case "$" -> "USD";
+            case "£" -> "GBP";
+            default -> null;
+        };
+        if (symbol != null) {
+            return symbol;
+        }
+        String code = text.toUpperCase(Locale.ROOT);
+        return code.length() == 3 && isCurrency(code) ? code : null;
     }
 
     private static boolean isCurrency(String code) {
@@ -91,13 +123,16 @@ public final class SalaryParser {
 
     static String period(String text) {
         String lower = text.toLowerCase(Locale.ROOT);
-        if (lower.matches("(?s).*\\b(year|yr|annum|annual|yearly)\\b.*") || lower.contains("a year") || lower.contains("per year")) {
+        if (lower.matches("(?s).*\\b(year|yr|annum|annual|yearly|p\\.a\\.)(?!\\w).*") || lower.contains("a year") || lower.contains("per year")
+                || lower.contains("ro\u010dn\u011b") || lower.contains("\u0440\u0456\u043a")) {
             return "year";
         }
-        if (lower.matches("(?s).*\\b(month|mo|monthly)\\b.*") || lower.contains("per month") || lower.contains("a month")) {
+        if (lower.matches("(?s).*\\b(month|mo|monthly)\\b.*") || lower.contains("per month") || lower.contains("a month")
+                || lower.contains("m\u011bs\u00ed\u010d") || lower.contains("mies") || lower.contains("\u043c\u0456\u0441")
+                || lower.contains("\u043c\u0435\u0441")) {
             return "month";
         }
-        if (lower.matches("(?s).*\\b(hour|hr|hourly)\\b.*") || lower.contains("per hour") || lower.contains("an hour")) {
+        if (lower.matches("(?s).*(\\b(hour|hr|hourly)\\b|/\\s?h\\b).*") || lower.contains("per hour") || lower.contains("an hour")) {
             return "hour";
         }
         return null;

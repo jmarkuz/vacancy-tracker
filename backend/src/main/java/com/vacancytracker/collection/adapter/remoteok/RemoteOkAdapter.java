@@ -92,8 +92,10 @@ public class RemoteOkAdapter implements SourceAdapter {
         if (apply != null && !apply.isBlank()) {
             description = (description == null ? "" : description + "\n\n") + "Apply: " + apply;
         }
-        Instant posted = job.hasNonNull("epoch") ? Instant.ofEpochSecond(job.path("epoch").asLong())
-                : AdapterDates.instantOrNull(job.path("date").asText(null));
+        Instant posted = AdapterDates.fromNode(job.path("epoch"));
+        if (posted == null) {
+            posted = AdapterDates.instantOrNull(job.path("date").asText(null));
+        }
         return new RawPosting(
                 ID,
                 job.path("id").asText(),

@@ -17,6 +17,14 @@ public interface MailParser {
     /** The vacancies in the message. Empty when the email has none or its layout is not recognised. */
     List<ParsedJob> parse(MailMessage mail);
 
+    /**
+     * The country the sender's site states for a vacancy apart from its location text, as an ISO code or a name; null
+     * when the site lists vacancies of many countries.
+     */
+    default String country(ParsedJob job) {
+        return null;
+    }
+
     /** True when the address belongs to the domain or one of its subdomains. */
     static boolean fromDomain(String address, String domain) {
         if (address == null) {
