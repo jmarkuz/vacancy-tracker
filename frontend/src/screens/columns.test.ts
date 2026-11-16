@@ -1,6 +1,8 @@
+import { Fragment, h, render } from "preact";
 import { describe, expect, it } from "vitest";
-import { clip, formatDate, formatSalary } from "./columns";
-import { priorityLabel, tagsText, workModeLabel } from "../domain/cells";
+import { clip, COLUMNS, DEFAULT_COLUMNS, formatDate, formatSalary } from "./columns";
+import { postedAgeLabel, priorityLabel, scoreLabel, sourcesText, tagsText, visaLabel, workModeLabel } from "../domain/cells";
+import { SORT_KEYS } from "../domain/sort";
 import type { Vacancy } from "../api/types";
 
 function vacancy(overrides: Partial<Vacancy>): Vacancy {
@@ -124,6 +126,93 @@ describe("tagsText", () => {
     expect(tagsText(["remote", " ", "java"])).toBe("remote, java");
     expect(tagsText([])).toBe("-");
     expect(tagsText(undefined)).toBe("-");
+  });
+});
+
+describe("scoreLabel, visaLabel, sourcesText, postedAgeLabel", () => {
+  it("shows an unscored vacancy as a dash, never 0, and a score as a whole number", () => {
+    expect(scoreLabel(null)).toBe("-");
+    expect(scoreLabel(undefined)).toBe("-");
+    expect(scoreLabel(0)).toBe("0");
+    expect(scoreLabel(86.6)).toBe("87");
+    expect(scoreLabel(Number.NaN)).toBe("-");
+  });
+
+  it("tells offered, not offered and not stated apart", () => {
+    expect(visaLabel(true)).toBe("Offered");
+    expect(visaLabel(false)).toBe("Not offered");
+    expect(visaLabel(null)).toBe("-");
+    expect(visaLabel(undefined)).toBe("-");
+  });
+
+  it("lists each source once, capitalised, and a vacancy added by hand as a dash", () => {
+    expect(sourcesText(["greenhouse", "remotive", "greenhouse"])).toBe("Greenhouse, Remotive");
+    expect(sourcesText([])).toBe("-");
+    expect(sourcesText(undefined)).toBe("-");
+    expect(sourcesText([" "])).toBe("-");
+  });
+
+  it("counts whole days of a posting and shows no or an unreadable date as a dash", () => {
+    const now = new Date("2026-11-16T12:00:00Z");
+    expect(postedAgeLabel("2026-11-16T01:00:00Z", now)).toBe("Today");
+    expect(postedAgeLabel("2026-11-15T01:00:00Z", now)).toBe("1 day");
+    expect(postedAgeLabel("2026-11-01T12:00:00Z", now)).toBe("15 days");
+    expect(postedAgeLabel("2027-01-01T00:00:00Z", now)).toBe("Today");
+    expect(postedAgeLabel(null, now)).toBe("-");
+    expect(postedAgeLabel("nonsense", now)).toBe("-");
+    expect(postedAgeLabel("2026-11-01T12:00:00Z")).toMatch(/days$/);
+  });
+});
+
+describe("COLUMNS", () => {
+  /** The text a cell shows. */
+  const shown = (id: string, overrides: Partial<Vacancy>) => {
+    const host = document.createElement("div");
+    render(h(Fragment, null, COLUMNS.find((c) => c.id === id)!.render(vacancy(overrides))), host);
+    return host.textContent;
+  };
+
+  it("has unique ids, and every sort key is one the server accepts", () => {
+    const ids = COLUMNS.map((c) => c.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const c of COLUMNS) {
+      if (c.sortKey) {
+        expect(SORT_KEYS as readonly string[]).toContain(c.sortKey);
+      }
+    }
+  });
+
+  it("keeps the default columns among the known ones, in order", () => {
+    const ids = COLUMNS.map((c) => c.id);
+    expect(DEFAULT_COLUMNS.every((d) => ids.includes(d))).toBe(true);
+    expect(DEFAULT_COLUMNS.map((d) => ids.indexOf(d))).toEqual([...DEFAULT_COLUMNS.map((d) => ids.indexOf(d))].sort((a, b) => a - b));
+  });
+
+  it("renders every column for a vacancy with nothing but the required fields", () => {
+    for (const c of COLUMNS) {
+      expect(() => shown(c.id, { tags: undefined as never })).not.toThrow();
+    }
+  });
+
+  it("shows the optional facts, and a dash where the vacancy has none", () => {
+    expect(shown("country", { country: "de" })).toBe("DE");
+    expect(shown("country", { country: null })).toBe("-");
+    expect(shown("matchScore", { matchScore: 72 })).toBe("72");
+    expect(shown("matchScore", {})).toBe("-");
+    expect(shown("visa", { visaSponsorship: true })).toBe("Offered");
+    expect(shown("visa", { visaSponsorship: false })).toBe("Not offered");
+    expect(shown("visa", {})).toBe("-");
+    expect(shown("sources", { sources: ["lever"] })).toBe("Lever");
+    expect(shown("sources", {})).toBe("-");
+    expect(shown("ghost", {})).toBe("-");
+    expect(shown("ghost", { ghost: { likely: true, signs: 2, reasons: ["posted long ago"] } })).toBe("Likely ghost");
+    expect(shown("ghost", { ghost: { likely: false, signs: 0, reasons: [] } })).toBe("-");
+    expect(shown("firstSeenAt", {})).not.toBe("-");
+    expect(shown("postedAge", {})).toBe("-");
+  });
+
+  it("names a blank title instead of leaving the row without a way to open it", () => {
+    expect(shown("title", { title: "  " })).toBe("(untitled)");
   });
 });
 

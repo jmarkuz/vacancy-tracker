@@ -1,4 +1,5 @@
 import type { Vacancy } from "../api/types";
+import { postedDays } from "./age";
 
 /** Plain-text forms of the facts a Pipeline cell or card shows. Pure, so every odd value can be tested. */
 
@@ -89,6 +90,28 @@ export function priorityLabel(priority: number | null | undefined): string {
 export function tagsText(tags: string[] | null | undefined): string {
   const shown = (tags ?? []).map((t) => t.trim()).filter(Boolean);
   return shown.length ? shown.join(", ") : "-";
+}
+
+/** The match score as a plain number out of 100; absent (no profile scores the vacancy) is a dash, never 0. */
+export function scoreLabel(score: number | null | undefined): string {
+  return typeof score === "number" && Number.isFinite(score) ? String(Math.round(score)) : "-";
+}
+
+/** What the posting says about visa sponsorship: offered, not offered, or (not stated) a dash. */
+export function visaLabel(visa: boolean | null | undefined): string {
+  return visa === true ? "Offered" : visa === false ? "Not offered" : "-";
+}
+
+/** The sources in one line, "greenhouse" written "Greenhouse"; none (added by hand) is a dash. */
+export function sourcesText(sources: string[] | null | undefined): string {
+  const names = (sources ?? []).map((s) => s.trim()).filter(Boolean).map((s) => s.charAt(0).toUpperCase() + s.slice(1));
+  return names.length ? [...new Set(names)].join(", ") : "-";
+}
+
+/** Whole days since the posting date in words ("Today", "1 day", "12 days"); no or unreadable date is a dash. */
+export function postedAgeLabel(postedAt: string | null | undefined, now: Date = new Date()): string {
+  const days = postedDays(postedAt, now);
+  return days === null ? "-" : days === 0 ? "Today" : days === 1 ? "1 day" : `${days} days`;
 }
 
 /** Long text for a clipped cell: surrounding blanks go, and nothing left is shown as a dash. */

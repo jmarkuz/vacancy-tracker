@@ -276,6 +276,31 @@ describe("Pipeline: cells of every value shape", () => {
     expect(second.querySelector("td.col-tags")?.textContent).toBe("-");
   });
 
+  it("offers the optional columns in the picker and shows them, with or without the new fields in the answer", async () => {
+    items = [
+      { ...row(1), matchScore: 88, sources: ["greenhouse"], visaSponsorship: true, postedAt: "2026-11-10T10:00:00Z" } as never,
+      row(2),
+    ];
+    total = 2;
+    await show("cols=title,country,matchScore,visa,ghost,sources,postedAge,firstSeenAt");
+
+    const picker = [...host.querySelectorAll(".column-picker label")].map((l) => l.textContent?.trim());
+    for (const label of ["Country", "Match score", "Visa", "Ghost check", "Sources", "Posted age", "First seen"]) {
+      expect(picker).toContain(label);
+    }
+    const first = host.querySelectorAll("tbody tr")[0];
+    expect(first.querySelector("td.col-matchScore")?.textContent).toBe("88");
+    expect(first.querySelector("td.col-sources")?.textContent).toBe("Greenhouse");
+    expect(first.querySelector("td.col-visa")?.textContent).toBe("Offered");
+    expect(first.querySelector("td.col-country")?.textContent).toBe("UA");
+    const second = host.querySelectorAll("tbody tr")[1];
+    expect(second.querySelector("td.col-matchScore")?.textContent).toBe("-");
+    expect(second.querySelector("td.col-sources")?.textContent).toBe("-");
+    expect(second.querySelector("td.col-postedAge")?.textContent).toBe("-");
+    expect(host.querySelector("th.col-matchScore")?.getAttribute("aria-sort")).toBe("none");
+    expect(host.querySelector("th.col-sources")?.hasAttribute("aria-sort")).toBe(false);
+  });
+
   it("does not break the table for a date it cannot read or a salary of zero", async () => {
     items = [{ ...row(1), lastSeenAt: "garbage", salaryMin: 0 as never, salaryMax: 0 as never }];
     total = 1;
