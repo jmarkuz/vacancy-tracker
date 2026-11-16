@@ -35,6 +35,7 @@ All notable changes are recorded here. Format: date, task ID, short description.
 - Link comparison ignores more tracking parameters (gh_src, lever-source, lever-origin, msclkid, yclid, mkt_tok, trackingId, refId and others), so the same posting reached through two tagged links is one vacancy.
 - Country from a location that qualifies it: "USA Only", "Germany only", "Remote Poland", "Czechia Remote", "Anywhere in Canada" now give the country (Remotive writes places this way); "Europe only" or two countries still give none.
 - RSS feeds: the company is the name in an RSS author ("jobs@acme.test (Acme Labs)" gives Acme Labs; a bare address is no longer shown as the company), and the whole text of content:encoded is stored when the description is only a teaser.
+- Telegram posts: a link hidden behind words such as "Apply" is used as the vacancy link, and lines labelled Локація/Location and Зарплата/Salary/ЗП/Вилка give the place (and from it the country) and the salary.
 
 ### 2026-11-13 — UI speed review
 - Fewer requests: the fit scores of the Inbox and Pipeline rows (`useFits`) are asked for once per row. A list that shrinks after a triage, or reloads with the same rows, no longer repeats the request; only new rows are asked for, a failed request is retried, and the list itself never waits for the scores (the server may have to score postings first, so they stay a separate request).
