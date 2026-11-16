@@ -114,6 +114,18 @@ public class VacancyService {
         return repository.findPage(where, sort, size, (int) offset).stream().map(Vacancy::restore).toList();
     }
 
+    /** The best profile score of each vacancy that has one (derived data, see MatchService); the others are absent. */
+    @Transactional(readOnly = true)
+    public Map<UUID, Integer> matchScoresOf(java.util.Collection<UUID> ids) {
+        return repository.findMatchScoresFor(ids);
+    }
+
+    /** The sources (adapter ids, earliest first) that listed each vacancy; a vacancy added by hand is absent. */
+    @Transactional(readOnly = true)
+    public Map<UUID, List<String>> sourcesOf(java.util.Collection<UUID> ids) {
+        return repository.findSourceAdaptersFor(ids);
+    }
+
     @Transactional(readOnly = true)
     public long countMatching(SqlFragment where) {
         return repository.count(where);
