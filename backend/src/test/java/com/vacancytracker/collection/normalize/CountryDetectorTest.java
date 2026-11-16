@@ -19,14 +19,20 @@ class CountryDetectorTest {
             "Remote (Poland)|PL",
             "Austin, TX, USA|US",
             "Wien / Österreich|AT",
-            "Remote - Canada|CA"})
+            "Remote - Canada|CA",
+            "USA Only|US",
+            "Germany only|DE",
+            "Remote Poland|PL",
+            "Czechia Remote|CZ",
+            "Anywhere in Canada|CA",
+            "Remote, UK based|GB"})
     void readsACountryName(String location, String code) {
         assertThat(CountryDetector.detect(location)).contains(code);
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"Remote", "Worldwide", "Europe", "Berlin", "Indianapolis, IN", "Wilmington, DE", "Atlanta, Georgia", "Granada", "Jersey",
-            "Germany, France", "Remote, Germany or Poland"})
+            "Germany, France", "Remote, Germany or Poland", "Anywhere", "Remote only", "Europe only", "USA, Canada"})
     void givesNothingWhenThereIsNoSingleCountry(String location) {
         assertThat(CountryDetector.detect(location)).isEmpty();
     }

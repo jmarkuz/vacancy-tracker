@@ -33,6 +33,7 @@ All notable changes are recorded here. Format: date, task ID, short description.
 - Jobicy: the annual salary range and its currency (annualSalaryMin, annualSalaryMax, salaryCurrency; numbers or text) are stored with the period year.
 - Posting dates: a Unix time is read whether the source sends seconds or milliseconds (Himalayas, Arbeitnow, Remote OK, Lever), a date with an offset, a bare date, an RFC 1123 date or a numeric text is read (Remotive and Himalayas dates with a zone were dropped), and a missing Telegram date no longer gives 1 January 1970.
 - Link comparison ignores more tracking parameters (gh_src, lever-source, lever-origin, msclkid, yclid, mkt_tok, trackingId, refId and others), so the same posting reached through two tagged links is one vacancy.
+- Country from a location that qualifies it: "USA Only", "Germany only", "Remote Poland", "Czechia Remote", "Anywhere in Canada" now give the country (Remotive writes places this way); "Europe only" or two countries still give none.
 
 ### 2026-11-13 — UI speed review
 - Fewer requests: the fit scores of the Inbox and Pipeline rows (`useFits`) are asked for once per row. A list that shrinks after a triage, or reloads with the same rows, no longer repeats the request; only new rows are asked for, a failed request is retried, and the list itself never waits for the scores (the server may have to score postings first, so they stay a separate request).

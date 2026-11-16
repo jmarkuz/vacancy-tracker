@@ -8,6 +8,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * Finds the country in a free-text location (T-041). Only a whole comma-separated part that is a country name counts,
@@ -23,6 +24,8 @@ public final class CountryDetector {
     private static final Map<String, String> ALIASES = Map.of(
             "uk", "GB", "u.k.", "GB", "great britain", "GB", "england", "GB", "scotland", "GB",
             "usa", "US", "u.s.", "US", "u.s.a.", "US", "us", "US", "czech republic", "CZ");
+    private static final Pattern MODIFIERS = Pattern.compile(
+            "\\b(?:only|remote|hybrid|on-?site|based|anywhere|within|in|from)\\b", Pattern.CASE_INSENSITIVE);
     private static final Set<String> EXCLUDED = Set.of("georgia", "granada", "jersey");
     private static final Set<String> ISO_CODES = Set.of(Locale.getISOCountries());
     private static final Map<String, String> BY_NAME = build();
@@ -37,6 +40,10 @@ public final class CountryDetector {
         String found = null;
         for (String part : location.split("[,;/|()\\n]|\\s[-–—]\\s")) {
             String code = BY_NAME.get(key(part));
+            if (code == null) {
+                // "USA Only", "Remote Poland", "Anywhere in Canada": the country with a word that only qualifies it.
+                code = BY_NAME.get(key(MODIFIERS.matcher(part).replaceAll(" ")));
+            }
             if (code == null) {
                 continue;
             }
