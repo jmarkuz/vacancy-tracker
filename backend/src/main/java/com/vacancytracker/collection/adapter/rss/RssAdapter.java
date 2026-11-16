@@ -117,15 +117,44 @@ public class RssAdapter implements SourceAdapter {
                 continue;
             }
             String id = entry.getUri() != null && !entry.getUri().isBlank() ? entry.getUri() : link;
-            String html = entry.getDescription() != null ? entry.getDescription().getValue()
-                    : !entry.getContents().isEmpty() ? entry.getContents().get(0).getValue() : null;
-            String author = entry.getAuthor() == null ? "" : entry.getAuthor().trim();
+            String html = fullerText(entry);
+            String author = authorName(entry.getAuthor());
             String company = !feed.companyName().isBlank() ? feed.companyName() : !author.isEmpty() ? author : feed.id();
             found.putIfAbsent(id, new RawPosting(ID, feed.id() + ":" + id, link, title, company, null, null,
                     html == null ? null : Normalizer.plainText(html), null, null, null, null,
                     postedAt(entry)));
         }
         return List.copyOf(found.values());
+    }
+
+    /**
+     * A feed may carry a teaser in description and the whole text in content:encoded (or Atom content); the longer
+     * one is the posting's text.
+     */
+    private static String fullerText(SyndEntry entry) {
+        String summary = entry.getDescription() == null ? null : entry.getDescription().getValue();
+        String content = entry.getContents().isEmpty() ? null : entry.getContents().get(0).getValue();
+        if (summary == null || content != null && Normalizer.plainText(content) != null
+                && (Normalizer.plainText(summary) == null || Normalizer.plainText(content).length() > Normalizer.plainText(summary).length())) {
+            return content;
+        }
+        return summary;
+    }
+
+    /**
+     * RSS 2.0 requires an e-mail address in author, with the name in brackets: "jobs@acme.test (Acme Labs)". The name is
+     * the company; a bare address is no company name, so it gives none.
+     */
+    static String authorName(String author) {
+        if (author == null) {
+            return "";
+        }
+        String text = author.trim();
+        java.util.regex.Matcher named = java.util.regex.Pattern.compile("^\\S+@\\S+\\s*\\((.+)\\)$").matcher(text);
+        if (named.matches()) {
+            return named.group(1).trim();
+        }
+        return text.contains("@") && !text.contains(" ") ? "" : text;
     }
 
     /** Atom requires only "updated", so it stands in when "published" is absent. */
