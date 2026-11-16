@@ -1,7 +1,7 @@
 import { render } from "preact";
 import { act } from "preact/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { Pipeline } from "./Pipeline";
+import { Pipeline, pageOf } from "./Pipeline";
 
 let host: HTMLElement;
 
@@ -308,6 +308,120 @@ describe("Pipeline: cells of every value shape", () => {
 
     expect(cell("lastSeenAt")).toBe("-");
     expect(cell("salary")).toBe("Not specified");
+  });
+});
+
+describe("Pipeline: pages and selection", () => {
+  const requested = () => (fetch as unknown as { mock: { calls: string[][] } }).mock.calls.map((c) => c[0]).filter((u) => u.startsWith("/api/vacancies"));
+  const filterQuery = (field: string, value: string) => new URLSearchParams({ filter: JSON.stringify([{ field, operator: "equals", value }]) }).toString();
+
+  it("makes a hand-edited page number safe before asking the server", async () => {
+    expect(pageOf(null)).toBe(0);
+    expect(pageOf("2")).toBe(2);
+    expect(pageOf("1.9")).toBe(1);
+    expect(pageOf("-4")).toBe(0);
+    expect(pageOf("abc")).toBe(0);
+    expect(pageOf("1e12")).toBe(99_999);
+    expect(pageOf("Infinity")).toBe(0);
+
+    items = [row(1)];
+    total = 250;
+    await show("page=1.5");
+    expect(requested()[0]).toContain("page=1&");
+  });
+
+  it("goes to the last page when the address points past the end", async () => {
+    items = [row(1)];
+    total = 250;
+    await show("page=7");
+
+    expect(window.location.hash + window.location.search).toContain("page=2");
+  });
+
+  it("says nothing matches, and offers to clear the filter, instead of saying there are no vacancies yet", async () => {
+    items = [];
+    total = 0;
+    await show(filterQuery("company", "Nobody"));
+
+    expect(host.querySelector(".empty-state h2")?.textContent).toBe("No vacancies match");
+    await press(control("Clear filters").el);
+    expect(window.location.hash + window.location.search).not.toContain("filter=");
+  });
+
+  it("says there are no vacancies yet when nothing is stored and no filter is set", async () => {
+    await show();
+
+    expect(host.querySelector(".empty-state h2")?.textContent).toBe("No vacancies yet");
+    expect(control("Clear filters").el).toBeUndefined();
+  });
+
+  it("shows the page and the total, and has no Next on the last page", async () => {
+    items = [row(1)];
+    total = 101;
+    await show("page=1");
+
+    expect(host.querySelector(".pager .num")?.textContent).toBe("Page 2 of 2 · 101 vacancies");
+    expect((control("Next").el as HTMLButtonElement).disabled).toBe(true);
+    expect((control("Previous").el as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("forgets the selected rows when the filter, the page or the sort changes", async () => {
+    items = [row(1), row(2)];
+    total = 2;
+    const selectedCount = () => host.querySelectorAll("tbody tr[aria-selected='true']").length;
+    await show();
+    await press(host.querySelector('thead input[type="checkbox"]') ?? undefined);
+    expect(selectedCount()).toBe(2);
+
+    await show(filterQuery("company", "Acme 1"));
+    expect(selectedCount()).toBe(0);
+    expect(host.querySelector('[aria-label="Bulk actions"]')).toBeNull();
+
+    await press(host.querySelector('thead input[type="checkbox"]') ?? undefined);
+    expect(selectedCount()).toBeGreaterThan(0);
+    await show(`${filterQuery("company", "Acme 1")}&sort=title:asc`);
+    expect(selectedCount()).toBe(0);
+
+    await press(host.querySelector('thead input[type="checkbox"]') ?? undefined);
+    await show(`${filterQuery("company", "Acme 1")}&sort=title:asc&page=0&layout=board`);
+    expect(selectedCount()).toBe(0);
+  });
+
+  it("labels every row box with the vacancy and the header box as the whole page", async () => {
+    items = [row(1)];
+    total = 1;
+    await show();
+
+    expect(host.querySelector('tbody input[type="checkbox"]')?.getAttribute("aria-label")).toBe("Select Backend 1");
+    expect(host.querySelector('thead input[type="checkbox"]')?.getAttribute("aria-label")).toBe("Select all rows on this page");
+  });
+});
+
+describe("Pipeline: the cards of narrow screens", () => {
+  const facts = (card: Element | null | undefined) =>
+    Object.fromEntries([...(card?.querySelectorAll(".vcard-facts > div") ?? [])].map((d) => [d.querySelector("dt")?.textContent, d.querySelector("dd")?.textContent]));
+
+  it("says what the table says: the visible columns as labelled facts, and a dash where the value is missing", async () => {
+    items = [row(1), { ...row(2), location: null as never, workMode: null as never, salaryMin: null as never, salaryMax: null as never }];
+    total = 2;
+    await show("cols=title,location,workMode,salary,matchScore");
+
+    const [first, second] = [...host.querySelectorAll(".vcard")];
+    expect(facts(first)).toEqual({ Location: "Kyiv", "Work mode": "Remote", "Match score": "-" });
+    expect(facts(second)).toEqual({ Location: "-", "Work mode": "-", "Match score": "-" });
+    expect(second.querySelector(".vcard-meta")?.textContent).toContain("Not specified");
+    expect(second.querySelector(".vcard-meta .badge")?.textContent).toBe("New");
+  });
+
+  it("keeps title, company, status and salary as before when no other column is chosen", async () => {
+    items = [row(1)];
+    total = 1;
+    await show("cols=title");
+
+    const card = host.querySelector(".vcard");
+    expect(card?.querySelector(".vcard-title")?.textContent).toBe("Backend 1");
+    expect(card?.textContent).toContain("Acme 1");
+    expect(card?.querySelector(".vcard-facts")).toBeNull();
   });
 });
 

@@ -40,7 +40,7 @@ interface Props {
 export function Pipeline({ params, dataVersion = 0 }: Props) {
   // The address may hold a sort the server would refuse (old link, hand edit): it shows the default order instead.
   const sort = parseSort(params.get("sort")).value;
-  const page = Math.max(0, Number(params.get("page") ?? 0) || 0);
+  const page = pageOf(params.get("page"));
   const visible = useMemo(() => resolveColumns(params.get("cols")), [params.get("cols")]);
   const openId = params.get("open");
   const filterRaw = params.get("filter");
@@ -213,8 +213,18 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
 
       {!error && data && data.total === 0 && !loading && (
         <div class="panel empty-state">
-          <h2>No vacancies yet</h2>
-          <p class="muted">Add one with "Add vacancy", or refresh the sources once they are configured.</p>
+          {criteria.length > 0 ? (
+            <>
+              <h2>No vacancies match</h2>
+              <p class="muted">Nothing fits the current filter. Change or remove a filter to see more.</p>
+              <button type="button" class="btn" onClick={() => setFilter([])}>Clear filters</button>
+            </>
+          ) : (
+            <>
+              <h2>No vacancies yet</h2>
+              <p class="muted">Add one with "Add vacancy", or refresh the sources once they are configured.</p>
+            </>
+          )}
         </div>
       )}
 
@@ -283,7 +293,7 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
 
           <ul class="vcards" aria-label="Vacancies">
             {data.items.map((v) => (
-              <VacancyCard key={v.id} v={v} fit={fits[v.id]} onOpen={openVacancy} />
+              <VacancyCard key={v.id} v={v} fit={fits[v.id]} columns={visible} onOpen={openVacancy} />
             ))}
           </ul>
 
@@ -324,6 +334,15 @@ export function Pipeline({ params, dataVersion = 0 }: Props) {
       )}
     </section>
   );
+}
+
+/** The server refuses a page it cannot reach (10 million rows in) and a fraction: a hand-edited address is made safe. */
+const MAX_PAGE = 99_999;
+
+/** The zero-based page of the address; anything that is not a whole number from 0 up is the first page. */
+export function pageOf(raw: string | null): number {
+  const n = Math.floor(Number(raw ?? 0));
+  return Number.isFinite(n) && n > 0 ? Math.min(n, MAX_PAGE) : 0;
 }
 
 /** Writes the filter into the URL and returns to the first page. */
@@ -382,19 +401,37 @@ const PipelineRow = pure(({ v, checked, fit, columns, onToggle, onOpen }: RowPro
 ));
 
 /** The same vacancy as a card, for narrow screens. */
-const VacancyCard = pure(({ v, fit, onOpen }: { v: Vacancy; fit: ResumeFit | undefined; onOpen: (id: string) => void }) => (
-  <li class="vcard">
-    <button type="button" class="row-open vcard-title" onClick={() => onOpen(v.id)}>
-      {v.title}
-    </button>
-    <FitBadge fit={fit} />
-    <div class="muted">{v.company}</div>
-    <div class="vcard-meta">
-      <span class="badge-slot">{COLUMNS.find((c) => c.id === "status")?.render(v)}</span>
-      <span class="num">{COLUMNS.find((c) => c.id === "salary")?.render(v)}</span>
-    </div>
-  </li>
-));
+const VacancyCard = pure(({ v, fit, columns, onOpen }: { v: Vacancy; fit: ResumeFit | undefined; columns: Column[]; onOpen: (id: string) => void }) => {
+  // Status and salary are always on the card, as before; every other visible column adds a labelled fact, so the
+  // card says what the table says, with the same dash for a missing value.
+  const rest = columns.filter((c) => !CARD_HEAD.includes(c.id));
+  return (
+    <li class="vcard">
+      <button type="button" class="row-open vcard-title" onClick={() => onOpen(v.id)}>
+        {columnById("title").render(v)}
+      </button>
+      <FitBadge fit={fit} />
+      <div class="muted">{columnById("company").render(v)}</div>
+      <div class="vcard-meta">
+        <span class="badge-slot">{columnById("status").render(v)}</span>
+        <span class="num">{columnById("salary").render(v)}</span>
+      </div>
+      {rest.length > 0 && (
+        <dl class="vcard-facts">
+          {rest.map((c) => (
+            <div key={c.id}>
+              <dt>{c.label}</dt>
+              <dd>{c.render(v)}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </li>
+  );
+});
+
+const CARD_HEAD = ["title", "company", "status", "salary"];
+const columnById = (id: string): Column => COLUMNS.find((c) => c.id === id) as Column;
 
 
 /** The columns of the address: unknown and repeated ids are ignored, the title always shows, nothing left means the defaults. */
