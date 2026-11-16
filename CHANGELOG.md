@@ -29,6 +29,7 @@ All notable changes are recorded here. Format: date, task ID, short description.
 - Adzuna: every result now carries the country of the searched site (a city such as "Leeds" no longer leaves the country empty), and the salary currency defaults to the country's own currency when APP_SOURCES_ADZUNA_CURRENCIES names none (before, the salary was dropped without it). A posting can now carry a country its source states apart from the location text.
 - Lever: the description now holds the whole posting (opening, the responsibilities and requirements lists, the closing text; before, only the opening paragraph was stored, so scoring saw a fraction of the text); the stated salary range and country are read; a role listed only under several places shows them as its location.
 - Ashby: the salary component of the compensation (the adapter already asked for it) and the address country are stored, and isRemote gives the work mode when no workplace type is sent.
+- Greenhouse: the published pay range (sent in cents) is stored in currency units with its currency; it has no stated period, so the period stays unknown.
 
 ### 2026-11-13 — UI speed review
 - Fewer requests: the fit scores of the Inbox and Pipeline rows (`useFits`) are asked for once per row. A list that shrinks after a triage, or reloads with the same rows, no longer repeats the request; only new rows are asked for, a failed request is retried, and the list itself never waits for the scores (the server may have to score postings first, so they stay a separate request).

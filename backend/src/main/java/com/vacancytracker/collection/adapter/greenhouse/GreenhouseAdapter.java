@@ -10,6 +10,7 @@ import com.vacancytracker.collection.http.FetchResult;
 import com.vacancytracker.collection.http.HttpFetcher;
 import com.vacancytracker.collection.http.UpstreamException;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -95,6 +96,7 @@ public class GreenhouseAdapter implements SourceAdapter {
 
     private static RawPosting toPosting(String board, JsonNode job) {
         String content = job.path("content").asText("");
+        BigDecimal[] pay = payRange(job.path("pay_input_ranges"));
         return new RawPosting(
                 ID,
                 job.path("id").asText(),
@@ -104,10 +106,35 @@ public class GreenhouseAdapter implements SourceAdapter {
                 job.path("location").path("name").asText(null),
                 null,
                 content.isEmpty() ? null : plainText(content),
-                null,
-                null,
-                null,
+                pay == null ? null : pay[0],
+                pay == null ? null : pay[1],
+                pay == null ? null : currencyOf(job.path("pay_input_ranges")),
                 null,
                 AdapterDates.instantOrNull(job.hasNonNull("first_published") ? job.path("first_published").asText(null) : job.path("updated_at").asText(null)));
+    }
+
+    /**
+     * Greenhouse states pay in cents. A job with several ranges (one per location) gives the lowest and the highest
+     * amount of the ranges that share the first range's currency; no period is stated, so none is given.
+     */
+    private static BigDecimal[] payRange(JsonNode ranges) {
+        String currency = currencyOf(ranges);
+        BigDecimal min = null;
+        BigDecimal max = null;
+        for (JsonNode range : ranges) {
+            if (currency == null || !currency.equals(range.path("currency_type").asText(null))
+                    || !range.path("min_cents").isNumber() || !range.path("max_cents").isNumber()) {
+                continue;
+            }
+            BigDecimal low = range.get("min_cents").decimalValue().movePointLeft(2);
+            BigDecimal high = range.get("max_cents").decimalValue().movePointLeft(2);
+            min = min == null || low.compareTo(min) < 0 ? low : min;
+            max = max == null || high.compareTo(max) > 0 ? high : max;
+        }
+        return min == null ? null : new BigDecimal[] {min, max};
+    }
+
+    private static String currencyOf(JsonNode ranges) {
+        return ranges.isArray() && !ranges.isEmpty() ? ranges.get(0).path("currency_type").asText(null) : null;
     }
 }
