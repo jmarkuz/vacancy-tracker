@@ -180,4 +180,14 @@ class NormalizerTest {
 
         assertThat(detected).isEqualTo(expected == null || expected.isEmpty() ? null : expected);
     }
+
+    @Test
+    void plainTextIsNotReadAsMarkup() {
+        // Sources such as Lever, Ashby and Telegram send text, and an adapter may already have converted HTML.
+        assertThat(Normalizer.plainText("Implement Map<String, Object> and <T> handling,\n5 < 10 & more"))
+                .isEqualTo("Implement Map<String, Object> and <T> handling, 5 < 10 & more");
+        assertThat(Normalizer.plainText("<p>Use <b>List&lt;String&gt;</b> &amp; Set</p><br>Done"))
+                .isEqualTo("Use List<String> & Set Done");
+        assertThat(Normalizer.plainText("Tom &amp; Jerry")).isEqualTo("Tom & Jerry");
+    }
 }

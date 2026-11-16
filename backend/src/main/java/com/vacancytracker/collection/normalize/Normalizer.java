@@ -5,6 +5,7 @@ import com.vacancytracker.collection.adapter.RawPosting;
 import java.math.BigDecimal;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import org.jsoup.Jsoup;
 import org.jsoup.parser.Parser;
 
@@ -62,12 +63,21 @@ public final class Normalizer {
                 raw.postedAt()));
     }
 
-    /** HTML to plain text, whitespace collapsed; blank becomes null. */
+    /** A known HTML tag, a comment or a character reference; "Map<String>" or "<T>" is text, not markup. */
+    private static final Pattern MARKUP = Pattern.compile(
+            "</?(?:p|br|div|span|ul|ol|li|b|i|u|em|strong|a|h[1-6]|table|thead|tbody|tr|td|th|img|hr|pre|code|blockquote"
+                    + "|section|article|font|center|small|sup|sub|dl|dt|dd|style|script)\\b[^>]*>|<!--|&(?:[a-zA-Z]{2,8}|#\\d{1,7}|#[xX][0-9a-fA-F]{1,6});");
+
+    /**
+     * HTML to plain text, whitespace collapsed; blank becomes null. Text that holds no markup (a description a source
+     * sent as plain text, or one an adapter has already converted) is only tidied: reading it as HTML would drop
+     * "<T>" or "List<String>".
+     */
     public static String plainText(String html) {
         if (html == null || html.isBlank()) {
             return null;
         }
-        String text = Jsoup.parse(html).text().replaceAll("\\s+", " ").trim();
+        String text = (MARKUP.matcher(html).find() ? Jsoup.parse(html).text() : html).replaceAll("\\s+", " ").trim();
         return text.isEmpty() ? null : text;
     }
 
