@@ -20,6 +20,9 @@ All notable changes are recorded here. Format: date, task ID, short description.
 - Cards on narrow screens now show the same facts as the table: besides title, company, status and salary, every visible column appears as a labelled fact with the same "-" for a missing value (the card used to drop location, work mode, dates and so on).
 - Pages: a hand-edited `page=1.5` or a huge page number no longer reaches the server as a 422 error (a fraction rounds down, the number is capped); an empty list under a filter says "No vacancies match" with a Clear filters button instead of "No vacancies yet". Tests: Pipeline.test.tsx (also pins the existing rules: selection is forgotten on a new page, filter, sort or layout, and the page past the end goes to the last page), statusBadges.test.ts (every backend status has a badge colour and a place on the board or in the Inbox).
 
+### 2026-11-16 - Collection mapping review
+- Titles, companies and places that a source sends HTML-escaped ("Dev &amp; Ops", "&#8211;") are decoded before they are stored (Normalizer).
+
 ### 2026-11-13 — UI speed review
 - Fewer requests: the fit scores of the Inbox and Pipeline rows (`useFits`) are asked for once per row. A list that shrinks after a triage, or reloads with the same rows, no longer repeats the request; only new rows are asked for, a failed request is retried, and the list itself never waits for the scores (the server may have to score postings first, so they stay a separate request).
 - Fewer redraws: the Inbox rows and the Pipeline table rows and cards are pure components (`components/pure.tsx`), so choosing a row, ticking a box or typing in the filter redraws only the rows that changed, not all 100. The Pipeline's visible columns are computed once per address instead of on every draw, and the Inbox no longer joins the list of ids on every draw.

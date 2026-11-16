@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 import java.util.Locale;
 import java.util.Optional;
 import org.jsoup.Jsoup;
+import org.jsoup.parser.Parser;
 
 /**
  * Turns a RawPosting into a NormalizedPosting (T-041). Returns empty when the posting lacks a title or
@@ -72,7 +73,9 @@ public final class Normalizer {
         if (value == null) {
             return null;
         }
-        String text = value.replaceAll("\\s+", " ").trim();
+        // Some feeds send titles and names HTML-escaped ("Dev &amp; Ops", "Senior &#8211; Remote").
+        String decoded = value.indexOf('&') >= 0 ? Parser.unescapeEntities(value, false) : value;
+        String text = decoded.replaceAll("\\s+", " ").trim();
         return text.isEmpty() ? null : text;
     }
 

@@ -92,4 +92,16 @@ class NormalizerTest {
         assertThat(Optional.ofNullable(Normalizer.normalize(raw("Dev", "Acme", null, null, null, null, null, null, null))
                 .orElseThrow().location())).isEmpty();
     }
+
+    @Test
+    void htmlEntitiesInTitleCompanyAndLocationAreDecoded() {
+        NormalizedPosting n = Normalizer.normalize(raw("Developer &amp; Analyst &#8211; Remote", "Marrow &amp; Co", "Prague &amp; Brno",
+                null, null, null, null, null, null)).orElseThrow();
+
+        assertThat(n.title()).isEqualTo("Developer & Analyst \u2013 Remote");
+        assertThat(n.company()).isEqualTo("Marrow & Co");
+        assertThat(n.location()).isEqualTo("Prague & Brno");
+        assertThat(Normalizer.normalize(raw("R&D Lead", "AT&T", null, null, null, null, null, null, null)).orElseThrow().title())
+                .isEqualTo("R&D Lead");
+    }
 }
