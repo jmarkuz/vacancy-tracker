@@ -15,7 +15,10 @@ import java.util.stream.Collectors;
 public final class CanonicalUrl {
 
     private static final Set<String> TRACKING_PARAMS = Set.of(
-            "gclid", "fbclid", "mc_cid", "mc_eid", "ref", "ref_src", "source", "trk", "trkid");
+            "gclid", "fbclid", "mc_cid", "mc_eid", "ref", "ref_src", "source", "trk", "trkid",
+            // Applicant-tracking systems and mail tools that tag the same posting differently per visit.
+            "gh_src", "lever-source", "lever-origin", "lever-via", "msclkid", "yclid", "igshid", "mkt_tok", "_hsenc", "_hsmi",
+            "trackingid", "refid", "lipi", "midtoken", "midsig", "ebp");
 
     private CanonicalUrl() {
     }
