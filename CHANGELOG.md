@@ -7,6 +7,10 @@ All notable changes are recorded here. Format: date, task ID, short description.
 ### 2026-11-16 — Scores and Top matches (review)
 - Top matches no longer pass a thin 100 for a full one. A rule whose value a posting does not state (no work mode, country or salary) is skipped by the "ignore" policy, so a posting that matched one stated fact scored 100, like one that matched all of them. Each score now carries a coverage (the share of your scoring rules the posting could be judged by, V29, ADR-055): equal scores are ordered by coverage, and a top match judged by part of your rules says "Based on N% of your rules: the rest are not stated". The score formula and thresholds are unchanged. Scores made earlier have no coverage until "Recalculate scores".
 - Fixed: a profile that cannot judge a posting (only filters, or every scored value missing) scored it 0 and the Inbox rule hid it below the threshold, against "ignore keeps useful vacancies visible". Such vacancies now stay in the Inbox, and a score of 0 on no evidence is left out of Top matches.
+
+### 2026-11-16 - Pipeline table
+- A posting date the browser cannot read (for example from an imported file) no longer crashes the whole Pipeline table: the cell shows "-". Tests: columns.test.ts.
+
 ### 2026-11-13 — UI speed review
 - Fewer requests: the fit scores of the Inbox and Pipeline rows (`useFits`) are asked for once per row. A list that shrinks after a triage, or reloads with the same rows, no longer repeats the request; only new rows are asked for, a failed request is retried, and the list itself never waits for the scores (the server may have to score postings first, so they stay a separate request).
 - Fewer redraws: the Inbox rows and the Pipeline table rows and cards are pure components (`components/pure.tsx`), so choosing a row, ticking a box or typing in the filter redraws only the rows that changed, not all 100. The Pipeline's visible columns are computed once per address instead of on every draw, and the Inbox no longer joins the list of ids on every draw.

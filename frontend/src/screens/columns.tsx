@@ -13,8 +13,13 @@ export interface Column {
 
 const DATE = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
 
-export function formatDate(value: string | null): string {
-  return value ? DATE.format(new Date(value)) : "-";
+/** A date for a cell. No date, or text that is not a date, is a dash: one bad value must not break the whole table. */
+export function formatDate(value: string | null | undefined): string {
+  if (!value) {
+    return "-";
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "-" : DATE.format(date);
 }
 
 export function formatSalary(v: Vacancy): string {
