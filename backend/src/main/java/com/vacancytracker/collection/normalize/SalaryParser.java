@@ -80,6 +80,28 @@ public final class SalaryParser {
         return null;
     }
 
+    /**
+     * An ISO 4217 code from what a source gave: a code in any case, or one of the symbols € $ £. Anything else
+     * (a word such as "Euro", an unknown code) is null, and the salary is then dropped as having no currency.
+     */
+    static String isoCurrency(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        String text = value.trim();
+        String symbol = switch (text) {
+            case "€" -> "EUR";
+            case "$" -> "USD";
+            case "£" -> "GBP";
+            default -> null;
+        };
+        if (symbol != null) {
+            return symbol;
+        }
+        String code = text.toUpperCase(Locale.ROOT);
+        return code.length() == 3 && isCurrency(code) ? code : null;
+    }
+
     private static boolean isCurrency(String code) {
         try {
             java.util.Currency.getInstance(code);

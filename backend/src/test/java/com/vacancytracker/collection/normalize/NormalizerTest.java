@@ -136,4 +136,36 @@ class NormalizerTest {
                 .orElseThrow();
         assertThat(n.workMode()).isEqualTo(expected == null || expected.isEmpty() ? null : expected);
     }
+
+    @Test
+    void aZeroAmountMeansNotGiven() {
+        NormalizedPosting n = Normalizer.normalize(raw("Dev", "Acme", null, null, null,
+                BigDecimal.ZERO, BigDecimal.valueOf(90000), "EUR", "year")).orElseThrow();
+        assertThat(n.salaryMin()).isEqualByComparingTo("90000");
+        assertThat(n.salaryMax()).isEqualByComparingTo("90000");
+
+        NormalizedPosting none = Normalizer.normalize(raw("Dev", "Acme", null, null, null,
+                BigDecimal.ZERO, BigDecimal.ZERO, "EUR", "year")).orElseThrow();
+        assertThat(none.salaryMin()).isNull();
+        assertThat(none.currency()).isNull();
+    }
+
+    @ParameterizedTest
+    @CsvSource({"€, EUR", "$, USD", "£, GBP", " czk , CZK", "Euro, ", "US dollars, "})
+    void currencyIsAnIsoCodeOrDropsTheSalary(String given, String expected) {
+        NormalizedPosting n = Normalizer.normalize(raw("Dev", "Acme", null, null, null,
+                BigDecimal.valueOf(50000), BigDecimal.valueOf(60000), given, "year")).orElseThrow();
+        assertThat(n.currency()).isEqualTo(expected == null || expected.isEmpty() ? null : expected.trim());
+        assertThat(n.salaryMin() != null).isEqualTo(expected != null && !expected.isEmpty());
+    }
+
+    @ParameterizedTest
+    @CsvSource({"year, year", "Yearly, year", "annual, year", "per-year-salary, year", "per year, year", "Monthly, month",
+            "per-month-salary, month", "hourly, hour", "per-hour-wage, hour", "weekly, week", "daily, day", "fortnight, "})
+    void periodIsOneOfTheKnownWords(String given, String expected) {
+        NormalizedPosting n = Normalizer.normalize(raw("Dev", "Acme", null, null, null,
+                BigDecimal.valueOf(50), BigDecimal.valueOf(60), "USD", given)).orElseThrow();
+        assertThat(n.salaryPeriod()).isEqualTo(expected == null || expected.isEmpty() ? null : expected);
+        assertThat(n.salaryMin()).isEqualByComparingTo("50");
+    }
 }

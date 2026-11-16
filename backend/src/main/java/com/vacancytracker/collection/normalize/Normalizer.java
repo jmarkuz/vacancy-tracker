@@ -40,7 +40,7 @@ public final class Normalizer {
             min = max;
             max = swap;
         }
-        String currency = raw.currency() == null ? null : raw.currency().trim().toUpperCase(Locale.ROOT);
+        String currency = SalaryParser.isoCurrency(raw.currency());
         // A salary without a currency cannot be compared (ADR-011), so it is dropped.
         boolean hasSalary = currency != null && (min != null || max != null);
 
@@ -58,7 +58,7 @@ public final class Normalizer {
                 hasSalary ? (min != null ? min : max) : null,
                 hasSalary ? (max != null ? max : min) : null,
                 hasSalary ? currency : null,
-                hasSalary ? raw.salaryPeriod() : null,
+                hasSalary ? period(raw.salaryPeriod()) : null,
                 raw.postedAt()));
     }
 
@@ -81,8 +81,30 @@ public final class Normalizer {
         return text.isEmpty() ? null : text;
     }
 
+    /** Zero is how some sources say "not given" (Remote OK), and a negative amount is no salary. */
     private static BigDecimal nonNegative(BigDecimal value) {
-        return value == null || value.signum() < 0 ? null : value;
+        return value == null || value.signum() <= 0 ? null : value;
+    }
+
+    /** year, month, week, day or hour; a source's wording ("yearly", "per-hour-wage") is mapped, anything else is unknown. */
+    static String period(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        String lower = value.toLowerCase(Locale.ROOT);
+        if (lower.matches(".*\\b(?:year|yearly|annual|annually|annum|yr|p\\.?a\\.?)\\b.*")) {
+            return "year";
+        }
+        if (lower.matches(".*\\b(?:month|monthly|mo)\\b.*")) {
+            return "month";
+        }
+        if (lower.matches(".*\\b(?:week|weekly|wk)\\b.*")) {
+            return "week";
+        }
+        if (lower.matches(".*\\b(?:day|daily)\\b.*")) {
+            return "day";
+        }
+        return lower.matches(".*\\b(?:hour|hourly|hr|h)\\b.*") ? "hour" : null;
     }
 
     private static String blankToNull(String value) {
