@@ -86,7 +86,7 @@ public abstract class EmailAlertAdapter implements SourceAdapter {
             }
             for (ParsedJob job : jobs) {
                 postings.add(new RawPosting(id(), job.externalId(), job.url(), job.title(), job.company(), job.location(),
-                        null, null, null, null, null, null, mail.receivedAt()));
+                        null, null, null, null, null, null, mail.receivedAt(), parser.country(job)));
             }
             return MailHandler.Outcome.PROCESSED;
         }

@@ -101,4 +101,19 @@ class SenderParsersTest {
             assertThat(parser.parse(mail("a@x", null, null))).isEmpty();
         }
     }
+
+    @Test
+    void theCountryIsTheMarketOfTheSenderSite() {
+        JobsCzAlertParser jobsCz = new JobsCzAlertParser();
+        IndeedAlertParser indeed = new IndeedAlertParser();
+
+        assertThat(jobsCz.country(new ParsedJob("1", "https://www.jobs.cz/rpd/1/", "t", "c", "Praha"))).isEqualTo("CZ");
+        assertThat(indeed.country(new ParsedJob("1", "https://cz.indeed.com/viewjob?jk=1", "t", "c", "Praha"))).isEqualTo("CZ");
+        assertThat(indeed.country(new ParsedJob("1", "https://uk.indeed.com/viewjob?jk=1", "t", "c", "Leeds"))).isEqualTo("UK");
+        assertThat(indeed.country(new ParsedJob("1", "https://www.indeed.com/viewjob?jk=1", "t", "c", "Austin, TX"))).isEqualTo("US");
+        assertThat(indeed.country(new ParsedJob("1", "https://indeed.com/viewjob?jk=1", "t", "c", null))).isNull();
+        // LinkedIn and StartupJobs list vacancies of every country.
+        assertThat(new LinkedInAlertParser().country(new ParsedJob("1", "https://www.linkedin.com/jobs/view/1/", "t", "c", "Remote"))).isNull();
+        assertThat(new StartupJobsAlertParser().country(new ParsedJob("1", "https://www.startupjobs.cz/nabidka/1", "t", "c", "Praha / Remote"))).isNull();
+    }
 }
