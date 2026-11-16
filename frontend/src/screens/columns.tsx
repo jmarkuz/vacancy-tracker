@@ -1,6 +1,7 @@
 import type { ComponentChildren } from "preact";
 import { StatusBadge } from "../components/StatusBadge";
 import type { Vacancy } from "../api/types";
+import { formatDate, formatSalary, textOrDash } from "../domain/cells";
 
 export interface Column {
   id: string;
@@ -11,35 +12,11 @@ export interface Column {
   render: (v: Vacancy) => ComponentChildren;
 }
 
-const DATE = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
-
-/** A date for a cell. No date, or text that is not a date, is a dash: one bad value must not break the whole table. */
-export function formatDate(value: string | null | undefined): string {
-  if (!value) {
-    return "-";
-  }
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "-" : DATE.format(date);
-}
-
-export function formatSalary(v: Vacancy): string {
-  const amount = (n: number) => Math.round(n).toLocaleString();
-  if (v.salaryMin == null && v.salaryMax == null) {
-    // Unknown is never shown as 0 or a dash (Beacon).
-    return "Not specified";
-  }
-  const range =
-    v.salaryMin != null && v.salaryMax != null && v.salaryMin !== v.salaryMax
-      ? `${amount(v.salaryMin)}–${amount(v.salaryMax)}`
-      : amount((v.salaryMax ?? v.salaryMin) as number);
-  const currency = v.currency ? ` ${v.currency}` : "";
-  const period = v.salaryPeriod ? ` / ${v.salaryPeriod}` : "";
-  return `${range}${currency}${period}`;
-}
+export { formatDate, formatSalary };
 
 /** Long text stays on one line and ends in an ellipsis; the full text is in the tooltip. */
 export function clip(text: string | null | undefined): ComponentChildren {
-  const value = text || "-";
+  const value = textOrDash(text);
   return <span class="cell-clip" title={value}>{value}</span>;
 }
 

@@ -47,6 +47,42 @@ describe("formatSalary", () => {
     expect(formatSalary(vacancy({ salaryMin: 50000, salaryMax: 50000 }))).not.toContain("–");
     expect(formatSalary(vacancy({ salaryMax: 60000 }))).not.toContain("–");
   });
+
+  it("says what a one-sided salary means instead of passing it off as exact", () => {
+    expect(formatSalary(vacancy({ salaryMin: 50000, currency: "EUR", salaryPeriod: "year" }))).toMatch(/^from 50.000 EUR \/ year$/);
+    expect(formatSalary(vacancy({ salaryMax: 60000, currency: "EUR" }))).toMatch(/^up to 60.000 EUR$/);
+  });
+
+  it("treats 0 and negative amounts as unknown, never as pay", () => {
+    expect(formatSalary(vacancy({ salaryMin: 0, salaryMax: 0, currency: "USD" }))).toBe("Not specified");
+    expect(formatSalary(vacancy({ salaryMin: 0, salaryMax: 90000, currency: "USD" }))).toMatch(/^up to 90.000 USD$/);
+    expect(formatSalary(vacancy({ salaryMin: -5, salaryMax: null }))).toBe("Not specified");
+  });
+
+  it("keeps the cents of an hourly rate instead of rounding 45.5 to 46", () => {
+    const text = formatSalary(vacancy({ salaryMin: 45.5, salaryMax: 60, currency: "USD", salaryPeriod: "hour" }));
+    expect(text).toContain("45.5");
+    expect(text).toMatch(/USD \/ hour$/);
+  });
+
+  it("writes a short period out the same way for every spelling a source may use", () => {
+    for (const [given, shown] of [["hourly", "hour"], ["Monthly", "month"], ["annual", "year"], ["WEEK", "week"], ["day", "day"]]) {
+      expect(formatSalary(vacancy({ salaryMax: 100, currency: "USD", salaryPeriod: given }))).toMatch(new RegExp(`USD / ${shown}$`));
+    }
+  });
+
+  it("shows an unknown period as given and leaves out a missing or blank currency and period", () => {
+    expect(formatSalary(vacancy({ salaryMax: 100, currency: "USD", salaryPeriod: "sprint" }))).toMatch(/USD \/ sprint$/);
+    expect(formatSalary(vacancy({ salaryMax: 100, currency: " ", salaryPeriod: " " }))).toBe("up to 100");
+  });
+
+  it("puts the smaller amount first when a source gave them the wrong way round, and upper-cases the currency", () => {
+    expect(formatSalary(vacancy({ salaryMin: 90000, salaryMax: 70000, currency: "eur" }))).toMatch(/^70.000–90.000 EUR$/);
+  });
+
+  it("shows a large amount in full", () => {
+    expect(formatSalary(vacancy({ salaryMin: 1234567, salaryMax: 1234567, currency: "JPY" }))).toMatch(/^1.234.567 JPY$/);
+  });
 });
 
 describe("formatDate", () => {

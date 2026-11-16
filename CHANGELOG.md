@@ -10,6 +10,7 @@ All notable changes are recorded here. Format: date, task ID, short description.
 
 ### 2026-11-16 - Pipeline table
 - A posting date the browser cannot read (for example from an imported file) no longer crashes the whole Pipeline table: the cell shows "-". Tests: columns.test.ts.
+- Salary cell: a salary of 0 (some sources send 0 for "not given") shows "Not specified", not "0"; a one-sided salary reads "from 50,000" or "up to 60,000" instead of looking exact; an hourly rate keeps its cents (45.5, not 46); a swapped min/max is put right; periods (hour, day, week, month, year and their spellings such as "hourly", "annual") and the currency are written one way. The formatters moved to `domain/cells.ts`.
 
 ### 2026-11-13 — UI speed review
 - Fewer requests: the fit scores of the Inbox and Pipeline rows (`useFits`) are asked for once per row. A list that shrinks after a triage, or reloads with the same rows, no longer repeats the request; only new rows are asked for, a failed request is retried, and the list itself never waits for the scores (the server may have to score postings first, so they stay a separate request).
