@@ -286,6 +286,30 @@ describe("Pipeline: cells of every value shape", () => {
   });
 });
 
+describe("Pipeline: the sort in the address", () => {
+  const requested = () => (fetch as unknown as { mock: { calls: string[][] } }).mock.calls.map((c) => c[0]).filter((u) => u.startsWith("/api/vacancies"));
+  const ariaSort = (id: string) => host.querySelector(`thead th.col-${id}`)?.getAttribute("aria-sort");
+
+  it("takes a key without a direction as ascending, in the header and in the request", async () => {
+    items = [row(1)];
+    total = 1;
+    await show("sort=title");
+
+    expect(ariaSort("title")).toBe("ascending");
+    expect(requested()[0]).toContain("sort=title%3Aasc");
+  });
+
+  it("falls back to the default order for a sort the server would refuse", async () => {
+    items = [row(1)];
+    total = 1;
+    await show("sort=bogus:desc");
+
+    expect(requested()[0]).toContain("sort=lastSeenAt%3Adesc");
+    expect(ariaSort("lastSeenAt")).toBe("descending");
+    expect(ariaSort("title")).toBe("none");
+  });
+});
+
 describe("Pipeline: resizable columns", () => {
   const handle = (label: string) => host.querySelector(`[role="separator"][aria-label="Resize ${label} column"]`) as HTMLElement;
   const colOf = (id: string) => {

@@ -21,13 +21,13 @@ import { useFits } from "../useFits";
 import { FitBadge } from "../components/FitBadge";
 import { ColumnResizer } from "../components/ColumnResizer";
 import { pure } from "../components/pure";
+import { parseSort } from "../domain/sort";
 import { loadWidths, saveWidths, widthOf, withoutWidth, withWidth, type Widths } from "../domain/columnWidths";
 
 const PAGE_SIZE = 100;
 /** Room kept for the title column, which has no width of its own, and for the checkbox column. */
 const TITLE_ROOM = 280;
 const CHECK_WIDTH = 36;
-const DEFAULT_SORT = "lastSeenAt:desc";
 
 interface Props {
   params: URLSearchParams;
@@ -37,7 +37,8 @@ interface Props {
 
 /** Sort, page and visible columns are all in the URL, so a view can be bookmarked and shared. */
 export function Pipeline({ params, dataVersion = 0 }: Props) {
-  const sort = params.get("sort") ?? DEFAULT_SORT;
+  // The address may hold a sort the server would refuse (old link, hand edit): it shows the default order instead.
+  const sort = parseSort(params.get("sort")).value;
   const page = Math.max(0, Number(params.get("page") ?? 0) || 0);
   const visible = useMemo(() => resolveColumns(params.get("cols")), [params.get("cols")]);
   const openId = params.get("open");
