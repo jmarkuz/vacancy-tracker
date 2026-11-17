@@ -2,6 +2,8 @@
 
 Ukrainian version: [interview-prep.uk.md](interview-prep.uk.md).
 
+See also (Ukrainian): [project-deep-dive.uk.md](project-deep-dive.uk.md), a functional catalog of the whole project, and [star-stories.md](star-stories.md), seven STAR stories with English scripts.
+
 A working document for presenting and defending this project: what it does, which architecture and technical decisions were taken, what each one cost, and where to point in the source when asked "show me". Written in English because the repository's language policy is English ([ADR-020](../decisions.md#adr-020-language-policy)) and the interviews will most likely be in English.
 
 Every code reference is a link to a file and line range at the state of this document (2026-11-16). If a file moves, `docs/tech/` is the place to fix the links.
