@@ -19,5 +19,14 @@ public record NormalizedPosting(
         BigDecimal salaryMax,
         String currency,
         String salaryPeriod,
-        Instant postedAt) {
+        Instant postedAt,
+        String board) {
+
+    /** A posting from a source without boards. */
+    public NormalizedPosting(String adapter, String externalId, String url, String canonicalUrl, String title, String company,
+                             String location, String country, String workMode, String description, BigDecimal salaryMin,
+                             BigDecimal salaryMax, String currency, String salaryPeriod, Instant postedAt) {
+        this(adapter, externalId, url, canonicalUrl, title, company, location, country, workMode, description, salaryMin,
+                salaryMax, currency, salaryPeriod, postedAt, null);
+    }
 }

@@ -32,6 +32,7 @@ public final class BoardFetch {
      */
     public static FetchOutcome fetchAll(String label, List<String> boards, BoardReader reader, Logger log) {
         List<RawPosting> postings = new ArrayList<>();
+        List<String> failedBoards = new ArrayList<>();
         int read = 0;
         int unchanged = 0;
         int failed = 0;
@@ -41,12 +42,14 @@ public final class BoardFetch {
                 Optional<List<RawPosting>> result = reader.read(board);
                 read++;
                 if (result.isPresent()) {
-                    postings.addAll(result.get());
+                    // The board is kept with each posting, so that expiry can tell which board a vacancy was seen on.
+                    result.get().forEach(p -> postings.add(p.withBoard(board)));
                 } else {
                     unchanged++;
                 }
             } catch (UpstreamException | IllegalArgumentException e) {
                 failed++;
+                failedBoards.add(board);
                 String reason = reasonOf(label, board, e);
                 firstError = firstError == null ? reason : firstError;
                 log.warn("{}", reason);
@@ -57,6 +60,7 @@ public final class BoardFetch {
         }
         if (failed > 0) {
             return FetchOutcome.of(postings)
+                    .withFailedBoards(failedBoards)
                     .withWarning(failed + " of " + (read + failed) + " " + label + "s could not be read. " + firstError);
         }
         // Every board answered "not modified": nothing changed since the last run, so what was seen stays seen.

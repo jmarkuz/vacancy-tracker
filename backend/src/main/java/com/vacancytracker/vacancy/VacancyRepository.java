@@ -184,13 +184,23 @@ public class VacancyRepository {
                 .list();
     }
 
-    /** Records that a vacancy was seen on a source; a repeated external id refreshes the same row. */
+    /** Records that a vacancy was seen on a source with no boards. */
     public void upsertSource(UUID vacancyId, String adapter, String externalId, String url, Instant seenAt) {
+        upsertSource(vacancyId, adapter, externalId, url, null, seenAt);
+    }
+
+    /**
+     * Records that a vacancy was seen on a source, on the named board of it when the source reads several; a repeated
+     * external id refreshes the same row. A sighting without a board keeps the board a row already has.
+     */
+    public void upsertSource(UUID vacancyId, String adapter, String externalId, String url, String board, Instant seenAt) {
         OffsetDateTime at = OffsetDateTime.ofInstant(seenAt, java.time.ZoneOffset.UTC);
         if (externalId == null) {
             // No id to conflict on: refresh the row of this address instead of adding one per sighting.
-            int refreshed = jdbc.sql("UPDATE vacancy_source SET last_seen_at = :at WHERE vacancy_id = :vacancyId"
+            int refreshed = jdbc.sql("UPDATE vacancy_source SET last_seen_at = :at, board = COALESCE(:board, board)"
+                            + " WHERE vacancy_id = :vacancyId"
                             + " AND adapter = :adapter AND external_id IS NULL AND url IS NOT DISTINCT FROM :url")
+                    .param("board", board)
                     .param("vacancyId", vacancyId)
                     .param("adapter", adapter)
                     .param("url", url)
@@ -199,8 +209,9 @@ public class VacancyRepository {
             if (refreshed > 0) {
                 return;
             }
-            jdbc.sql("INSERT INTO vacancy_source (id, vacancy_id, adapter, external_id, url, first_seen_at, last_seen_at)"
-                            + " VALUES (:id, :vacancyId, :adapter, NULL, :url, :at, :at)")
+            jdbc.sql("INSERT INTO vacancy_source (id, vacancy_id, adapter, external_id, url, board, first_seen_at, last_seen_at)"
+                            + " VALUES (:id, :vacancyId, :adapter, NULL, :url, :board, :at, :at)")
+                    .param("board", board)
                     .param("id", UUID.randomUUID())
                     .param("vacancyId", vacancyId)
                     .param("adapter", adapter)
@@ -209,10 +220,12 @@ public class VacancyRepository {
                     .update();
             return;
         }
-        jdbc.sql("INSERT INTO vacancy_source (id, vacancy_id, adapter, external_id, url, first_seen_at, last_seen_at)"
-                        + " VALUES (:id, :vacancyId, :adapter, :ext, :url, :at, :at)"
+        jdbc.sql("INSERT INTO vacancy_source (id, vacancy_id, adapter, external_id, url, board, first_seen_at, last_seen_at)"
+                        + " VALUES (:id, :vacancyId, :adapter, :ext, :url, :board, :at, :at)"
                         + " ON CONFLICT (adapter, external_id) WHERE external_id IS NOT NULL"
-                        + " DO UPDATE SET last_seen_at = EXCLUDED.last_seen_at, url = COALESCE(EXCLUDED.url, vacancy_source.url)")
+                        + " DO UPDATE SET last_seen_at = EXCLUDED.last_seen_at, url = COALESCE(EXCLUDED.url, vacancy_source.url),"
+                        + " board = COALESCE(EXCLUDED.board, vacancy_source.board)")
+                .param("board", board)
                 .param("id", UUID.randomUUID())
                 .param("vacancyId", vacancyId)
                 .param("adapter", adapter)

@@ -19,6 +19,7 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -416,5 +417,93 @@ class ExpiryAndRunLockTest extends AbstractIntegrationTest {
         }
 
         assertThat(statusOf("Platform Engineer 4")).isEqualTo("Expired");
+    }
+
+    // ---- run cleanliness per board (V30, ADR-014) ----
+
+    private static RawPosting onBoard(String ext, String board) {
+        return posting(ext).withBoard(board);
+    }
+
+    /** A run in which the boards named in failed could not be read; the others were read and listed what is in posted. */
+    private static FetchOutcome partialRun(List<RawPosting> posted, List<String> failed) {
+        return FetchOutcome.of(posted).withFailedBoards(failed)
+                .withWarning(failed.size() + " boards could not be read. Board " + failed.get(0) + ": HTTP 404");
+    }
+
+    @Test
+    void aBrokenBoardKeepsItsVacanciesButDoesNotKeepTheHealthyBoardsFromExpiring() {
+        AtomicInteger run = new AtomicInteger();
+        // Run 1 reads both boards. Later runs read only the healthy board "good", which no longer lists vacancy 2;
+        // the board "broken" cannot be read.
+        SourceAdapter source = adapter("exp", () -> run.getAndIncrement() == 0
+                ? FetchOutcome.of(List.of(onBoard("1", "good"), onBoard("2", "good"), onBoard("3", "broken")))
+                : partialRun(List.of(onBoard("1", "good")), List.of("broken")));
+        CollectionPipeline pipeline = pipeline(List.of(source));
+        for (int i = 0; i < 4; i++) {
+            pipeline.run("manual");
+            clock.advance(Duration.ofHours(1));
+        }
+
+        assertThat(statusOf("Data Engineer 2")).as("looked for on a board that was read, and gone").isEqualTo("Expired");
+        assertThat(statusOf("Data Engineer 1")).as("still listed").isEqualTo("New");
+        assertThat(statusOf("Data Engineer 3")).as("its board could not be read, so it is not known to be gone").isEqualTo("New");
+    }
+
+    @Test
+    void aVacancyWhoseBoardIsNotKnownYetIsNotExpiredByAPartialRun() {
+        AtomicInteger run = new AtomicInteger();
+        // Vacancy 1 is stored with no board, as rows stored before V30 are; the later runs have a board that failed.
+        SourceAdapter source = adapter("exp", () -> run.getAndIncrement() == 0
+                ? FetchOutcome.of(List.of(posting("1")))
+                : partialRun(List.of(), List.of("broken")));
+        CollectionPipeline pipeline = pipeline(List.of(source));
+        for (int i = 0; i < 5; i++) {
+            pipeline.run("manual");
+            clock.advance(Duration.ofHours(1));
+        }
+
+        assertThat(statusOf("Data Engineer 1")).isEqualTo("New");
+    }
+
+    @Test
+    void aWarningThatNamesNoBoardStillMakesTheRunUnclean() {
+        AtomicInteger run = new AtomicInteger();
+        // A partial read of a source that has no boards (a feed, an HTML site) names no failed board: the run counts for nothing.
+        SourceAdapter source = adapter("exp", () -> run.getAndIncrement() == 0
+                ? FetchOutcome.of(List.of(onBoard("1", "good")))
+                : FetchOutcome.of(List.of()).withWarning("1 of 2 feeds could not be read."));
+        CollectionPipeline pipeline = pipeline(List.of(source));
+        for (int i = 0; i < 5; i++) {
+            pipeline.run("manual");
+            clock.advance(Duration.ofHours(1));
+        }
+
+        assertThat(statusOf("Data Engineer 1")).isEqualTo("New");
+    }
+
+    @Test
+    void theBoardAndTheFailedBoardsAreStored() {
+        AtomicInteger run = new AtomicInteger();
+        SourceAdapter source = adapter("exp", () -> run.getAndIncrement() == 0
+                ? FetchOutcome.of(List.of(onBoard("1", "good")))
+                : partialRun(List.of(onBoard("1", "good")), List.of("broken", "gone")));
+        CollectionPipeline pipeline = pipeline(List.of(source));
+        pipeline.run("manual");
+        clock.advance(Duration.ofHours(1));
+        pipeline.run("manual");
+
+        assertThat(template.queryForObject("SELECT board FROM vacancy_source WHERE external_id = '1'", String.class)).isEqualTo("good");
+        assertThat(template.queryForObject(
+                "SELECT array_to_string(failed_boards, ',') FROM run_source_stat ORDER BY (SELECT started_at FROM run r WHERE r.id = run_id) DESC LIMIT 1",
+                String.class)).isEqualTo("broken,gone");
+    }
+
+    @Test
+    void aSightingWithoutABoardKeepsTheBoardTheRowAlreadyHas() {
+        pipeline(List.of(adapter("exp", () -> FetchOutcome.of(List.of(onBoard("1", "good")))))).run("manual");
+        pipeline(List.of(adapter("exp", () -> FetchOutcome.of(List.of(posting("1")))))).run("manual");
+
+        assertThat(template.queryForObject("SELECT board FROM vacancy_source WHERE external_id = '1'", String.class)).isEqualTo("good");
     }
 }

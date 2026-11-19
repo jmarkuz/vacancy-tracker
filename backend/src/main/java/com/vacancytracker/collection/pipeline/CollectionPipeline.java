@@ -213,6 +213,7 @@ public class CollectionPipeline {
                     }
                 }
             }
+            stats.failedBoards = outcome.failedBoards();
             return new AdapterResult(id, stats, outcome.warning());
         } catch (UpstreamException e) {
             return failed(id, stats, e.getMessage());

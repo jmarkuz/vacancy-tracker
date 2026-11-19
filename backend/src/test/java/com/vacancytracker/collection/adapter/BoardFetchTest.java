@@ -39,6 +39,9 @@ class BoardFetchTest {
                 "c", Optional.of(List.of(posting("3"))))), LOG);
 
         assertThat(outcome.postings()).extracting(RawPosting::externalId).containsExactly("1", "3");
+        assertThat(outcome.postings()).as("each posting keeps the board it was read from").extracting(RawPosting::board)
+                .containsExactly("a", "c");
+        assertThat(outcome.failedBoards()).containsExactly("broken");
         assertThat(outcome.unchanged()).isFalse();
         assertThat(outcome.warning()).startsWith("1 of 3 Test boards could not be read.")
                 .contains("Test board broken: HTTP 500 after 4 attempts");
@@ -80,6 +83,7 @@ class BoardFetchTest {
                 "b", Optional.of(List.of(posting("2"))))), LOG);
 
         assertThat(outcome.warning()).isNull();
+        assertThat(outcome.failedBoards()).isEmpty();
         assertThat(outcome.postings()).hasSize(2);
     }
 
