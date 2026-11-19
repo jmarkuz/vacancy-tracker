@@ -10,6 +10,7 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
@@ -23,7 +24,16 @@ public class HttpFetcher {
     /** The name robots.txt rules are matched against (the product part of the User-Agent). */
     public static final String PRODUCT_TOKEN = "VacancyTracker";
     static final String USER_AGENT = PRODUCT_TOKEN + "/0.1 (personal job search; no crawling)";
-    static final int MAX_BODY_BYTES = 5 * 1024 * 1024;
+    /**
+     * The largest answer body that is read, in MB. Whole-list sources (a Greenhouse board with content=true, Remote OK,
+     * Working Nomads) answer with several MB of JSON at once, so 5 MB was too small and failed such a source on every
+     * run. Configurable with app.collection.http.max-body-mb (APP_COLLECTION_HTTP_MAX_BODY_MB). A body is held as bytes,
+     * a string and a parsed tree at once, so the value is kept within MIN..MAX_BODY_MB_LIMIT to protect the heap.
+     */
+    static final int DEFAULT_MAX_BODY_MB = 25;
+    static final int MIN_MAX_BODY_MB = 1;
+    static final int MAX_BODY_MB_LIMIT = 256;
+    private static final long MB = 1024L * 1024L;
     static final int MAX_REDIRECTS = 3;
     /** Deadline for reading a whole answer body: the request timeout only covers the headers (T-092, F7). */
     public static final Duration BODY_DEADLINE = Duration.ofSeconds(30);
@@ -43,18 +53,27 @@ public class HttpFetcher {
     private final ConditionalCache cache;
     private final RetryPolicy retry;
     private final Sleeper sleeper;
+    private final long maxBodyBytes;
 
     @Autowired
-    public HttpFetcher(ConditionalCache cache, Clock clock) {
-        this(cache, RetryPolicy.standard(), new DomainRateLimiter(1000, clock, Sleeper.THREAD), Sleeper.THREAD);
+    public HttpFetcher(ConditionalCache cache, Clock clock,
+                       @Value("${app.collection.http.max-body-mb:" + DEFAULT_MAX_BODY_MB + "}") int maxBodyMb) {
+        this(cache, RetryPolicy.standard(), new DomainRateLimiter(1000, clock, Sleeper.THREAD), Sleeper.THREAD,
+                Math.max(MIN_MAX_BODY_MB, Math.min(MAX_BODY_MB_LIMIT, maxBodyMb)) * MB);
     }
 
-    /** Explicit wiring for tests and for custom retry or pacing settings. */
+    /** Explicit wiring for tests and for custom retry or pacing settings, with the default size limit. */
     public HttpFetcher(ConditionalCache cache, RetryPolicy retry, DomainRateLimiter limiter, Sleeper sleeper) {
+        this(cache, retry, limiter, sleeper, DEFAULT_MAX_BODY_MB * MB);
+    }
+
+    /** As above with an explicit limit in bytes for one answer body. */
+    public HttpFetcher(ConditionalCache cache, RetryPolicy retry, DomainRateLimiter limiter, Sleeper sleeper, long maxBodyBytes) {
         this.cache = cache;
         this.retry = retry;
         this.limiter = limiter;
         this.sleeper = sleeper;
+        this.maxBodyBytes = maxBodyBytes;
     }
 
     public FetchResult get(String url) {
@@ -198,7 +217,6 @@ public class HttpFetcher {
         }
     }
 
-    /** Reads at most MAX_BODY_BYTES; a larger answer is refused, not cut, so a half document is never parsed. */
     /** The charset of the Content-Type header; UTF-8 when it is missing or unknown. Pages in windows-1250 stay readable. */
     public static java.nio.charset.Charset charsetOf(java.net.http.HttpHeaders headers) {
         String type = headers.firstValue("Content-Type").orElse("");
@@ -213,12 +231,19 @@ public class HttpFetcher {
         return java.nio.charset.StandardCharsets.UTF_8;
     }
 
-    private static String readBounded(HttpResponse<java.io.InputStream> response) {
-        return readBounded(response, BODY_DEADLINE);
+    private String readBounded(HttpResponse<java.io.InputStream> response) {
+        return readBounded(response, BODY_DEADLINE, maxBodyBytes);
     }
 
-    /** A stalled body is cut by closing the stream when the deadline passes, so the run lock is never held for good. */
     static String readBounded(HttpResponse<java.io.InputStream> response, Duration deadline) {
+        return readBounded(response, deadline, DEFAULT_MAX_BODY_MB * MB);
+    }
+
+    /**
+     * Reads the whole body up to maxBytes; a larger answer is refused, not cut, so a half document is never parsed.
+     * A stalled body is cut by closing the stream when the deadline passes, so the run lock is never held for good.
+     */
+    static String readBounded(HttpResponse<java.io.InputStream> response, Duration deadline, long maxBytes) {
         java.util.concurrent.atomic.AtomicBoolean expired = new java.util.concurrent.atomic.AtomicBoolean();
         java.io.InputStream body = response.body();
         java.util.concurrent.ScheduledFuture<?> timer = WATCHDOG.schedule(() -> {
@@ -226,9 +251,10 @@ public class HttpFetcher {
             closeQuietly(body);
         }, deadline.toMillis(), java.util.concurrent.TimeUnit.MILLISECONDS);
         try (java.io.InputStream in = body) {
-            byte[] bytes = in.readNBytes(MAX_BODY_BYTES + 1);
-            if (bytes.length > MAX_BODY_BYTES) {
-                throw new UpstreamException("The answer is larger than " + MAX_BODY_BYTES / (1024 * 1024) + " MB");
+            byte[] bytes = in.readNBytes((int) Math.min(maxBytes + 1, Integer.MAX_VALUE - 8));
+            if (bytes.length > maxBytes) {
+                throw new UpstreamException("The answer is larger than " + describe(maxBytes)
+                        + ", the limit for one answer. Raise it with APP_COLLECTION_HTTP_MAX_BODY_MB if the source really sends more.");
             }
             return new String(bytes, charsetOf(response.headers()));
         } catch (IOException e) {
@@ -262,6 +288,10 @@ public class HttpFetcher {
         } finally {
             timer.cancel(false);
         }
+    }
+
+    private static String describe(long bytes) {
+        return bytes >= MB && bytes % MB == 0 ? bytes / MB + " MB" : bytes + " bytes";
     }
 
     private FetchResult finish(String cacheKey, HttpResponse<java.io.InputStream> response, int status) {

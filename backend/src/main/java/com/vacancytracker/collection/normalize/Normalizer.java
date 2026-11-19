@@ -60,7 +60,8 @@ public final class Normalizer {
                 hasSalary ? (max != null ? max : min) : null,
                 hasSalary ? currency : null,
                 hasSalary ? period(raw.salaryPeriod()) : null,
-                raw.postedAt()));
+                raw.postedAt(),
+                blankToNull(raw.board())));
     }
 
     /** A known HTML tag, a comment or a character reference; "Map<String>" or "<T>" is text, not markup. */
