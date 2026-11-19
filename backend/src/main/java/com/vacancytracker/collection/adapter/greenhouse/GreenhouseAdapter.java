@@ -3,6 +3,7 @@ package com.vacancytracker.collection.adapter.greenhouse;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vacancytracker.collection.adapter.AdapterDates;
+import com.vacancytracker.collection.adapter.BoardFetch;
 import com.vacancytracker.collection.adapter.FetchOutcome;
 import com.vacancytracker.collection.adapter.RawPosting;
 import com.vacancytracker.collection.adapter.SourceAdapter;
@@ -13,8 +14,11 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.jsoup.Jsoup;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -24,6 +28,8 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class GreenhouseAdapter implements SourceAdapter {
+
+    private static final Logger LOG = LoggerFactory.getLogger(GreenhouseAdapter.class);
 
     static final String ID = "ats-greenhouse";
 
@@ -58,22 +64,21 @@ public class GreenhouseAdapter implements SourceAdapter {
         return java.util.Optional.of(boards.stream().map(b -> b.toLowerCase(java.util.Locale.ROOT)).collect(java.util.stream.Collectors.toSet()));
     }
 
+    /** A board that cannot be read does not stop the others (see {@link BoardFetch}). */
     @Override
     public FetchOutcome fetch() {
-        List<RawPosting> all = new ArrayList<>();
-        boolean allUnchanged = !boards.isEmpty();
-        for (String board : boards) {
-            FetchResult result = fetcher.getUnconditional(baseUrl + "/v1/boards/" + board + "/jobs?content=true");
-            if (result.notModified()) {
-                continue;
-            }
-            allUnchanged = false;
-            if (!result.ok()) {
-                throw new UpstreamException("Greenhouse board " + board + " responded HTTP " + result.status());
-            }
-            all.addAll(parse(board, result.body()));
+        return BoardFetch.fetchAll("Greenhouse board", boards, this::readBoard, LOG);
+    }
+
+    private Optional<List<RawPosting>> readBoard(String board) {
+        FetchResult result = fetcher.getUnconditional(baseUrl + "/v1/boards/" + board + "/jobs?content=true");
+        if (result.notModified()) {
+            return Optional.empty();
         }
-        return allUnchanged ? FetchOutcome.noChange() : FetchOutcome.of(all);
+        if (!result.ok()) {
+            throw new UpstreamException("Greenhouse board " + board + " responded HTTP " + result.status());
+        }
+        return Optional.of(parse(board, result.body()));
     }
 
     List<RawPosting> parse(String board, String json) {
