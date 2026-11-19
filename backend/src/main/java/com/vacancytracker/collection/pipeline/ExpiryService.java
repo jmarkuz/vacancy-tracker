@@ -42,7 +42,7 @@ public class ExpiryService {
      * A run counts for a vacancy when a source that lists it was read cleanly in that run. A source that reads several
      * boards (Greenhouse, Lever, Ashby) and could not read some of them still counts for the vacancies of the boards it
      * did read: s.failed_boards names the unreadable ones, and a vacancy whose board is not named was looked for. A
-     * vacancy of a named board, or one whose board is not known yet (stored before V29), is not counted.
+     * vacancy of a named board, or one whose board is not known yet (stored before V30), is not counted.
      */
     private static final String CANDIDATES = """
             SELECT v.id FROM vacancy v

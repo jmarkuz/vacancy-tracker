@@ -419,7 +419,7 @@ class ExpiryAndRunLockTest extends AbstractIntegrationTest {
         assertThat(statusOf("Platform Engineer 4")).isEqualTo("Expired");
     }
 
-    // ---- run cleanliness per board (V29, ADR-014) ----
+    // ---- run cleanliness per board (V30, ADR-014) ----
 
     private static RawPosting onBoard(String ext, String board) {
         return posting(ext).withBoard(board);
@@ -453,7 +453,7 @@ class ExpiryAndRunLockTest extends AbstractIntegrationTest {
     @Test
     void aVacancyWhoseBoardIsNotKnownYetIsNotExpiredByAPartialRun() {
         AtomicInteger run = new AtomicInteger();
-        // Vacancy 1 is stored with no board, as rows stored before V29 are; the later runs have a board that failed.
+        // Vacancy 1 is stored with no board, as rows stored before V30 are; the later runs have a board that failed.
         SourceAdapter source = adapter("exp", () -> run.getAndIncrement() == 0
                 ? FetchOutcome.of(List.of(posting("1")))
                 : partialRun(List.of(), List.of("broken")));
