@@ -84,4 +84,26 @@ class BodyDeadlineTest {
                 .isInstanceOf(UpstreamException.class)
                 .hasMessageContaining("not received within");
     }
+
+    @Test
+    void aBodyOverTheLimitIsRefusedAndNamesTheLimitAndTheSetting() {
+        InputStream big = new ByteArrayInputStream(new byte[11]);
+        assertThatThrownBy(() -> HttpFetcher.readBounded(responseWith(big), Duration.ofSeconds(5), 10))
+                .isInstanceOf(UpstreamException.class)
+                .hasMessageContaining("larger than 10 bytes")
+                .hasMessageContaining("APP_COLLECTION_HTTP_MAX_BODY_MB");
+    }
+
+    @Test
+    void aBodyExactlyAtTheLimitIsRead() {
+        InputStream exact = new ByteArrayInputStream(new byte[10]);
+        assertThat(HttpFetcher.readBounded(responseWith(exact), Duration.ofSeconds(5), 10)).hasSize(10);
+    }
+
+    /** The size 5 MB used to be the limit and failed whole-list sources; the default must take several MB. */
+    @Test
+    void theDefaultLimitTakesAnAnswerOfSeveralMegabytes() {
+        InputStream six = new ByteArrayInputStream(new byte[6 * 1024 * 1024]);
+        assertThat(HttpFetcher.readBounded(responseWith(six), Duration.ofSeconds(30))).hasSize(6 * 1024 * 1024);
+    }
 }
