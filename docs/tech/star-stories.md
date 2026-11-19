@@ -274,10 +274,10 @@
 - Виправив причини, а не симптоми: Testcontainers піднято до 1.21.4; тест SPA перевіряє, що auth-фільтр не відмовляє сторінці, і не вимагає UI-збірки; воркери Vitest на Node 22+ запускаються з `--no-experimental-webstorage`; у CI Playwright 1.55.1 і runner `ubuntu-24.04` закріплені з коментарем, чому.
 - Організував рев'ю як **процес**, а не разову подію: окремі читачі для бекенда й фронтенда, кожну знахідку простежено по коду; усе у таблиці з серйозністю (critical/high/medium/low), місцем у коді й станом (fixed/open); незакрите винесено в беклог T-092, а не загублено.
 - Додав **тести на взаємодії функцій**, яких не було (одно-функціональні тести їх не бачили): для F1, F3, F4, F5, F6, F14.
-- Закріпив рішення в **ADR** (54), а план із ID задач і критеріями прийняття синхронізував із CSV окремою CI-джобою; бар'єри в кожній збірці: Checkstyle, JaCoCo 80% рядків для чотирьох основних модулів, ArchUnit для меж модулів.
+- Закріпив рішення в **ADR** (55), а план із ID задач і критеріями прийняття синхронізував із CSV окремою CI-джобою; бар'єри в кожній збірці: Checkstyle, JaCoCo 80% рядків для чотирьох основних модулів, ArchUnit для меж модулів.
 - Це й була моя відповідь на питання довіри до AI-згенерованого коду: не перечитувати кожен рядок, а будувати **незалежну перевірку, що не залежить від автора** (чиста машина, окремий рев'юер, архітектурні тести, e2e на запакованому jar).
 
-**Result.** `mvn verify` стартує на сучасних інструментах (52 інтеграційні тести, які не могли запуститись, тепер запускаються). Усі critical/high знахідки рев'ю закриті, відкрите чесно перелічене. У цьому аналізі я самостійно повторив частину перевірки: 726 фронтенд-тестів і typecheck пройшли, 260 бекенд-тестів чистої логіки пройшли; інтеграційні в моєму середовищі без Docker не запускались, і я це кажу прямо.
+**Result.** `mvn verify` стартує на сучасних інструментах (52 інтеграційні тести, які не могли запуститись, тепер запускаються). Усі critical/high знахідки рев'ю закриті, відкрите чесно перелічене. У цьому аналізі я самостійно повторив перевірку: 795 фронтенд-тестів і typecheck пройшли, а повний бекенд-набір на локальному PostgreSQL дав 1184 тести з одним збоєм, що залежить від середовища (змінна `JAVA_TOOL_OPTIONS`), і одним пропущеним; Testcontainers, JaCoCo-бар'єр і e2e в моєму середовищі не запускались, і я це кажу прямо.
 
 ### English (to say)
 
@@ -287,19 +287,19 @@
 
 **Action.** I fixed causes, not symptoms: I bumped Testcontainers to a version that works with Docker 29, rewrote the SPA test so it doesn't depend on a UI build, ran Vitest workers with the right Node flag, and pinned the Playwright version and the CI runner image with a comment explaining why. I ran the review as a process, not an event: separate readers for backend and frontend, every finding traced through the code and recorded with severity, location and state, and unfinished items moved to an explicit backlog. I added tests for feature interactions that single-feature tests had missed. I recorded decisions in ADRs, synced the plan with a CSV through a CI job, and kept gates in every build: Checkstyle, an 80% line-coverage gate on the core modules, and ArchUnit for module boundaries. That was also my answer to trusting AI-assisted code: I don't try to re-read every line, I build checks that don't depend on the author, such as a clean machine, an independent reviewer, architecture tests and end-to-end tests on the packaged jar.
 
-**Result.** `mvn verify` now runs on current tools, including the 52 integration tests that couldn't start. All critical and high findings from that review are closed, and the open ones are listed openly. While preparing this interview I re-ran part of the checks myself: all 726 front-end tests and the type check pass, and 260 back-end tests of pure logic pass. The integration tests need Docker, which my environment didn't have, so I won't claim I just ran those.
+**Result.** `mvn verify` now runs on current tools, including the 52 integration tests that couldn't start. All critical and high findings from that review are closed, and the open ones are listed openly. While preparing this interview I re-ran the checks myself: all 795 front-end tests and the type check pass, and the full back-end suite, run against a local PostgreSQL, gives 1184 tests with one environment-dependent failure and one skipped test. Testcontainers, the coverage gate and the end-to-end tests weren't run in my environment, so I won't claim I ran those.
 
 ### Докази в репозиторії
 
 - Знахідки B1–B3, F1–F15, U1–U14 зі станом: [code-review.md](../code-review.md); рішення: [ADR-039](../decisions.md#adr-039-review-2026-11-02-host-check-row-locks-manual-vacancies-web-links-keyboard-commits), [ADR-022](../decisions.md#adr-022-testing-strategy-and-coverage-gate), [ADR-024](../decisions.md#adr-024-frontend-test-tooling-and-accepted-dev-only-advisories).
-- Збірка й бар'єри: [`pom.xml`](../../backend/pom.xml), [`ci.yml`](../../.github/workflows/ci.yml) (закріплений runner із коментарем), [`ArchitectureTest`](../../backend/src/test/java/com/vacancytracker/ArchitectureTest.java#L23-L66), [`AbstractIntegrationTest`](../../backend/src/test/java/com/vacancytracker/support/AbstractIntegrationTest.java#L10-L35).
+- Збірка й бар'єри: [`pom.xml`](../../backend/pom.xml), [`ci.yml`](../../.github/workflows/ci.yml) (закріплений runner із коментарем), [`ArchitectureTest`](../../backend/src/test/java/com/vacancytracker/ArchitectureTest.java#L23-L66), [`AbstractIntegrationTest`](../../backend/src/test/java/com/vacancytracker/support/AbstractIntegrationTest.java#L10-L34).
 - План і синхронізація: [PLAN.md](../../PLAN.md), [`check-plan-sync.sh`](../../scripts/check-plan-sync.sh).
 - Тести взаємодій: [`ReviewFixesTest`](../../backend/src/test/java/com/vacancytracker/web/ReviewFixesTest.java), [`FullCycleIntegrationTest`](../../backend/src/test/java/com/vacancytracker/web/FullCycleIntegrationTest.java), [`e2e/tests`](../../e2e/tests).
 
 ### Питання, що підуть далі
 
 - *Чи писали код AI?* Скажіть як є: проєкт розроблявся з AI-асистентами (коміти Claude й виправлення за рев'ю іншого AI-інструмента видно в історії), а ваша роль це вимоги, рішення, рев'ю й перевірка; саме тому процес (ADR, незалежне рев'ю, бар'єри) такий важливий.
-- *Які метрики якості?* 774 тестові методи на бекенді (статичний підрахунок), 726 фронтенд-тестів (запущено), 19 сценаріїв Playwright; покриття рядків 97.7 %, 91.4 %, 90.9 % для `vacancy`, `collection`, `matching` на момент запису ADR-022 (не перемірювалось у цьому аналізі).
+- *Які метрики якості?* 863 тестові методи на бекенді (статичний підрахунок; повний набір запущено: 1184 тести), 795 фронтенд-тестів (запущено), 19 сценаріїв Playwright; покриття рядків 97.7 %, 91.4 %, 90.9 % для `vacancy`, `collection`, `matching` на момент запису ADR-022 (не перемірювалось у цьому аналізі).
 - *Що лишилось слабким?* Інтеграційні тести залежать від Docker; ручні перевірки доступності не виконані; беклог T-092 не закрито повністю.
 
 ---
