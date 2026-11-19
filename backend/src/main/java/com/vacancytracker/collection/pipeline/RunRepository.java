@@ -22,6 +22,8 @@ public class RunRepository {
         public int updated;
         public int duplicates;
         public int errors;
+        /** Boards of the adapter that could not be read in this run (see FetchOutcome.failedBoards). */
+        public java.util.List<String> failedBoards = java.util.List.of();
     }
 
     private final JdbcClient jdbc;
@@ -62,8 +64,9 @@ public class RunRepository {
 
     public void recordStat(UUID runId, String adapter, SourceStats stats, long durationMs, String error) {
         jdbc.sql("INSERT INTO run_source_stat (id, run_id, adapter, fetched, new_count, updated, duplicates, errors,"
-                        + " duration_ms, error_message) VALUES (:id, :run, :adapter, :fetched, :new, :updated,"
-                        + " :duplicates, :errors, :duration, :error)")
+                        + " duration_ms, error_message, failed_boards) VALUES (:id, :run, :adapter, :fetched, :new, :updated,"
+                        + " :duplicates, :errors, :duration, :error, :failedBoards)")
+                .param("failedBoards", stats.failedBoards.toArray(String[]::new))
                 .param("id", UUID.randomUUID())
                 .param("run", runId)
                 .param("adapter", adapter)

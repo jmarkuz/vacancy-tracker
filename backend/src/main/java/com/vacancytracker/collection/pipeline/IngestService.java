@@ -44,7 +44,7 @@ public class IngestService {
             created.applyAutomated(new AutomatedFields(null, posting.salaryMin(), posting.salaryMax(),
                     posting.currency(), posting.salaryPeriod(), now));
             vacancies.save(created.toState());
-            vacancies.upsertSource(created.getId(), posting.adapter(), posting.externalId(), posting.url(), now);
+            vacancies.upsertSource(created.getId(), posting.adapter(), posting.externalId(), posting.url(), posting.board(), now);
             return new Ingested(Outcome.NEW, created.getId());
         }
 
@@ -72,7 +72,7 @@ public class IngestService {
                 || !Objects.equals(beforeMin, existing.getSalaryMin())
                 || !Objects.equals(beforeMax, existing.getSalaryMax());
         vacancies.save(existing.toState());
-        vacancies.upsertSource(id, posting.adapter(), posting.externalId(), posting.url(), now);
+        vacancies.upsertSource(id, posting.adapter(), posting.externalId(), posting.url(), posting.board(), now);
         return new Ingested(changed ? Outcome.UPDATED : Outcome.DUPLICATE, id);
     }
 

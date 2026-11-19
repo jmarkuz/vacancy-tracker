@@ -38,16 +38,25 @@ public class ExpiryService {
     static final List<String> WINDOWED_SOURCES = List.of("remotive", "jobicy", "arbeitnow", "himalayas", "adzuna", "rss", "html",
             "remoteok", "workingnomads", "telegram-forward");
 
+    /**
+     * A run counts for a vacancy when a source that lists it was read cleanly in that run. A source that reads several
+     * boards (Greenhouse, Lever, Ashby) and could not read some of them still counts for the vacancies of the boards it
+     * did read: s.failed_boards names the unreadable ones, and a vacancy whose board is not named was looked for. A
+     * vacancy of a named board, or one whose board is not known yet (stored before V29), is not counted.
+     */
     private static final String CANDIDATES = """
             SELECT v.id FROM vacancy v
             WHERE v.status IN ('New', 'Saved')
               AND (SELECT count(DISTINCT r.id)
-                   FROM run r JOIN run_source_stat s ON s.run_id = r.id
+                   FROM run r
+                   JOIN run_source_stat s ON s.run_id = r.id
+                   JOIN vacancy_source vs ON vs.vacancy_id = v.id AND vs.adapter = s.adapter
                    WHERE r.started_at > v.last_seen_at
                      AND r.status IN ('completed', 'completed_with_errors')
-                     AND s.error_message IS NULL
-                     AND s.adapter IN (SELECT vs.adapter FROM vacancy_source vs WHERE vs.vacancy_id = v.id
-                                        AND vs.adapter NOT LIKE 'email-%' AND vs.adapter NOT IN (:windowed))
+                     AND vs.adapter NOT LIKE 'email-%' AND vs.adapter NOT IN (:windowed)
+                     AND (s.error_message IS NULL
+                          OR (vs.board IS NOT NULL AND cardinality(s.failed_boards) > 0
+                              AND NOT (vs.board = ANY (s.failed_boards))))
                   ) >= :runs
             """;
 
