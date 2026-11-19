@@ -4,6 +4,9 @@ All notable changes are recorded here. Format: date, task ID, short description.
 
 ## [Unreleased]
 
+### 2026-11-19 — Owner requests
+- Source answer size limit. The 5 MB limit on one answer from a source was hard-coded for every source and too small for those that send a whole list at once (a big Greenhouse board, Remote OK, Working Nomads): the source failed with "The answer is larger than 5 MB" on every run and no vacancies loaded. The limit is now `APP_COLLECTION_HTTP_MAX_BODY_MB` (`app.collection.http.max-body-mb`), default 25, kept between 1 and 256; an answer over it is still refused, not cut, and the error names the limit and the setting. Tests: `BodyDeadlineTest` (over, at and several MB under the limit), `HttpFetcherTest`. Revision note in ADR-037.
+
 ### 2026-11-16 — Scores and Top matches (review)
 - Top matches no longer pass a thin 100 for a full one. A rule whose value a posting does not state (no work mode, country or salary) is skipped by the "ignore" policy, so a posting that matched one stated fact scored 100, like one that matched all of them. Each score now carries a coverage (the share of your scoring rules the posting could be judged by, V29, ADR-055): equal scores are ordered by coverage, and a top match judged by part of your rules says "Based on N% of your rules: the rest are not stated". The score formula and thresholds are unchanged. Scores made earlier have no coverage until "Recalculate scores".
 - Fixed: a profile that cannot judge a posting (only filters, or every scored value missing) scored it 0 and the Inbox rule hid it below the threshold, against "ignore keeps useful vacancies visible". Such vacancies now stay in the Inbox, and a score of 0 on no evidence is left out of Top matches.

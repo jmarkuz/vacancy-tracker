@@ -91,7 +91,8 @@ class HttpFetcherTest extends AbstractIntegrationTest {
             ex.close();
         });
         server.createContext("/feed-plain", ex -> send(ex, 200, "plain"));
-        server.createContext("/huge", ex -> send(ex, 200, "x".repeat(HttpFetcher.MAX_BODY_BYTES + 10)));
+        server.createContext("/huge", ex -> send(ex, 200, "x".repeat(2 * 1024 * 1024 + 10)));
+        server.createContext("/big", ex -> send(ex, 200, "x".repeat(6 * 1024 * 1024)));
         server.start();
         base = "http://127.0.0.1:" + server.getAddress().getPort();
     }
@@ -137,8 +138,30 @@ class HttpFetcherTest extends AbstractIntegrationTest {
 
     @Test
     void anAnswerOverTheSizeCapIsRefusedNotCut() {
-        assertThatThrownBy(() -> fetcher().get(base + "/huge"))
-                .isInstanceOf(UpstreamException.class).hasMessageContaining("larger than");
+        HttpFetcher small = new HttpFetcher(cache, new RetryPolicy(4, 10, 20, new Random(3)),
+                new DomainRateLimiter(0, clock, sleeps::add), sleeps::add, 1024 * 1024);
+        assertThatThrownBy(() -> small.get(base + "/huge"))
+                .isInstanceOf(UpstreamException.class)
+                .hasMessageContaining("larger than 1 MB")
+                .hasMessageContaining("APP_COLLECTION_HTTP_MAX_BODY_MB");
+    }
+
+    /** A whole-list source (a big Greenhouse board, Remote OK) answers with several MB; 5 MB used to fail it on every run. */
+    @Test
+    void anAnswerOfSeveralMegabytesIsReadWithTheDefaultLimit() {
+        FetchResult result = fetcher().get(base + "/big");
+
+        assertThat(result.status()).isEqualTo(200);
+        assertThat(result.body()).hasSize(6 * 1024 * 1024);
+    }
+
+    @Test
+    void theConfiguredLimitIsKeptWithinSaneBounds() {
+        // 0 MB would refuse every answer: it is raised to the 1 MB minimum, so a 2 MB answer is still refused as too large
+        // while a small one is read.
+        HttpFetcher tiny = new HttpFetcher(cache, clock, 0);
+        assertThatThrownBy(() -> tiny.get(base + "/huge")).hasMessageContaining("larger than 1 MB");
+        assertThat(tiny.get(base + "/feed-plain").body()).isEqualTo("plain");
     }
 
     @Test
