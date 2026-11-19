@@ -5,6 +5,7 @@ All notable changes are recorded here. Format: date, task ID, short description.
 ## [Unreleased]
 
 ### 2026-11-19 — Owner requests
+- Board isolation for Greenhouse, Lever and Ashby. A board (site) that answers an error, cannot be parsed or is too large no longer stops the other boards of the same source: its problem is logged and named in the run's warning ("1 of 3 Greenhouse boards could not be read. Greenhouse board x: HTTP 404"), the other boards' vacancies are stored, and the run is not counted as a clean read, so nothing of the unreadable board expires. The source fails (and the circuit breaker counts it) only when no board could be read. Shared code in `BoardFetch`; tests `BoardFetchTest` and `BoardIsolationTest` (all three adapters, local server, no database). Revision note in ADR-037.
 - Source answer size limit. The 5 MB limit on one answer from a source was hard-coded for every source and too small for those that send a whole list at once (a big Greenhouse board, Remote OK, Working Nomads): the source failed with "The answer is larger than 5 MB" on every run and no vacancies loaded. The limit is now `APP_COLLECTION_HTTP_MAX_BODY_MB` (`app.collection.http.max-body-mb`), default 25, kept between 1 and 256; an answer over it is still refused, not cut, and the error names the limit and the setting. Tests: `BodyDeadlineTest` (over, at and several MB under the limit), `HttpFetcherTest`. Revision note in ADR-037.
 
 ### 2026-11-16 — Scores and Top matches (review)

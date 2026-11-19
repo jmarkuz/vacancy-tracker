@@ -3,6 +3,7 @@ package com.vacancytracker.collection.adapter.lever;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vacancytracker.collection.adapter.AdapterDates;
+import com.vacancytracker.collection.adapter.BoardFetch;
 import com.vacancytracker.collection.adapter.FetchOutcome;
 import com.vacancytracker.collection.adapter.RawPosting;
 import com.vacancytracker.collection.adapter.SourceAdapter;
@@ -14,7 +15,10 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -24,6 +28,8 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class LeverAdapter implements SourceAdapter {
+
+    private static final Logger LOG = LoggerFactory.getLogger(LeverAdapter.class);
 
     static final String ID = "ats-lever";
 
@@ -58,22 +64,21 @@ public class LeverAdapter implements SourceAdapter {
         return java.util.Optional.of(sites.stream().map(b -> b.toLowerCase(java.util.Locale.ROOT)).collect(java.util.stream.Collectors.toSet()));
     }
 
+    /** A site that cannot be read does not stop the others (see {@link BoardFetch}). */
     @Override
     public FetchOutcome fetch() {
-        List<RawPosting> all = new ArrayList<>();
-        boolean allUnchanged = !sites.isEmpty();
-        for (String site : sites) {
-            FetchResult result = fetcher.getUnconditional(baseUrl + "/v0/postings/" + site + "?mode=json");
-            if (result.notModified()) {
-                continue;
-            }
-            allUnchanged = false;
-            if (!result.ok()) {
-                throw new UpstreamException("Lever site " + site + " responded HTTP " + result.status());
-            }
-            all.addAll(parse(site, result.body()));
+        return BoardFetch.fetchAll("Lever site", sites, this::readSite, LOG);
+    }
+
+    private Optional<List<RawPosting>> readSite(String site) {
+        FetchResult result = fetcher.getUnconditional(baseUrl + "/v0/postings/" + site + "?mode=json");
+        if (result.notModified()) {
+            return Optional.empty();
         }
-        return allUnchanged ? FetchOutcome.noChange() : FetchOutcome.of(all);
+        if (!result.ok()) {
+            throw new UpstreamException("Lever site " + site + " responded HTTP " + result.status());
+        }
+        return Optional.of(parse(site, result.body()));
     }
 
     List<RawPosting> parse(String site, String json) {
